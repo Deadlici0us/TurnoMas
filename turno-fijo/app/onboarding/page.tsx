@@ -1,5 +1,9 @@
 import OnboardingWizard from "@/components/onboarding-wizard";
 
+// El wizard es cliente con next-intl: el prerender estático no tiene
+// contexto de request y revienta con ENVIRONMENT_FALLBACK. On-demand.
+export const dynamic = "force-dynamic";
+
 export default function OnboardingPage()
 {
   return (
