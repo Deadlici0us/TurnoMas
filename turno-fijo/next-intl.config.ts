@@ -19,6 +19,7 @@ const config = {
     "/pricing": "/pricing",
     "/login": "/login",
     "/register": "/register",
+    "/onboarding": "/onboarding",
     "/dashboard": "/dashboard",
     "/:locale": "/:locale",
     "/:locale/:path*": "/:locale/:path*"

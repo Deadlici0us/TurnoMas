@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
+import { enterDemo } from "./actions";
+
 export default async function DemoPage() {
   const t = await getTranslations("common");
   const cookieStore = await cookies();
@@ -20,19 +22,15 @@ export default async function DemoPage() {
             <p className="text-lg text-slate-600">{t("demo.title")}</p>
           </div>
           <p className="text-sm text-slate-500 text-center">{t("demo.note")}</p>
-          <div className="space-y-4">
+          <form className="space-y-4" action={enterDemo}>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input type="email" defaultValue="demo@turnofijo.com" className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-              <input type="password" defaultValue="demo123" className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+              <input name="email" type="email" readOnly defaultValue="demo@turnofijo.com" className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50" />
             </div>
             <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
               {t("demo.cta")}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import LossCalculator from "@/components/loss-calculator";
+
 export default function HomePage() {
   const t = useTranslations("common");
 
@@ -43,6 +45,8 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      <LossCalculator />
 
       <div className="w-full max-w-4xl mx-auto px-8 py-16">
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">

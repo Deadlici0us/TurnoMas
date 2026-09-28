@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 export default function DashboardPage() {
@@ -5,6 +6,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="max-w-4xl w-full px-8 py-12">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-900">
+          {t("onboarding.trialNote")}{" "}
+          <Link href="/pricing" className="font-semibold underline">
+            {t("pricing.monthly")}
+          </Link>
+        </div>
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-6">{t("appName")}</h1>
           <div className="space-y-4">
