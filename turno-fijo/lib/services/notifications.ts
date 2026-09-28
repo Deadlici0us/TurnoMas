@@ -1,8 +1,6 @@
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { readEnv } from "@/lib/env/env";
-import { bookingService } from "./booking";
-import { paymentService } from "./payment";
 
 export enum NotificationType
 {

@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { paymentService } from "./payment";
-import { readEnv } from "@/lib/env/env";
 
 export interface BookingData
 {
@@ -33,7 +32,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to create booking: ${error.message}`);
+      throw new Error(`No se pudo crear la reserva: ${error.message}`);
     }
 
     return { id: booking.id };
@@ -48,7 +47,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to confirm booking: ${error.message}`);
+      throw new Error(`No se pudo confirmar la reserva: ${error.message}`);
     }
   }
 
@@ -61,7 +60,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to cancel booking: ${error.message}`);
+      throw new Error(`No se pudo cancelar la reserva: ${error.message}`);
     }
   }
 
@@ -74,7 +73,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to release booking: ${error.message}`);
+      throw new Error(`No se pudo liberar la reserva: ${error.message}`);
     }
   }
 
@@ -88,7 +87,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to get bookings: ${error.message}`);
+      throw new Error(`No se pudieron obtener las reservas: ${error.message}`);
     }
 
     return data || [];
@@ -107,7 +106,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to get pending deposits: ${error.message}`);
+      throw new Error(`No se pudieron obtener las señas pendientes: ${error.message}`);
     }
 
     return data || [];
@@ -116,10 +115,11 @@ export class BookingService
   async processPayment(
     bookingId: string,
     paymentId: string,
-    amountCents: number,
+    _amountCents: number,
   ): Promise<void>
   {
-    // Verify payment status with MercadoPago
+    void _amountCents;
+    // Verifica el estado del pago con MercadoPago.
     const paymentStatus = await paymentService.getPaymentStatus(paymentId);
 
     if (paymentStatus.status === "approved")
@@ -142,7 +142,7 @@ export class BookingService
 
     if (error && error.code !== "PGRST116") // PGRST116 means no rows returned
     {
-      throw new Error(`Failed to get booking: ${error.message}`);
+      throw new Error(`No se pudo obtener la reserva: ${error.message}`);
     }
 
     return data ?? null;
@@ -157,7 +157,7 @@ export class BookingService
 
     if (error)
     {
-      throw new Error(`Failed to update booking: ${error.message}`);
+      throw new Error(`No se pudo actualizar la reserva: ${error.message}`);
     }
   }
 }

@@ -1,6 +1,5 @@
 import { MercadoPagoAdapter } from "@/lib/adapters/mercadopago";
 import { readEnv } from "@/lib/env/env";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export class PaymentService
 {
@@ -33,15 +32,16 @@ export class PaymentService
     };
   }
 
-  async refundPayment(paymentId: string, amountCents: number): Promise<void>
+  async refundPayment(paymentId: string, _amountCents: number): Promise<void>
   {
+    void _amountCents;
     await this.adapter.refundPayment(paymentId);
   }
 
   async getPaymentStatus(paymentId: string): Promise<{ id: string; status: string }>
   {
     const token = readEnv("MP_ACCESS_TOKEN");
-    if (!token) throw new Error("MP_ACCESS_TOKEN not configured");
+    if (!token) throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
 
     const response = await fetch(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
@@ -53,7 +53,7 @@ export class PaymentService
 
     if (!response.ok)
     {
-      throw new Error(`Failed to fetch payment status: ${response.status}`);
+      throw new Error(`No se pudo consultar el estado del pago: ${response.status}`);
     }
 
     const data = await response.json();

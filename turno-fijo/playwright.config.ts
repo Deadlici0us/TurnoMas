@@ -10,9 +10,15 @@ export default defineConfig(
   },
   webServer:
   {
-    command: "npm run dev -- --port 3100",
+    command: "npm run build --silent && npm run start -- --port 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
+    env:
+    {
+      NEXT_PUBLIC_SUPABASE_URL: "",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
+      SUPABASE_SECRET_KEY: "",
+    },
   },
 });

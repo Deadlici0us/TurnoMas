@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readEnv } from "@/lib/env/env";
+
 import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
 
@@ -11,22 +11,22 @@ export async function POST(request: Request)
 
     if (body.type !== "payment")
     {
-      return NextResponse.json({ error: "Invalid webhook type" }, { status: 400 });
+      return NextResponse.json({ error: "Tipo de webhook inválido." }, { status: 400 });
     }
 
     const paymentId = body.data?.id;
     if (!paymentId)
     {
-      return NextResponse.json({ error: "Missing payment ID" }, { status: 400 });
+      return NextResponse.json({ error: "Falta el ID del pago." }, { status: 400 });
     }
 
-    // Get payment status from MercadoPago
+    // Consulta el estado del pago en MercadoPago.
     const paymentStatus = await paymentService.getPaymentStatus(paymentId);
 
     if (paymentStatus.status === "approved")
     {
-      // Update the booking status to "pagado"
-      // The booking ID should be stored in the payment's external_reference
+      // Actualiza la reserva a "pagado".
+      // El ID de reserva viaja en external_reference del pago.
       const bookingId = body.data?.external_reference;
       if (bookingId)
       {
@@ -35,7 +35,7 @@ export async function POST(request: Request)
     }
     else if (paymentStatus.status === "rejected" || paymentStatus.status === "cancelled")
     {
-      // Release the booking
+      // Libera la reserva.
       const bookingId = body.data?.external_reference;
       if (bookingId)
       {
@@ -45,13 +45,13 @@ export async function POST(request: Request)
 
     return NextResponse.json({ success: true, status: paymentStatus.status });
   }
-  catch (error)
+  catch
   {
-    console.error("Webhook error:", error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
+    return NextResponse.json({ error: "No se pudo procesar el webhook." }, { status: 500 });
   }
 }
 
-export async function GET(request: Request) {
+export async function GET()
+{
   return NextResponse.json({ status: "ok" });
 }
