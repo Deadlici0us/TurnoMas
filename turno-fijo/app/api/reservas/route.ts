@@ -281,8 +281,22 @@ export async function POST(request: Request)
         gcalUrl, ics });
     }
 
-    const preference = await paymentService.createDepositPreference(turnoId,
-      montos.montoTotal, montos.senaPorcentaje, `Seña ${negocio.nombre as string}`);
+    let checkoutUrl: string | null = null;
+    let checkoutError: string | null = null;
+
+    try
+    {
+      const preference = await paymentService.createDepositPreferenceForNegocio(negocioId, turnoId,
+        montos.montoTotal, montos.senaPorcentaje, `Seña ${negocio.nombre as string}`);
+
+      checkoutUrl = preference.initPoint;
+    }
+    catch
+    {
+      // El turno ya existe como pendiente: el cliente reintenta el pago
+      // y el antifantasma lo libera si no se paga en 15 minutos.
+      checkoutError = "No pudimos generar el link de pago. Probá de nuevo en unos segundos.";
+    }
 
     try
     {
@@ -309,7 +323,8 @@ export async function POST(request: Request)
       outcome,
       montoTotal: montos.montoTotal,
       senaMonto: montos.senaMonto,
-      checkoutUrl: preference.initPoint,
+      checkoutUrl,
+      checkoutError,
       gcalUrl,
       ics,
     });

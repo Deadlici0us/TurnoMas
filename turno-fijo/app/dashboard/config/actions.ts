@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -37,6 +38,82 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
   if (error !== null)
   {
     throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Guarda el access token de MercadoPago del dueño (cobro de señas delegadas). */
+export async function conectarMercadoPago(token: string): Promise<void>
+{
+  const value = token.trim();
+
+  if (!isValidMpTokenFormat(value))
+  {
+    throw new RangeError("Ese token no parece válido. Revisalo y probá de nuevo.");
+  }
+
+  if (!(await verifyMpToken(value)))
+  {
+    throw new Error("MercadoPago rechazó ese token. Revisalo y probá de nuevo.");
+  }
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para conectar MercadoPago.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: negocio } = await admin.from("negocios").select("id")
+    .eq("duenio_id", user.id).single();
+
+  if (negocio === null)
+  {
+    throw new Error("No encontramos tu negocio.");
+  }
+
+  const { error } = await admin.from("negocio_secretos").upsert({
+    negocio_id: negocio.id as string,
+    mercadopago_access_token: value,
+  }, { onConflict: "negocio_id" });
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar el token. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Desconecta MercadoPago (las reservas pasan a confirmación manual). */
+export async function desconectarMercadoPago(): Promise<void>
+{
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para desconectar MercadoPago.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: negocio } = await admin.from("negocios").select("id")
+    .eq("duenio_id", user.id).single();
+
+  if (negocio === null)
+  {
+    throw new Error("No encontramos tu negocio.");
+  }
+
+  const { error } = await admin.from("negocio_secretos")
+    .update({ mercadopago_access_token: null }).eq("negocio_id", negocio.id as string);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos desconectar MercadoPago. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");

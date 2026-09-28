@@ -48,7 +48,30 @@ export async function POST(request: Request)
 
     // El ID de reserva viaja en external_reference del pago (fuente real),
     // no en el body del webhook que varía según tópico de MP.
-    const paymentStatus = await paymentService.getPaymentStatus(paymentId);
+    // Con señas delegadas el pago vive en la cuenta del negocio: si la
+    // plataforma no lo ve, se reintenta con el token del negocio dueño
+    // del turno que ya registró ese `mp_payment_id`.
+    let paymentStatus = await paymentService.getPaymentStatus(paymentId).catch(() => null);
+
+    if (paymentStatus === null)
+    {
+      const turnoPorPago = await bookingService.getBookingByPaymentId(paymentId).catch(() => null);
+      const negocioId = (turnoPorPago as { negocio_id?: unknown } | null)?.negocio_id;
+
+      if (typeof negocioId !== "string")
+      {
+        return NextResponse.json({ error: "No pudimos consultar el pago." }, { status: 502 });
+      }
+
+      const businessToken = await paymentService.getBusinessAccessToken(negocioId);
+      paymentStatus = await paymentService.getPaymentStatus(paymentId, businessToken).catch(() => null);
+
+      if (paymentStatus === null)
+      {
+        return NextResponse.json({ error: "No pudimos consultar el pago." }, { status: 502 });
+      }
+    }
+
     const bookingId = paymentStatus.externalReference;
 
     if (bookingId === null || bookingId.length === 0)

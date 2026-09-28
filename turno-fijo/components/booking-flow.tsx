@@ -135,11 +135,17 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
         }),
       });
       const data = await response.json() as { error?: string; checkoutUrl?: string; gcalUrl?: string;
-        ics?: string };
+        ics?: string; checkoutError?: string | null };
 
       if (!response.ok)
       {
         setError(typeof data.error === "string" ? data.error : "No pudimos guardar tu reserva.");
+        return;
+      }
+
+      if (typeof data.checkoutError === "string" && data.checkoutError.length > 0)
+      {
+        setError(data.checkoutError);
         return;
       }
 

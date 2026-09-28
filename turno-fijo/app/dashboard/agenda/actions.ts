@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { validarTransicionTurno } from "@/lib/dashboard/estados";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
+import { shouldAutoRefund } from "@/lib/payments/refund-policy";
+import type { RefundableEstado } from "@/lib/payments/refund-policy";
+import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -36,7 +39,8 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   }
 
   const negocioId = negocio.id as string;
-  const { data: turno } = await admin.from("turnos").select("id, estado, cliente_id")
+  const { data: turno } = await admin.from("turnos")
+    .select("id, estado, cliente_id, servicio_id, mp_payment_id")
     .eq("id", turnoId).eq("negocio_id", negocioId).single();
 
   if (turno === null)
@@ -45,6 +49,31 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   }
 
   validarTransicionTurno(turno.estado as EstadoTurno, nuevo);
+
+  if (nuevo === "cancelado")
+  {
+    const turnoRow = turno as { estado?: unknown; servicio_id?: unknown; mp_payment_id?: unknown };
+    const { data: servicio } = typeof turnoRow.servicio_id === "string"
+      ? await admin.from("servicios").select("reembolso_auto")
+        .eq("id", turnoRow.servicio_id).single()
+      : { data: null };
+    const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
+    const mpPaymentId = typeof turnoRow.mp_payment_id === "string" ? turnoRow.mp_payment_id : null;
+
+    if (shouldAutoRefund({ reembolsoAuto, estado: turno.estado as RefundableEstado, mpPaymentId }))
+    {
+      try
+      {
+        await paymentService.refundForNegocio(negocioId, mpPaymentId as string);
+      }
+      catch
+      {
+        // Best-effort: el turno se cancela igual y la seña se devuelve
+        // manual desde el panel de MercadoPago.
+      }
+    }
+  }
+
   const { error } = await admin.from("turnos").update({ estado: nuevo }).eq("id", turnoId);
 
   if (error !== null)

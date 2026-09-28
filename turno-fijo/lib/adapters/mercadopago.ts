@@ -20,11 +20,11 @@ export class MercadoPagoAdapter implements IPaymentGateway
 {
   async createDepositPreference(input: CreateDepositPreferenceInput): Promise<DepositPreference>
   {
-    const token = readEnv("MP_ACCESS_TOKEN");
+    const token = input.accessToken ?? readEnv("MP_ACCESS_TOKEN");
 
     if (token === null)
     {
-      throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
+      throw new Error("El negocio aún no conectó MercadoPago para cobrar señas.");
     }
 
     const amountCents = calculateDepositAmount(input.amountCents, input.percentage);
@@ -56,13 +56,13 @@ export class MercadoPagoAdapter implements IPaymentGateway
     return { id: data.id, checkoutUrl: data.init_point, amountCents };
   }
 
-  async refundPayment(paymentId: string): Promise<void>
+  async refundPayment(paymentId: string, accessToken?: string | null): Promise<void>
   {
-    const token = readEnv("MP_ACCESS_TOKEN");
+    const token = accessToken ?? readEnv("MP_ACCESS_TOKEN");
 
     if (token === null)
     {
-      throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
+      throw new Error("El negocio aún no conectó MercadoPago para devolver señas.");
     }
 
     const response = await fetch(`${MP_API_BASE}/v1/payments/${paymentId}/refunds`, {

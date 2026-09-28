@@ -1,8 +1,10 @@
 import Link from "next/link";
 
-import { actualizarPoliticaListaNegra } from "./actions";
+import { actualizarPoliticaListaNegra, conectarMercadoPago, desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { maskMpToken } from "@/lib/payments/mp-token";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 async function guardarPolitica(formData: FormData): Promise<void>
 {
@@ -14,6 +16,20 @@ async function guardarPolitica(formData: FormData): Promise<void>
   await actualizarPoliticaListaNegra(umbral, penalidad);
 }
 
+async function guardarTokenMp(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await conectarMercadoPago(String(formData.get("mpToken") ?? ""));
+}
+
+async function quitarTokenMp(): Promise<void>
+{
+  "use server";
+
+  await desconectarMercadoPago();
+}
+
 export default async function ConfigPage()
 {
   const { data: dashboard } = await getDashboardData();
@@ -23,6 +39,30 @@ export default async function ConfigPage()
   };
   const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
   const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
+
+  let mpToken: string | null = null;
+
+  try
+  {
+    const negocioId = (dashboard.negocio as { id?: unknown }).id;
+
+    if (typeof negocioId === "string")
+    {
+      const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
+        .select("mercadopago_access_token").eq("negocio_id", negocioId).single();
+
+      const raw = (secretos as { mercadopago_access_token?: unknown } | null)
+        ?.mercadopago_access_token;
+
+      mpToken = typeof raw === "string" && raw.length > 0 ? raw : null;
+    }
+  }
+  catch
+  {
+    mpToken = null;
+  }
+
+  const mpConectado = mpToken !== null;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -99,9 +139,56 @@ export default async function ConfigPage()
           </section>
           <section className="space-y-3">
             <h2 className="font-semibold text-slate-900">Conexiones</h2>
+            <div className="p-3 border border-slate-200 rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">MercadoPago</div>
+                  <div className="text-xs text-slate-500">Cobro de señas directo en tu billetera</div>
+                </div>
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${mpConectado
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                  {mpConectado ? `Conectado ${maskMpToken(mpToken)}` : "Sin conectar"}
+                </span>
+              </div>
+              {mpConectado ? (
+                <form action={quitarTokenMp}>
+                  <button
+                    type="submit"
+                    className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
+                      text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Desconectar
+                  </button>
+                </form>
+              ) : (
+                <form action={guardarTokenMp} className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="password"
+                    name="mpToken"
+                    required
+                    minLength={8}
+                    autoComplete="off"
+                    placeholder="Pegá tu access token (APP_USR-...)"
+                    className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none
+                      focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                      hover:bg-blue-700 transition-colors"
+                  >
+                    Conectar
+                  </button>
+                </form>
+              )}
+              <p className="text-xs text-slate-400">
+                Encontralo en tu panel de MercadoPago → Credenciales de producción.
+                Nunca lo compartas: queda guardado solo en tu negocio.
+              </p>
+            </div>
             <div className="space-y-2">
               {[
-                { nombre: "MercadoPago", desc: "Cobro de señas directo en tu billetera" },
                 { nombre: "WhatsApp", desc: "Recordatorios 24hs antes por WhatsApp" },
                 { nombre: "Google Calendar", desc: "Tus turnos inyectados en tu calendario" },
               ].map((conexion) => (

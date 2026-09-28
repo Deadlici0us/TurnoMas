@@ -148,6 +148,24 @@ export class BookingService
     return data ?? null;
   }
 
+  /** Busca el turno por `mp_payment_id` (webhook con token delegado). */
+  async getBookingByPaymentId(paymentId: string): Promise<unknown | null>
+  {
+    const { data, error } = await this.admin
+      .from("turnos")
+      .select("id, negocio_id, estado")
+      .eq("mp_payment_id", paymentId)
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116")
+    {
+      throw new Error(`No se pudo obtener la reserva: ${error.message}`);
+    }
+
+    return data ?? null;
+  }
+
   async updateBooking(bookingId: string, updates: Partial<BookingData>): Promise<void>
   {
     const { error } = await this.admin

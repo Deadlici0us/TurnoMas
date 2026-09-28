@@ -11,6 +11,8 @@ export interface CreateDepositPreferenceInput
   readonly amountCents: number;
   readonly percentage: number;
   readonly description: string;
+  /** Token del negocio (señas delegadas); sin esto se usa el de plataforma. */
+  readonly accessToken?: string | null;
 }
 
 export interface DepositPreference
@@ -23,7 +25,7 @@ export interface DepositPreference
 export interface IPaymentGateway
 {
   createDepositPreference(input: CreateDepositPreferenceInput): Promise<DepositPreference>;
-  refundPayment(paymentId: string): Promise<void>;
+  refundPayment(paymentId: string, accessToken?: string | null): Promise<void>;
 }
 
 export class PaymentNotFoundError extends Error
