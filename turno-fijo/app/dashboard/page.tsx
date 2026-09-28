@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 
 const ESTADO_COLOR: Record<string, string> = {
   pendiente: "bg-amber-50 text-amber-700",
@@ -20,6 +22,28 @@ export default async function DashboardPage()
 {
   const t = await getTranslations("common");
   const { data: dashboard } = await getDashboardData();
+
+  const negocioRow = dashboard.negocio as {
+    id?: unknown;
+    nombre?: unknown;
+    created_at?: unknown;
+    suscripcion_estado?: unknown;
+    suscripcion_mp_id?: unknown;
+  };
+
+  const subscription = getNegocioSubscriptionStatus({
+    created_at: typeof negocioRow.created_at === "string" ? negocioRow.created_at : null,
+    suscripcion_estado:
+      typeof negocioRow.suscripcion_estado === "string" ? negocioRow.suscripcion_estado : null,
+    suscripcion_mp_id:
+      typeof negocioRow.suscripcion_mp_id === "string" ? negocioRow.suscripcion_mp_id : null,
+  });
+
+  if (subscription === "blocked")
+  {
+    redirect("/pricing?blocked=1");
+  }
+
   const stats = await getDashboardStats(String(dashboard.negocio.id ?? ""));
 
   const nombrePorServicio = new Map<string, string>(

@@ -4,8 +4,13 @@ import { cookies } from "next/headers";
 
 import { enterDemo } from "./actions";
 
-export default async function DemoPage() {
+export default async function DemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const t = await getTranslations("common");
+  const { error } = await searchParams;
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
 
@@ -22,6 +27,11 @@ export default async function DemoPage() {
             <p className="text-lg text-slate-600">{t("demo.title")}</p>
           </div>
           <p className="text-sm text-slate-500 text-center">{t("demo.note")}</p>
+          {error === "demo" && (
+            <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+              No se pudo entrar a la demo. Reintentá en unos segundos.
+            </p>
+          )}
           <form className="space-y-4" action={enterDemo}>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
