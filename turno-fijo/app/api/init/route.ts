@@ -38,24 +38,10 @@ export async function POST()
     );
   }
 
-  const { count, error: countError } = await admin
-    .from("negocios")
-    .select("id", { count: "exact", head: true });
-
-  if (countError)
-  {
-    return NextResponse.json(
-      { ok: false, seeded: false, error: "No se pudo verificar si la base ya estaba poblada." },
-      { status: 500 },
-    );
-  }
-
-  if ((count ?? 0) > 0)
-  {
-    return NextResponse.json({ ok: true, seeded: false, reason: "La base ya estaba poblada." });
-  }
-
   const seed = buildDemoSeed(ownerId);
+
+  // Sin gate de conteo: el primer intento paralelo pudo dejar la base a medio
+  // poblar. El upsert por id es idempotente y completa cualquier estado parcial.
 
   // Orden por dependencias FK: negocio → staff/servicios/clientes → turnos.
   // En paralelo fallaba: turnos se insertaba antes que sus referencias.
