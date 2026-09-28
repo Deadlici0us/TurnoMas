@@ -37,7 +37,7 @@
   "pricing": {
     "title": "Precios simples y transparentes",
     "subtitle": "Un solo plan para profesionales que quieren crecer sin complicaciones",
-    "monthly": "U$S 15 / mes",
+    "monthly": "15.000 ARS",
     "trial": "14 días gratis",
     "features": [
       "Reservas ilimitadas",
@@ -84,7 +84,7 @@
     "step3Desc": "Si lo conectás, los recordatorios salen por WhatsApp. Si no, salen por email",
     "connectWa": "Conectar WhatsApp",
     "finish": "Terminar y ver mi agenda",
-    "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de U$S 15/mes"
+    "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de 15.000 ARS/mes"
   },
   "calculator": {
     "title": "¿Cuánto perdés por inasistencias?",
