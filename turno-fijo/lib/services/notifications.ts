@@ -17,6 +17,26 @@ export enum NotificationType
   SUBJECT = "subject",
 }
 
+/** Base pública de la app para que QStash pueda invocar nuestros endpoints. */
+function resolveAppBaseUrl(): string
+{
+  const publicUrl = readEnv("NEXT_PUBLIC_APP_URL");
+
+  if (publicUrl !== null)
+  {
+    return publicUrl.replace(/\/+$/, "");
+  }
+
+  const vercelUrl = readEnv("VERCEL_URL");
+
+  if (vercelUrl !== null)
+  {
+    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+  }
+
+  throw new Error("Falta configurar NEXT_PUBLIC_APP_URL o VERCEL_URL para programar recordatorios.");
+}
+
 export class NotificationService
 {
   private emailProvider: ResendAdapter;
@@ -52,7 +72,7 @@ export class NotificationService
     {
       const delaySeconds = type === NotificationType.REMINDER_24H ? 86400 : 3600;
       jobId = await this.jobProvider.schedule({
-        url: "/api/reminders",
+        url: `${resolveAppBaseUrl()}/dashboard/reminders`,
         delaySeconds,
         body: { type, bookingId, data },
       });

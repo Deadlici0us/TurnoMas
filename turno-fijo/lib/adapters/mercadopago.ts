@@ -36,9 +36,8 @@ export class MercadoPagoAdapter implements IPaymentGateway
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        description: input.description,
+        items: [{ title: input.description, quantity: 1, unit_price: amountCents / 100 }],
         external_reference: input.bookingId,
-        transaction_amount: amountCents / 100,
       }),
     });
 
