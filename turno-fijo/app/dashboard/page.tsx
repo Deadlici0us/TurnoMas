@@ -11,10 +11,11 @@ interface DashboardCard
 
 const CARDS: readonly DashboardCard[] = [
   { key: "agenda", title: "Agenda", desc: "Vista interactiva de turnos por profesional", href: "/dashboard/agenda" },
-  { key: "servicios", title: "Servicios", desc: "CRUD de servicios con precio base y promocional", href: null },
-  { key: "clientes", title: "Clientes", desc: "CRM local con historial de turnos", href: null },
-  { key: "pagos", title: "Pagos", desc: "Seguimiento financiero de señas", href: null },
-  { key: "config", title: "Configuración", desc: "Parámetros del negocio y lista negra", href: null },
+  { key: "profesionales", title: "Profesionales", desc: "Quiénes atienden y en qué horarios", href: "/dashboard/staff" },
+  { key: "servicios", title: "Servicios", desc: "CRUD de servicios con precio base y promocional", href: "/dashboard/servicios" },
+  { key: "clientes", title: "Clientes", desc: "CRM local con historial de turnos", href: "/dashboard/clientes" },
+  { key: "pagos", title: "Pagos", desc: "Seguimiento financiero de señas", href: "/dashboard/pagos" },
+  { key: "config", title: "Configuración", desc: "Parámetros del negocio y lista negra", href: "/dashboard/config" },
 ];
 
 export default function DashboardPage() {
