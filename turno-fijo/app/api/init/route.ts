@@ -57,18 +57,33 @@ export async function POST()
 
   const seed = buildDemoSeed(ownerId);
 
-  const inserts = [
+  // Orden por dependencias FK: negocio → staff/servicios/clientes → turnos.
+  // En paralelo fallaba: turnos se insertaba antes que sus referencias.
+  const steps = [
     admin.from("negocios").upsert(seed.negocio, { onConflict: "id" }),
     admin.from("staff").upsert([...seed.staff], { onConflict: "id" }),
     admin.from("servicios").upsert([...seed.servicios], { onConflict: "id" }),
     admin.from("clientes").upsert([...seed.clientes], { onConflict: "id" }),
-    admin.from("turnos").upsert([...seed.turnos], { onConflict: "id" }),
   ];
 
-  const results = await Promise.all(inserts);
-  const failed = results.find((result) => result.error !== null);
+  for (const step of steps)
+  {
+    const { error } = await step;
 
-  if (failed?.error)
+    if (error)
+    {
+      return NextResponse.json(
+        { ok: false, seeded: false, error: "No se pudo poblar la cuenta demo. Reintentá el seed." },
+        { status: 500 },
+      );
+    }
+  }
+
+  const { error: turnosError } = await admin
+    .from("turnos")
+    .upsert([...seed.turnos], { onConflict: "id" });
+
+  if (turnosError)
   {
     return NextResponse.json(
       { ok: false, seeded: false, error: "No se pudo poblar la cuenta demo. Reintentá el seed." },
