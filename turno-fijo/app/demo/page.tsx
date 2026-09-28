@@ -1,9 +1,9 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 export default async function DemoPage() {
-  const t = useTranslations("common");
+  const t = await getTranslations("common");
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
 

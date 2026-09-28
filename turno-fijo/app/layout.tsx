@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const messages = (await import("../messages/es-AR/common.json")).default;
+  const common = (await import("../messages/es-AR/common.json")).default;
+  const messages = { common };
   const locale = "es-AR";
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
