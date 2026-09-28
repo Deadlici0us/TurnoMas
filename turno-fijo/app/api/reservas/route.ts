@@ -16,6 +16,8 @@ import { getBlockedInterval } from "@/lib/availability/availability";
 import { construirICS, construirLinkGoogleCalendar } from "@/lib/automatizaciones/ics";
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
+import { plantillaConfirmacion } from "@/lib/notifications/templates";
+import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
 import { paymentService } from "@/lib/services/payment";
@@ -34,7 +36,10 @@ interface ReservaBody
   readonly inicio: unknown;
   readonly nombre: unknown;
   readonly whatsapp: unknown;
+  readonly email: unknown;
 }
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function exigirTexto(valor: unknown, mensaje: string): string
 {
@@ -87,6 +92,38 @@ function exigirInicio(valor: unknown): Date
   return inicio;
 }
 
+/** Email opcional del cliente (para confirmación y recordatorios). */
+function exigirEmailOpcional(valor: unknown): string | null
+{
+  if (valor === undefined || valor === null)
+  {
+    return null;
+  }
+
+  if (typeof valor !== "string" || valor.trim().length === 0)
+  {
+    return null;
+  }
+
+  const email = valor.trim().toLowerCase().slice(0, 120);
+
+  if (!EMAIL_PATTERN.test(email))
+  {
+    throw new RangeError("Revisá tu email para que te lleguen las confirmaciones.");
+  }
+
+  return email;
+}
+
+/** Formatea fecha/hora en es-AR (DD/MM/YYYY HH:mm). */
+function formatearFechaEsAr(fecha: Date): string
+{
+  const dos = (n: number): string => String(n).padStart(2, "0");
+
+  return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} ` +
+    `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+}
+
 export async function POST(request: Request)
 {
   let body: ReservaBody;
@@ -106,6 +143,7 @@ export async function POST(request: Request)
   let servicioId: string;
   let nombre: string;
   let whatsapp: string;
+  let email: string | null;
   let inicio: Date;
 
   try
@@ -116,6 +154,7 @@ export async function POST(request: Request)
     servicioId = exigirTexto(body.servicioId, "Elegí un servicio para tu reserva.");
     nombre = exigirNombre(body.nombre);
     whatsapp = exigirWhatsapp(body.whatsapp);
+    email = exigirEmailOpcional(body.email);
     inicio = exigirInicio(body.inicio);
   }
   catch (error)
@@ -218,12 +257,14 @@ export async function POST(request: Request)
     if (clienteExistente !== null && typeof clienteExistente.id === "string")
     {
       clienteId = clienteExistente.id;
-      await admin.from("clientes").update({ nombre }).eq("id", clienteId);
+      await admin.from("clientes").update({ nombre, ...(email !== null ? { email } : {}) })
+        .eq("id", clienteId);
     }
     else
     {
       const { data: nuevo, error: clienteError } = await admin.from("clientes")
-        .insert({ negocio_id: negocioId, nombre, whatsapp, ausencias: 0 }).select("id").single();
+        .insert({ negocio_id: negocioId, nombre, whatsapp, email, ausencias: 0 })
+        .select("id").single();
 
       if (clienteError !== null || nuevo === null)
       {
@@ -274,6 +315,34 @@ export async function POST(request: Request)
       descripcion: `Reserva TurnoFijo · ${servicioNombre} con ${staffNombre}`,
       ubicacion: negocio.nombre as string,
     });
+
+    if (email !== null)
+    {
+      try
+      {
+        const plantilla = plantillaConfirmacion({
+          negocio: negocio.nombre as string,
+          servicio: servicioNombre,
+          profesional: staffNombre,
+          fecha: formatearFechaEsAr(inicio),
+          gcalUrl,
+        });
+
+        await new ResendAdapter().send({
+          to: email,
+          subject: plantilla.subject,
+          html: plantilla.html,
+          attachments: [{
+            filename: "turno.ics",
+            contentBase64: Buffer.from(ics, "utf8").toString("base64"),
+          }],
+        });
+      }
+      catch
+      {
+        // Best-effort: la reserva ya existe aunque falle el email.
+      }
+    }
 
     if (!conSena)
     {

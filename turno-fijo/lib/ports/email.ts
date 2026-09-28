@@ -5,11 +5,18 @@
 
 import { readEnv } from "@/lib/env/env";
 
+export interface EmailAttachment
+{
+  readonly filename: string;
+  readonly contentBase64: string;
+}
+
 export interface SendEmailInput
 {
   readonly to: string;
   readonly subject: string;
   readonly html: string;
+  readonly attachments?: readonly EmailAttachment[];
 }
 
 export interface IEmailProvider
@@ -51,7 +58,16 @@ export class ResendAdapter implements IEmailProvider
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from, to: [input.to], subject: input.subject, html: input.html }),
+      body: JSON.stringify({
+        from,
+        to: [input.to],
+        subject: input.subject,
+        html: input.html,
+        attachments: (input.attachments ?? []).map((a) => ({
+          filename: a.filename,
+          content: a.contentBase64,
+        })),
+      }),
     });
 
     if (!response.ok)

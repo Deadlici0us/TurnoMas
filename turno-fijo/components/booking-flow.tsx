@@ -44,6 +44,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
   const [slotISO, setSlotISO] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -110,6 +111,12 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       return;
     }
 
+    if (email.trim().length > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()))
+    {
+      setError("Revisá tu email para que te lleguen las confirmaciones.");
+      return;
+    }
+
     if (staffId === null || servicioId === null || slotISO === null)
     {
       setError("Elegí profesional, servicio y horario para continuar.");
@@ -132,6 +139,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
           inicio: slotISO,
           nombre: nombre.trim(),
           whatsapp: whatsapp.trim(),
+          email: email.trim().length > 0 ? email.trim() : null,
         }),
       });
       const data = await response.json() as { error?: string; checkoutUrl?: string; gcalUrl?: string;
@@ -348,6 +356,19 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
                 onChange={(event) => setWhatsapp(event.target.value)}
                 placeholder="Ej: +549110000001"
                 inputMode="tel"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Email <span className="font-normal text-slate-400">(opcional, para confirmación)</span>
+              </label>
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Ej: juan@ejemplo.com"
+                inputMode="email"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
