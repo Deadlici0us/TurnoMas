@@ -46,12 +46,13 @@ export class QStashAdapter implements IBackgroundJobs
     }
 
     const cleanBase = baseUrl.replace(/^["']+|["']+$/g, "").replace(/\/+$/, "");
+    const cleanToken = token.replace(/^["']+|["']+$/g, "").trim();
     const endpoint = `${cleanBase}/v2/publish/${input.url}`;
 
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${cleanToken}`,
         "Content-Type": "application/json",
         "Upstash-Delay": `${input.delaySeconds}s`,
       },
