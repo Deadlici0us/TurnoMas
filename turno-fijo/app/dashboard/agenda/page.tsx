@@ -1,87 +1,145 @@
 import Link from "next/link";
 
-interface AgendaTurno
-{
-  readonly cliente: string;
-  readonly servicio: string;
-  readonly horario: string;
-  readonly estado: "pagado" | "pendiente" | "completado";
-  readonly sena: string | null;
-}
+import { actualizarEstadoTurno } from "./actions";
+import { getDashboardData } from "@/lib/dashboard/queries";
 
-interface AgendaProfesional
+interface StaffRow
 {
+  readonly id: string;
   readonly nombre: string;
-  readonly turnos: readonly AgendaTurno[];
 }
 
-/** Agenda demo: espeja el seed de "Barbería Diego" (ver `lib/seed/demo-rows.ts`). */
-const PROFESIONALES: readonly AgendaProfesional[] = [
-  {
-    nombre: "Diego",
-    turnos: [
-      { cliente: "Juan Pérez", servicio: "Corte clásico", horario: "Hoy", estado: "pagado",
-        sena: "Seña cobrada (50%)" },
-      { cliente: "María Gómez", servicio: "Barba + corte", horario: "Mañana", estado: "pendiente",
-        sena: "Seña pendiente (50%)" },
-    ],
-  },
-  {
-    nombre: "Camila",
-    turnos: [
-      { cliente: "Juan Pérez", servicio: "Perfilado de barba", horario: "Ayer", estado: "completado", sena: null },
-    ],
-  },
-];
+interface TurnoRow
+{
+  readonly id: string;
+  readonly staff_id: string;
+  readonly servicio_id: string;
+  readonly cliente_id: string;
+  readonly inicio: string;
+  readonly estado: "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+  readonly sena_monto: number | null;
+  readonly sena_porcentaje: number | null;
+}
 
-const ESTADO_ESTILOS: Record<AgendaTurno["estado"], string> = {
+const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = {
   pagado: "bg-green-100 text-green-800 border-green-200",
   pendiente: "bg-amber-100 text-amber-800 border-amber-200",
   completado: "bg-slate-100 text-slate-600 border-slate-200",
+  cancelado: "bg-slate-100 text-slate-500 border-slate-200",
+  ausente: "bg-red-100 text-red-800 border-red-200",
 };
 
-export default function AgendaPage()
+function formatearInicio(iso: string): string
 {
+  const fecha = new Date(iso);
+
+  if (Number.isNaN(fecha.getTime()))
+  {
+    return iso;
+  }
+
+  return fecha.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+export default async function AgendaPage()
+{
+  const { data: dashboard } = await getDashboardData();
+  const staff = dashboard.staff as StaffRow[];
+  const turnos = (dashboard.turnos as TurnoRow[]).slice().sort((a, b) =>
+    new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
+  const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
+    .map((s) => [s.id, s.nombre]));
+  const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
+    .map((c) => [c.id, c.nombre]));
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="max-w-4xl w-full px-8 py-12">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl w-full mx-auto px-8 py-12">
         <Link href="/dashboard" className="inline-block mb-4 text-sm font-semibold text-blue-600 hover:underline">
           ← Volver al panel
         </Link>
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Agenda</h1>
-          <p className="text-sm text-slate-600 mb-6">Vista interactiva de turnos por profesional</p>
+          <p className="text-sm text-slate-600 mb-6">Turnos por profesional con estados reales</p>
           <div className="space-y-6">
-            {PROFESIONALES.map((profesional) => (
-              <section key={profesional.nombre}>
+            {staff.map((profesional) => (
+              <section key={profesional.id}>
                 <h2 className="font-semibold text-slate-900 mb-3">{profesional.nombre}</h2>
                 <div className="space-y-3">
-                  {profesional.turnos.map((turno) => (
-                    <div
-                      key={`${profesional.nombre}-${turno.cliente}-${turno.servicio}`}
-                      className="p-4 border border-slate-200 rounded-lg hover:shadow-md transition-shadow"
-                    >
+                  {turnos.filter((t) => t.staff_id === profesional.id).map((turno) => (
+                    <div key={turno.id} className="p-4 border border-slate-200 rounded-lg">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h3 className="font-semibold text-slate-900">{turno.cliente}</h3>
-                          <p className="text-sm text-slate-600">{turno.servicio} · {turno.horario}</p>
-                          {turno.sena ? (
-                            <p className="text-xs text-slate-500 mt-1">{turno.sena}</p>
+                          <h3 className="font-semibold text-slate-900">
+                            {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
+                          </h3>
+                          <p className="text-sm text-slate-600">
+                            {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio")
+                              + " · " + formatearInicio(turno.inicio)}
+                          </p>
+                          {turno.sena_monto !== null ? (
+                            <p className="text-xs text-slate-500 mt-1">
+                              {`Seña $${turno.sena_monto.toLocaleString("es-AR")}`}
+                              {turno.sena_porcentaje !== null ? ` (${turno.sena_porcentaje}%)` : ""}
+                            </p>
                           ) : null}
                         </div>
                         <span
-                          className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full border ${ESTADO_ESTILOS[turno.estado]}`}
+                          className={"shrink-0 text-xs font-semibold px-3 py-1 rounded-full border "
+                            + ESTADO_ESTILOS[turno.estado]}
                         >
                           {turno.estado}
                         </span>
                       </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {turno.estado === "pendiente" ? (
+                          <>
+                            <form action={actualizarEstadoTurno.bind(null, turno.id, "pagado")}>
+                              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
+                                text-white hover:bg-green-700">
+                                Marcar pagado
+                              </button>
+                            </form>
+                            <form action={actualizarEstadoTurno.bind(null, turno.id, "cancelado")}>
+                              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                                border-slate-300 hover:bg-slate-50">
+                                Cancelar
+                              </button>
+                            </form>
+                          </>
+                        ) : null}
+                        {turno.estado === "pagado" ? (
+                          <>
+                            <form action={actualizarEstadoTurno.bind(null, turno.id, "completado")}>
+                              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600
+                                text-white hover:bg-blue-700">
+                                Completar
+                              </button>
+                            </form>
+                            <form action={actualizarEstadoTurno.bind(null, turno.id, "ausente")}>
+                              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600
+                                text-white hover:bg-red-700">
+                                Ausente
+                              </button>
+                            </form>
+                            <form action={actualizarEstadoTurno.bind(null, turno.id, "cancelado")}>
+                              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                                border-slate-300 hover:bg-slate-50">
+                                Cancelar
+                              </button>
+                            </form>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
+                  {turnos.filter((t) => t.staff_id === profesional.id).length === 0 ? (
+                    <p className="text-sm text-slate-500">Sin turnos para este profesional.</p>
+                  ) : null}
                 </div>
               </section>
             ))}
           </div>
-          <p className="text-xs text-slate-400 mt-6">Datos de demostración de Barbería Diego.</p>
         </div>
       </div>
     </div>

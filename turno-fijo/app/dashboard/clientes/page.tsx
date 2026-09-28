@@ -1,69 +1,58 @@
 import Link from "next/link";
 
-interface Cliente
+import { evaluateCustomer } from "@/lib/blacklist/blacklist";
+import { getDashboardData } from "@/lib/dashboard/queries";
+
+interface ClienteRow
 {
   readonly id: string;
   readonly nombre: string;
   readonly whatsapp: string;
-  readonly email: string;
   readonly ausencias: number;
-  readonly enListaNegra: boolean;
-  readonly totalTurnos: number;
-  readonly ultimoTurno: string;
+  readonly bloqueado: boolean;
 }
 
-const CLIENTES_DEMO: readonly Cliente[] = [
-  {
-    id: "1",
-    nombre: "Juan Pérez",
-    whatsapp: "+549110000001",
-    email: "juan@email.com",
-    ausencias: 0,
-    enListaNegra: false,
-    totalTurnos: 8,
-    ultimoTurno: "Corte clásico · Ayer",
-  },
-  {
-    id: "2",
-    nombre: "María Gómez",
-    whatsapp: "+549110000002",
-    email: "maria@email.com",
-    ausencias: 1,
-    enListaNegra: false,
-    totalTurnos: 5,
-    ultimoTurno: "Barba + corte · Pendiente",
-  },
-  {
-    id: "3",
-    nombre: "Falta Siempre",
-    whatsapp: "+549110000003",
-    email: "falta@email.com",
-    ausencias: 2,
-    enListaNegra: true,
-    totalTurnos: 3,
-    ultimoTurno: "Sin turnos recientes",
-  },
-];
-
-export default function ClientesPage()
+interface TurnoRow
 {
+  readonly id: string;
+  readonly cliente_id: string;
+  readonly servicio_id: string;
+  readonly inicio: string;
+  readonly estado: string;
+}
+
+export default async function ClientesPage()
+{
+  const { data: dashboard } = await getDashboardData();
+  const clientes = dashboard.clientes as ClienteRow[];
+  const turnos = dashboard.turnos as TurnoRow[];
+  const umbral = typeof (dashboard.negocio as { blacklist_umbral?: number }).blacklist_umbral === "number"
+    ? (dashboard.negocio as { blacklist_umbral: number }).blacklist_umbral
+    : 2;
+  const penalidad = (dashboard.negocio as { blacklist_penalidad?: "blocked" | "fullDeposit" })
+    .blacklist_penalidad ?? "fullDeposit";
+  const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
+    .map((s) => [s.id, s.nombre]));
+  const turnosPorCliente = new Map<string, TurnoRow[]>();
+
+  for (const turno of turnos)
+  {
+    const lista = turnosPorCliente.get(turno.cliente_id) ?? [];
+    lista.push(turno);
+    turnosPorCliente.set(turno.cliente_id, lista);
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="max-w-4xl w-full px-8 py-12">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl w-full mx-auto px-8 py-12">
         <Link href="/dashboard" className="inline-block mb-4 text-sm font-semibold text-blue-600 hover:underline">
           ← Volver al panel
         </Link>
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-1">Clientes</h1>
-              <p className="text-sm text-slate-600">CRM local con historial de turnos</p>
-            </div>
-            <button className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-              + Nuevo cliente
-            </button>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">Clientes</h1>
+            <p className="text-sm text-slate-600">CRM local con ausencias y lista negra automática</p>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -77,38 +66,52 @@ export default function ClientesPage()
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {CLIENTES_DEMO.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50">
-                    <td className="py-3 font-medium text-slate-900">{c.nombre}</td>
-                    <td className="py-3 text-slate-600">
-                      <div>{c.email}</div>
-                      <div className="text-xs text-slate-500">{c.whatsapp}</div>
-                    </td>
-                    <td className="py-3 text-slate-600">{c.totalTurnos}</td>
-                    <td className="py-3">
-                      <span className={c.ausencias > 1 ? "text-red-600 font-semibold" : "text-slate-600"}>
-                        {c.ausencias}
-                      </span>
-                    </td>
-                    <td className="py-3 text-slate-600">{c.ultimoTurno}</td>
-                    <td className="py-3">
-                      {c.enListaNegra ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs">
-                          Lista negra
+                {clientes.map((cliente) =>
+                {
+                  const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
+                    .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
+                  const ultimo = historial[0];
+                  const decision = cliente.bloqueado
+                    ? "blocked"
+                    : evaluateCustomer(cliente.ausencias, { maxAllowedAbsences: umbral,
+                      penaltyOnExceed: penalidad });
+                  const enListaNegra = decision !== "allowed";
+
+                  return (
+                    <tr key={cliente.id} className="hover:bg-slate-50">
+                      <td className="py-3 font-medium text-slate-900">{cliente.nombre}</td>
+                      <td className="py-3 text-slate-600 text-xs">{cliente.whatsapp}</td>
+                      <td className="py-3 text-slate-600">{historial.length}</td>
+                      <td className="py-3">
+                        <span className={cliente.ausencias >= umbral
+                          ? "text-red-600 font-semibold"
+                          : "text-slate-600"}>
+                          {cliente.ausencias}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs">
-                          Activo
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3 text-slate-600">
+                        {ultimo
+                          ? (nombrePorServicio.get(ultimo.servicio_id) ?? "Servicio") + " · " + ultimo.estado
+                          : "Sin turnos"}
+                      </td>
+                      <td className="py-3">
+                        {enListaNegra ? (
+                          <span className="inline-flex px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs">
+                            {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs">
+                            Activo
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-
-          <p className="text-xs text-slate-400 mt-6">Datos de demostración de Barbería Diego.</p>
+          {clientes.length === 0 ? <p className="text-sm text-slate-500 mt-4">Todavía no tenés clientes.</p> : null}
         </div>
       </div>
     </div>

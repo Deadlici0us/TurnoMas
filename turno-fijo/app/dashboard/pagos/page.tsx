@@ -1,35 +1,44 @@
 import Link from "next/link";
 
-interface Reserva
+import { getDashboardData } from "@/lib/dashboard/queries";
+
+interface TurnoRow
 {
   readonly id: string;
-  readonly cliente: string;
-  readonly servicio: string;
-  readonly montoTotal: number;
-  readonly senaMonto: number | null;
-  readonly estado: "pagado" | "pendiente" | "completado" | "reembolsado";
-  readonly fecha: string;
+  readonly cliente_id: string;
+  readonly servicio_id: string;
+  readonly inicio: string;
+  readonly estado: "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+  readonly monto_total: number | null;
+  readonly sena_monto: number | null;
 }
-
-const RESERVAS_DEMO: readonly Reserva[] = [
-  { id: "1", cliente: "Juan Pérez", servicio: "Corte clásico", montoTotal: 1500000, senaMonto: 750000, estado: "pagado", fecha: "Hoy" },
-  { id: "2", cliente: "María Gómez", servicio: "Barba + corte", montoTotal: 2000000, senaMonto: 1000000, estado: "pendiente", fecha: "Mañana" },
-  { id: "3", cliente: "Juan Pérez", servicio: "Perfilado de barba", montoTotal: 800000, senaMonto: null, estado: "completado", fecha: "Ayer" },
-];
 
 function formatARS(cents: number | null): string
 {
-  if (cents === null) return "—";
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(cents / 100);
+  if (cents === null)
+  {
+    return "—";
+  }
+
+  return new Intl.NumberFormat("es-AR",
+    { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(cents / 100);
 }
 
-export default function PagosPage()
+export default async function PagosPage()
 {
-  const totalPendiente = RESERVAS_DEMO.filter(r => r.estado === "pendiente").reduce((a, r) => a + (r.montoTotal - (r.senaMonto ?? 0)), 0);
+  const { data: dashboard } = await getDashboardData();
+  const turnos = (dashboard.turnos as TurnoRow[]).slice()
+    .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
+  const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
+    .map((s) => [s.id, s.nombre]));
+  const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
+    .map((c) => [c.id, c.nombre]));
+  const totalPendiente = turnos.filter((t) => t.estado === "pendiente")
+    .reduce((acum, t) => acum + ((t.monto_total ?? 0) - (t.sena_monto ?? 0)), 0);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="max-w-4xl w-full px-8 py-12">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl w-full mx-auto px-8 py-12">
         <Link href="/dashboard" className="inline-block mb-4 text-sm font-semibold text-blue-600 hover:underline">
           ← Volver al panel
         </Link>
@@ -44,7 +53,6 @@ export default function PagosPage()
               <div className="text-2xl font-bold text-blue-600">{formatARS(totalPendiente)}</div>
             </div>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -58,30 +66,35 @@ export default function PagosPage()
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {RESERVAS_DEMO.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50">
-                    <td className="py-3 font-medium text-slate-900">{r.cliente}</td>
-                    <td className="py-3 text-slate-600">{r.servicio}</td>
-                    <td className="py-3 text-slate-600">{formatARS(r.montoTotal)}</td>
-                    <td className="py-3 text-slate-600">{formatARS(r.senaMonto)}</td>
+                {turnos.map((turno) => (
+                  <tr key={turno.id} className="hover:bg-slate-50">
+                    <td className="py-3 font-medium text-slate-900">
+                      {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
+                    </td>
+                    <td className="py-3 text-slate-600">{formatARS(turno.monto_total)}</td>
+                    <td className="py-3 text-slate-600">{formatARS(turno.sena_monto)}</td>
                     <td className="py-3">
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
-                        r.estado === "pagado" ? "bg-green-100 text-green-800" :
-                        r.estado === "pendiente" ? "bg-amber-100 text-amber-800" :
-                        r.estado === "completado" ? "bg-slate-100 text-slate-600" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {r.estado}
+                      <span className={"px-2 py-0.5 text-xs rounded-full font-semibold "
+                        + (turno.estado === "pagado" ? "bg-green-100 text-green-800"
+                          : turno.estado === "pendiente" ? "bg-amber-100 text-amber-800"
+                            : turno.estado === "ausente" ? "bg-red-100 text-red-800"
+                              : "bg-slate-100 text-slate-600")}>
+                        {turno.estado}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600">{r.fecha}</td>
+                    <td className="py-3 text-slate-600">
+                      {new Date(turno.inicio).toLocaleDateString("es-AR",
+                        { day: "2-digit", month: "2-digit" })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          <p className="text-xs text-slate-400 mt-6">Datos de demostración de Barbería Diego.</p>
+          {turnos.length === 0 ? <p className="text-sm text-slate-500 mt-4">Todavía no hay movimientos.</p> : null}
         </div>
       </div>
     </div>
