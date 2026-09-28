@@ -45,7 +45,8 @@ export class QStashAdapter implements IBackgroundJobs
       throw new Error("Falta configurar QSTASH_URL o QSTASH_TOKEN en el entorno.");
     }
 
-    const endpoint = `${baseUrl.replace(/\/+$/, "")}/v2/publish/${input.url}`;
+    const cleanBase = baseUrl.replace(/^["']+|["']+$/g, "").replace(/\/+$/, "");
+    const endpoint = `${cleanBase}/v2/publish/${input.url}`;
 
     const response = await fetch(endpoint, {
       method: "POST",
