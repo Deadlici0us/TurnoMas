@@ -19,6 +19,8 @@ describe("BookingFlow",
     render(
       <BookingFlow
         negocioNombre={business!.nombre}
+        pais={business!.pais}
+        slug={business!.slug}
         staff={business!.staff}
         servicios={business!.servicios}
         turnos={business!.turnos}

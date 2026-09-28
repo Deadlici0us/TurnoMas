@@ -127,6 +127,8 @@ export default async function PortalPage({ params }: { params: Promise<PortalPar
       <div className="max-w-lg w-full mx-auto px-4 py-8">
         <BookingFlow
           negocioNombre={business.nombre}
+          pais={business.pais}
+          slug={business.slug}
           staff={business.staff}
           servicios={business.servicios}
           turnos={business.turnos}

@@ -14,6 +14,8 @@ import type
 interface BookingFlowProps
 {
   readonly negocioNombre: string;
+  readonly pais: string;
+  readonly slug: string;
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
@@ -35,7 +37,7 @@ function formatSlot(date: Date): string
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 
-export default function BookingFlow({ negocioNombre, staff, servicios, turnos }: BookingFlowProps)
+export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export default function BookingFlow({ negocioNombre, staff, servicios, turnos }:
   const [whatsapp, setWhatsapp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmado, setConfirmado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   const profesional = staff.find((s) => s.id === staffId) ?? null;
   const servicio = servicios.find((s) => s.id === servicioId) ?? null;
@@ -91,7 +94,7 @@ export default function BookingFlow({ negocioNombre, staff, servicios, turnos }:
     setError(null);
   }
 
-  function confirmar(): void
+  async function confirmar(): Promise<void>
   {
     if (nombre.trim().length < 2)
     {
@@ -105,8 +108,54 @@ export default function BookingFlow({ negocioNombre, staff, servicios, turnos }:
       return;
     }
 
+    if (staffId === null || servicioId === null || slotISO === null)
+    {
+      setError("Elegí profesional, servicio y horario para continuar.");
+      return;
+    }
+
+    setEnviando(true);
     setError(null);
-    setConfirmado(true);
+
+    try
+    {
+      const response = await fetch("/api/reservas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pais,
+          slug,
+          staffId,
+          servicioId,
+          inicio: slotISO,
+          nombre: nombre.trim(),
+          whatsapp: whatsapp.trim(),
+        }),
+      });
+      const data = await response.json() as { error?: string; checkoutUrl?: string };
+
+      if (!response.ok)
+      {
+        setError(typeof data.error === "string" ? data.error : "No pudimos guardar tu reserva.");
+        return;
+      }
+
+      if (typeof data.checkoutUrl === "string" && data.checkoutUrl.length > 0)
+      {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      setConfirmado(true);
+    }
+    catch
+    {
+      setError("No pudimos guardar tu reserva. Probá de nuevo.");
+    }
+    finally
+    {
+      setEnviando(false);
+    }
   }
 
   if (confirmado && profesional !== null && servicio !== null && slotISO !== null)
@@ -254,10 +303,12 @@ export default function BookingFlow({ negocioNombre, staff, servicios, turnos }:
             </div>
             {error !== null ? <p className="text-sm text-red-600">{error}</p> : null}
             <button
-              onClick={confirmar}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => { void confirmar(); }}
+              disabled={enviando}
+              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700
+                transition-colors disabled:opacity-60"
             >
-              Confirmar reserva
+              {enviando ? "Guardando tu reserva..." : "Confirmar reserva"}
             </button>
           </div>
         </section>

@@ -2,8 +2,31 @@ import { NextResponse } from "next/server";
 
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import type { CheckoutInput } from "@/lib/checkout/checkout";
-import { getDashboardData } from "@/lib/dashboard/queries";
 import { paymentService } from "@/lib/services/payment";
+
+const DEFAULT_DESCRIPTION = "Seña de reserva TurnoFijo";
+
+/** Valida que la reserva tenga identidad trazable para el webhook. */
+function exigirBookingId(raw: unknown): string
+{
+  if (typeof raw !== "string" || raw.trim().length === 0)
+  {
+    throw new RangeError("La reserva requiere un identificador válido.");
+  }
+
+  return raw.trim();
+}
+
+/** Valida el monto total en centavos antes de crear la preferencia. */
+function exigirMonto(raw: unknown): number
+{
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw <= 0)
+  {
+    throw new RangeError("El monto debe ser un entero positivo en centavos.");
+  }
+
+  return raw;
+}
 
 export async function POST(request: Request)
 {
@@ -32,18 +55,17 @@ export async function POST(request: Request)
       return NextResponse.json({ success: true, outcome, action: "confirm" }, { status: 200 });
     }
 
-    const { data: dashboard } = await getDashboardData();
-
-    if (dashboard.negocio === null)
-    {
-      return NextResponse.json({ error: "No hay negocio configurado." }, { status: 500 });
-    }
+    const bookingId = exigirBookingId(body.bookingId);
+    const amountCents = exigirMonto(body.amountCents);
+    const description = typeof body.description === "string" && body.description.trim().length > 0
+      ? body.description.trim().slice(0, 120)
+      : DEFAULT_DESCRIPTION;
 
     const preference = await paymentService.createDepositPreference(
-      typeof body.bookingId === "string" ? body.bookingId : `reserva-${Date.now()}`,
-      typeof body.amountCents === "number" ? body.amountCents : 0,
+      bookingId,
+      amountCents,
       outcome.percentage,
-      typeof body.description === "string" ? body.description : "Seña de reserva TurnoFijo",
+      description,
     );
 
     return NextResponse.json(

@@ -38,7 +38,7 @@ export class PaymentService
     await this.adapter.refundPayment(paymentId);
   }
 
-  async getPaymentStatus(paymentId: string): Promise<{ id: string; status: string }>
+  async getPaymentStatus(paymentId: string): Promise<{ id: string; status: string; externalReference: string | null }>
   {
     const token = readEnv("MP_ACCESS_TOKEN");
     if (!token) throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
@@ -57,7 +57,8 @@ export class PaymentService
     }
 
     const data = await response.json();
-    return { id: data.id, status: data.status };
+    const externalReference = typeof data.external_reference === "string" ? data.external_reference : null;
+    return { id: data.id, status: data.status, externalReference };
   }
 }
 
