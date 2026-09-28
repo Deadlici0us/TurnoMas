@@ -37,8 +37,8 @@ export class ResendAdapter implements IEmailProvider
 {
   async send(input: SendEmailInput): Promise<string>
   {
-    const apiKey = readEnv("RESEND_API_KEY");
-    const from = readEnv("EMAIL_FROM");
+    const apiKey = readEnv("RESEND_API_KEY")?.replace(/^["']+|["']+$/g, "").trim() ?? null;
+    const from = readEnv("EMAIL_FROM")?.replace(/^["']+|["']+$/g, "").trim() ?? null;
 
     if (apiKey === null || from === null)
     {
@@ -56,7 +56,7 @@ export class ResendAdapter implements IEmailProvider
 
     if (!response.ok)
     {
-      throw new Error("No se pudo enviar el email de confirmación.");
+      throw new Error(`No se pudo enviar el email de confirmación (HTTP ${response.status}).`);
     }
 
     const data = (await response.json()) as { id?: string };
