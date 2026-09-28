@@ -13,9 +13,11 @@ import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
 import { isSlotAvailable } from "@/lib/availability/availability";
 import { getBlockedInterval } from "@/lib/availability/availability";
+import { construirICS, construirLinkGoogleCalendar } from "@/lib/automatizaciones/ics";
 import { resolveCheckout } from "@/lib/checkout/checkout";
+import { readEnv } from "@/lib/env/env";
+import { QStashAdapter } from "@/lib/ports/jobs";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
-import { notificationService } from "@/lib/services/notifications";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -165,7 +167,7 @@ export async function POST(request: Request)
     const decision = evaluateCustomer(ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
 
     const servicioRow = servicio as unknown as {
-      duracion_min: number; buffer_limpieza_min: number; precio_base: number;
+      nombre: string; duracion_min: number; buffer_limpieza_min: number; precio_base: number;
       precio_promocional: number | null; sena_requerida: boolean; sena_porcentaje: number;
     };
     const outcome = resolveCheckout({
@@ -255,10 +257,28 @@ export async function POST(request: Request)
     }
 
     const turnoId = turno.id as string;
+    const servicioNombre = servicioRow.nombre ?? "tu servicio";
+    const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
+    const tituloEvento = `${servicioNombre} en ${negocio.nombre as string}`;
+    const gcalUrl = construirLinkGoogleCalendar({
+      titulo: tituloEvento,
+      inicio,
+      fin,
+      descripcion: `Reserva TurnoFijo · ${servicioNombre} con ${staffNombre}`,
+      ubicacion: negocio.nombre as string,
+    });
+    const ics = construirICS({
+      titulo: tituloEvento,
+      inicio,
+      fin,
+      descripcion: `Reserva TurnoFijo · ${servicioNombre} con ${staffNombre}`,
+      ubicacion: negocio.nombre as string,
+    });
 
     if (!conSena)
     {
-      return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal });
+      return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal,
+        gcalUrl, ics });
     }
 
     const preference = await paymentService.createDepositPreference(turnoId,
@@ -266,13 +286,21 @@ export async function POST(request: Request)
 
     try
     {
-      await notificationService.scheduleReminder(turnoId,
-        (await import("@/lib/services/notifications")).NotificationType.REMINDER_24H,
-        { nombre, whatsapp });
+      const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
+        ? `https://${readEnv("VERCEL_URL") as string}` : null);
+
+      if (base !== null)
+      {
+        await new QStashAdapter().schedule({
+          url: `${base.replace(/\/+$/, "")}/api/cron/antifantasma`,
+          delaySeconds: 900,
+          body: { turnoId },
+        });
+      }
     }
     catch
     {
-      // Best-effort: la reserva ya existe aunque QStash/Resend no estén configurados.
+      // Best-effort: la reserva ya existe aunque QStash no esté configurado.
     }
 
     return NextResponse.json({
@@ -282,6 +310,8 @@ export async function POST(request: Request)
       montoTotal: montos.montoTotal,
       senaMonto: montos.senaMonto,
       checkoutUrl: preference.initPoint,
+      gcalUrl,
+      ics,
     });
   }
   catch (error)

@@ -47,6 +47,8 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
   const [error, setError] = useState<string | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [gcalUrl, setGcalUrl] = useState<string | null>(null);
+  const [ics, setIcs] = useState<string | null>(null);
 
   const profesional = staff.find((s) => s.id === staffId) ?? null;
   const servicio = servicios.find((s) => s.id === servicioId) ?? null;
@@ -132,7 +134,8 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
           whatsapp: whatsapp.trim(),
         }),
       });
-      const data = await response.json() as { error?: string; checkoutUrl?: string };
+      const data = await response.json() as { error?: string; checkoutUrl?: string; gcalUrl?: string;
+        ics?: string };
 
       if (!response.ok)
       {
@@ -146,6 +149,8 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
         return;
       }
 
+      setGcalUrl(typeof data.gcalUrl === "string" ? data.gcalUrl : null);
+      setIcs(typeof data.ics === "string" ? data.ics : null);
       setConfirmado(true);
     }
     catch
@@ -156,6 +161,24 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
     {
       setEnviando(false);
     }
+  }
+
+  function descargarIcs(): void
+  {
+    if (ics === null)
+    {
+      return;
+    }
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "turno.ics";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   if (confirmado && profesional !== null && servicio !== null && slotISO !== null)
@@ -176,6 +199,28 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
             para pagar la seña del {servicio.senaPorcentaje}% ({formatARS(servicio.precioBase)}).
           </p>
         ) : null}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          {gcalUrl !== null ? (
+            <a
+              href={gcalUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex justify-center px-4 py-2 border border-slate-300 text-sm font-semibold
+                rounded-lg hover:bg-slate-50"
+            >
+              Agregar a Google Calendar
+            </a>
+          ) : null}
+          {ics !== null ? (
+            <button
+              onClick={descargarIcs}
+              className="inline-flex justify-center px-4 py-2 border border-slate-300 text-sm font-semibold
+                rounded-lg hover:bg-slate-50"
+            >
+              Descargar .ics
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }
