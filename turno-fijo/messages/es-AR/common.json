@@ -1,0 +1,63 @@
+{
+  "appName": "TurnoFijo",
+  "nav": {
+    "home": "Inicio",
+    "features": "Características",
+    "pricing": "Precios",
+    "demo": "Demo",
+    "login": "Iniciar sesión",
+    "register": "Registrarse"
+  },
+  "hero": {
+    "title": "Eliminá las inasistencias en tu negocio",
+    "subtitle": "El sistema de reservas que te ayuda a cobrar señas y reducir las ausencias de clientes mediante recordatorios automáticos y listados negros.",
+    "ctaPrimary": "Probar Demo Gratis",
+    "ctaSecondary": "Ver cómo funciona"
+  },
+  "features": {
+    "title": "Características principales",
+    "subtitle": "Todo lo que necesitás para profesionalizar tu negocio",
+    "señas": {
+      "title": "Cobro de señas",
+      "description": "Exigí el pago de una señal para confirmar la reserva y reducir drásticamente las inasistencias."
+    },
+    "recordatorios": {
+      "title": "Recordatorios automáticos",
+      "description": "Envíá recordatorios por WhatsApp o email 24hs antes del turno para que ningún cliente se olvide."
+    },
+    "listaNegra": {
+      "title": "Lista negra automática",
+      "description": "Bloquéá o exigí el 100% de señal a clientes con historial de ausencias."
+    },
+    "agenda": {
+      "title": "Agenda inteligente",
+      "description": "Bloqueá automáticamente el tiempo de servicio + limpieza para que nunca tengas espacios muertos."
+    }
+  },
+  "pricing": {
+    "title": "Precios simples y transparentes",
+    "subtitle": "Un solo plan para profesionales que quieren crecer sin complicaciones",
+    "monthly": "U$S 15 / mes",
+    "trial": "14 días gratis",
+    "features": [
+      "Reservas ilimitadas",
+      "Cobro de señas vía MercadoPago",
+      "Recordatorios por WhatsApp y email",
+      "Lista negra automática",
+      "Agenda sincronizada con Google Calendar",
+      "Soporte prioritario"
+    ],
+    "cta": "Empezar prueba gratis"
+  },
+  "demo": {
+    "title": "Probá la demo interactiva",
+    "subtitle": "Ingresá a una cuenta preconfigurada para explorar todas las funcionalidades sin riesgo",
+    "cta": "Entrar a la demo",
+    "note": "Usuario: demo@turnofijo.com | Contraseña: demo123"
+  },
+  "footer": {
+    "rights": "Todos los derechos reservados",
+    "privacy": "Política de privacidad",
+    "terms": "Términos de servicio"
+  }
+}
