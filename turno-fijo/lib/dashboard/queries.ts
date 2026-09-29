@@ -1,28 +1,34 @@
 "use server";
 
+import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { buildDemoSeed } from "@/lib/seed/demo-rows";
 
 const DEMO_DUENIO_ID = "demo-duenio";
 
-/** Datos del dashboard: negocio + staff + servicios + clientes + turnos. */
+/** Datos del dashboard: negocio + staff + servicios + clientes + turnos + `isDemo`. */
 export async function getDashboardData()
 {
   let userId: string | null = null;
+  let userEmail: string | null = null;
 
   try
   {
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
     userId = user?.id ?? null;
+    userEmail = user?.email ?? null;
   }
   catch
   {
     userId = null;
+    userEmail = null;
   }
 
-  // Sin sesión (build, demo local): devolver seed en memoria.
+  // Sin sesión (build, demo local): seed en memoria, siempre solo lectura.
+  const isDemo = userId === null || isDemoOwner({ userId, email: userEmail });
+
   if (userId === null)
   {
     const seed = buildDemoSeed(DEMO_DUENIO_ID);
@@ -36,6 +42,7 @@ export async function getDashboardData()
         turnos: seed.turnos,
       },
       error: null as string | null,
+      isDemo,
     };
   }
 
@@ -61,6 +68,7 @@ export async function getDashboardData()
         turnos: seed.turnos,
       },
       error: null as string | null,
+      isDemo,
     };
   }
 
@@ -85,6 +93,7 @@ export async function getDashboardData()
       turnos: turnos ?? [],
     },
     error: null as string | null,
+    isDemo,
   };
 }
 

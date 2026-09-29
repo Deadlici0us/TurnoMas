@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { actualizarPoliticaListaNegra, conectarMercadoPago, desconectarMercadoPago } from "./actions";
+import { actualizarNombreNegocio, actualizarPoliticaListaNegra, conectarMercadoPago, desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
+import DemoReadonlyBanner from "@/components/demo-readonly-banner";
+import { DEMO_READONLY_MESSAGE } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -13,26 +16,86 @@ async function guardarPolitica(formData: FormData): Promise<void>
   const umbral = Number(formData.get("umbral"));
   const penalidad = String(formData.get("penalidad") ?? "fullDeposit") as PenalidadListaNegra;
 
-  await actualizarPoliticaListaNegra(umbral, penalidad);
+  try
+  {
+    await actualizarPoliticaListaNegra(umbral, penalidad);
+  }
+  catch (error)
+  {
+    if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
+    {
+      redirect("/dashboard/config?error=demo");
+    }
+
+    throw error;
+  }
 }
 
 async function guardarTokenMp(formData: FormData): Promise<void>
 {
   "use server";
 
-  await conectarMercadoPago(String(formData.get("mpToken") ?? ""));
+  try
+  {
+    await conectarMercadoPago(String(formData.get("mpToken") ?? ""));
+  }
+  catch (error)
+  {
+    if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
+    {
+      redirect("/dashboard/config?error=demo");
+    }
+
+    throw error;
+  }
 }
 
 async function quitarTokenMp(): Promise<void>
 {
   "use server";
 
-  await desconectarMercadoPago();
+  try
+  {
+    await desconectarMercadoPago();
+  }
+  catch (error)
+  {
+    if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
+    {
+      redirect("/dashboard/config?error=demo");
+    }
+
+    throw error;
+  }
 }
 
-export default async function ConfigPage()
+async function guardarNombre(formData: FormData): Promise<void>
 {
-  const { data: dashboard } = await getDashboardData();
+  "use server";
+
+  try
+  {
+    await actualizarNombreNegocio(String(formData.get("nombre") ?? ""));
+  }
+  catch (error)
+  {
+    if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
+    {
+      redirect("/dashboard/config?error=demo");
+    }
+
+    throw error;
+  }
+}
+
+export default async function ConfigPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+})
+{
+  const { data: dashboard, isDemo } = await getDashboardData();
+  const { error } = await searchParams;
   const negocio = dashboard.negocio as {
     nombre?: string; pais?: string; slug?: string;
     blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra;
@@ -75,8 +138,10 @@ export default async function ConfigPage()
             <h1 className="text-2xl font-bold text-slate-900 mb-1">Configuración</h1>
             <p className="text-sm text-slate-600">Parámetros del negocio y lista negra</p>
           </div>
+          {isDemo ? <DemoReadonlyBanner accionBloqueada={error === "demo"} /> : null}
           <section className="space-y-3">
             <h2 className="font-semibold text-slate-900">Negocio</h2>
+            {isDemo ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border border-slate-200 rounded-lg">
                 <div className="text-xs text-slate-500">Nombre</div>
@@ -87,6 +152,31 @@ export default async function ConfigPage()
                 <div className="font-semibold text-slate-900">{negocio.pais ?? "—"}</div>
               </div>
             </div>
+            ) : (
+            <form action={guardarNombre} className="space-y-3">
+              <label className="block text-sm text-slate-600">
+                Nombre del negocio
+                <input
+                  type="text"
+                  name="nombre"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  defaultValue={negocio.nombre ?? ""}
+                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+              <p className="text-xs text-slate-500">País: {negocio.pais ?? "—"} · El link público no cambia.</p>
+              <button
+                type="submit"
+                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                  hover:bg-blue-700 transition-colors"
+              >
+                Guardar nombre
+              </button>
+            </form>
+            )}
             {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
               <p className="text-sm text-slate-600">
                 {"Tu página pública: "}
@@ -101,6 +191,7 @@ export default async function ConfigPage()
           </section>
           <section className="space-y-3">
             <h2 className="font-semibold text-slate-900">Lista negra automática</h2>
+            {isDemo ? null : (
             <form action={guardarPolitica} className="space-y-3">
               <div className="flex flex-col sm:flex-row gap-3">
                 <label className="flex-1 text-sm text-slate-600">
@@ -136,6 +227,7 @@ export default async function ConfigPage()
                 Guardar
               </button>
             </form>
+            )}
           </section>
           <section className="space-y-3">
             <h2 className="font-semibold text-slate-900">Conexiones</h2>
@@ -151,7 +243,7 @@ export default async function ConfigPage()
                   {mpConectado ? `Conectado ${maskMpToken(mpToken)}` : "Sin conectar"}
                 </span>
               </div>
-              {mpConectado ? (
+              {isDemo ? null : mpConectado ? (
                 <form action={quitarTokenMp}>
                   <button
                     type="submit"

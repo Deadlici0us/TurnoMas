@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { resolveAuthMode, buildOnboardingResult } from "@/lib/auth/auth-mode";
+import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /**
@@ -36,6 +37,12 @@ export async function createBusiness(formData: FormData): Promise<void>
   if (!user)
   {
     redirect("/login?error=sesion");
+  }
+
+  // La demo ya tiene negocio: no puede crear otro (además es solo lectura).
+  if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
+  {
+    redirect("/dashboard");
   }
 
   const slug = url.split("/").pop() ?? "";

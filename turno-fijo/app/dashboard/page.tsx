@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import DemoReadonlyBanner from "@/components/demo-readonly-banner";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -21,7 +22,7 @@ function formatARS(centavos: number | null): string
 export default async function DashboardPage()
 {
   const t = await getTranslations("common");
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, isDemo } = await getDashboardData();
 
   const negocioRow = dashboard.negocio as {
     id?: unknown;
@@ -62,6 +63,8 @@ export default async function DashboardPage()
           </h1>
           <p className="text-slate-600 mt-2">Agenda, equipo, servicios y cobros en un solo lugar.</p>
         </div>
+
+        {isDemo ? <DemoReadonlyBanner accionBloqueada={false} /> : null}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6">

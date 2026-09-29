@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { validarNombreNegocio } from "@/lib/negocios/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -23,6 +25,8 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
     throw new RangeError("Esa penalidad no existe.");
   }
 
+  await assertModoEditable();
+
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -30,6 +34,8 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
   {
     throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
   }
+
+  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("negocios")
@@ -58,6 +64,8 @@ export async function conectarMercadoPago(token: string): Promise<void>
     throw new Error("MercadoPago rechazó ese token. Revisalo y probá de nuevo.");
   }
 
+  await assertModoEditable();
+
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -65,6 +73,8 @@ export async function conectarMercadoPago(token: string): Promise<void>
   {
     throw new Error("Tenés que iniciar sesión para conectar MercadoPago.");
   }
+
+  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -91,6 +101,8 @@ export async function conectarMercadoPago(token: string): Promise<void>
 /** Desconecta MercadoPago (las reservas pasan a confirmación manual). */
 export async function desconectarMercadoPago(): Promise<void>
 {
+  await assertModoEditable();
+
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -98,6 +110,8 @@ export async function desconectarMercadoPago(): Promise<void>
   {
     throw new Error("Tenés que iniciar sesión para desconectar MercadoPago.");
   }
+
+  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -117,4 +131,33 @@ export async function desconectarMercadoPago(): Promise<void>
   }
 
   revalidatePath("/dashboard/config");
+}
+
+/** Actualiza el nombre del negocio del dueño (el link público no cambia). */
+export async function actualizarNombreNegocio(nombre: string): Promise<void>
+{
+  const value = validarNombreNegocio(nombre);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar el nombre.");
+  }
+
+  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios").update({ nombre: value }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar el nombre. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+  revalidatePath("/dashboard");
 }
