@@ -331,6 +331,7 @@ export async function POST(request: Request)
         await new ResendAdapter().send({
           to: email,
           subject: plantilla.subject,
+          fromName: negocio.nombre as string,
           html: plantilla.html,
           attachments: [{
             filename: "turno.ics",

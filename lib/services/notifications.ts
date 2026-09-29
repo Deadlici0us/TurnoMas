@@ -35,6 +35,27 @@ function resolveAppBaseUrl(): string
   throw new Error("Falta configurar NEXT_PUBLIC_APP_URL o VERCEL_URL para programar recordatorios.");
 }
 
+/**
+ * Resuelve el nombre visible del remitente desde el payload del turno.
+ *
+ * @param data Payload con el nombre del negocio bajo claves conocidas.
+ * @return Nombre del negocio o undefined para usar el default.
+ */
+function resolveFromName(data: Record<string, unknown>): string | undefined
+{
+  for (const key of ["negocio", "negocioNombre", "businessName", "fromName"])
+  {
+    const value = data[key];
+
+    if (typeof value === "string" && value.trim().length > 0)
+    {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
 export class NotificationService
 {
   private emailProvider: ResendAdapter;
@@ -60,6 +81,7 @@ export class NotificationService
       emailId = await this.emailProvider.send({
         to: data.email as string || "demo@turnomas.com",
         subject: data.subject as string || "TurnoMas - Reserva confirmada",
+        fromName: resolveFromName(data),
         html: data.html as string || `<p>${data.message || "Tu reserva está confirmada"}</p>`,
       });
     }
@@ -85,6 +107,7 @@ export class NotificationService
     return this.emailProvider.send({
       to: data.email as string || "demo@turnomas.com",
       subject: data.subject as string || "TurnoMas - Recordatorio de pago",
+      fromName: resolveFromName(data),
       html: data.html as string || `<p>${data.message || "Tu turno está pendiente de pago"}</p>`,
     });
   }
@@ -95,6 +118,7 @@ export class NotificationService
     return this.emailProvider.send({
       to: data.email as string || "demo@turnomas.com",
       subject: data.subject as string || "TurnoMas - Reseña de tu experiencia",
+      fromName: resolveFromName(data),
       html: data.html as string || `<p>${data.message || "¿Cómo fue tu experiencia?"}</p>`,
     });
   }

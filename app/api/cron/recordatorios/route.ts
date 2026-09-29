@@ -94,6 +94,7 @@ export async function POST(request: Request)
       await email.send({
         to: turno.cliente?.email as string,
         subject: plantilla.subject,
+        fromName: turno.negocio?.nombre,
         html: plantilla.html,
       });
       await admin.from("turnos").update({ notificacion_enviada: true }).eq("id", turno.id);

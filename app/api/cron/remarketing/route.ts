@@ -110,6 +110,7 @@ export async function POST(request: Request)
       await email.send({
         to: turno.cliente?.email as string,
         subject: plantilla.subject,
+        fromName: turno.negocio?.nombre,
         html: plantilla.html,
       });
       await admin.from("turnos").update({ remarketing_enviado: true }).eq("id", turno.id);
