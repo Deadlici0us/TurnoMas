@@ -34,3 +34,19 @@ export async function login(formData: FormData): Promise<void>
 
   redirect("/dashboard");
 }
+
+/** Cierra sesión: Supabase Auth en Vercel, cookie demo local sin secrets. */
+export async function logout(): Promise<void>
+{
+  if (resolveAuthMode() === "demo")
+  {
+    (await cookies()).delete("session");
+
+    redirect("/login");
+  }
+
+  const supabase = await getSupabaseServer();
+  await supabase.auth.signOut();
+
+  redirect("/login");
+}

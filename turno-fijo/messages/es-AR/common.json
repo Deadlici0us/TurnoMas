@@ -59,6 +59,7 @@
     "businessName": "Nombre de tu negocio",
     "businessNamePlaceholder": "Ej: Barbería Diego",
     "loginCta": "Iniciar sesión",
+    "logoutCta": "Cerrar sesión",
     "registerCta": "Empezar prueba gratis",
     "toRegister": "¿No tenés cuenta? Registrate gratis",
     "toLogin": "¿Ya tenés cuenta? Iniciá sesión",

@@ -4,5 +4,6 @@
   "hero": { "title": "Elimina ausencias", "subtitle": "Sistema de reservas con señas y notificaciones automáticas.", "ctaPrimary": "Probar Demo", "ctaSecondary": "Ver más" },
   "pricing": { "title": "Precios", "monthly": "U$S 15 / mes", "trial": "14 días gratis", "cta": "Empezar" },
   "demo": { "cta": "Entrar a demo", "note": "Cuenta demo" },
+  "auth": { "logoutCta": "Cerrar sesión" },
   "footer": { "rights": "© TurnoFijo", "privacy": "Privacidad", "terms": "Términos" }
 }
