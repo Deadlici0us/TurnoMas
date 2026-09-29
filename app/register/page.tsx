@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import SocialLoginButton from "@/components/social-login-button";
+import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { register } from "./actions";
 
 const ERROR_KEYS = {
@@ -23,6 +25,7 @@ export default async function RegisterPage({
 {
   const t = await getTranslations("common");
   const { error } = await searchParams;
+  const showSocialLogin = resolveAuthMode() === "supabase";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
@@ -83,6 +86,20 @@ export default async function RegisterPage({
               {t("auth.registerCta")}
             </button>
           </form>
+          {showSocialLogin && (
+            <>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="flex-1 border-t border-slate-200" />
+                {t("auth.orSeparator")}
+                <span className="flex-1 border-t border-slate-200" />
+              </div>
+              <SocialLoginButton
+                label={t("auth.continueWithGoogle")}
+                errorLabel={t("auth.oauthError")}
+                next="/onboarding"
+              />
+            </>
+          )}
           <div className="text-center text-sm">
             <Link href="/login" className="text-blue-600 hover:underline">
               {t("auth.toLogin")}

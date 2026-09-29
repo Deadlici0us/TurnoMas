@@ -2,11 +2,15 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import DemoCredentials from "@/components/demo-credentials";
+import SocialLoginButton from "@/components/social-login-button";
 import { getDemoCredentials } from "@/lib/auth/demo-credentials";
+import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { login } from "./actions";
 
 const ERROR_KEYS = {
   credenciales: "auth.invalidCredentials",
+  oauth: "auth.oauthError",
+  sesion: "auth.sessionExpired",
 } as const;
 
 export default async function LoginPage({
@@ -17,8 +21,11 @@ export default async function LoginPage({
 {
   const t = await getTranslations("common");
   const { error } = await searchParams;
-  const errorKey = error === "credenciales" ? ERROR_KEYS.credenciales : null;
+  const errorKey = error === "credenciales" || error === "oauth" || error === "sesion"
+    ? ERROR_KEYS[error]
+    : null;
   const demo = getDemoCredentials();
+  const showSocialLogin = resolveAuthMode() === "supabase";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
@@ -64,6 +71,19 @@ export default async function LoginPage({
               {t("auth.loginCta")}
             </button>
           </form>
+          {showSocialLogin && (
+            <>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="flex-1 border-t border-slate-200" />
+                {t("auth.orSeparator")}
+                <span className="flex-1 border-t border-slate-200" />
+              </div>
+              <SocialLoginButton
+                label={t("auth.continueWithGoogle")}
+                errorLabel={t("auth.oauthError")}
+              />
+            </>
+          )}
           <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-3">
             <div className="text-center">
               <p className="text-sm font-medium text-slate-700">{t("auth.demoTitle")}</p>

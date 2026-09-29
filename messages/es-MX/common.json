@@ -4,6 +4,12 @@
   "hero": { "title": "Elimina ausencias", "subtitle": "Sistema de reservas con señas y notificaciones automáticas.", "ctaPrimary": "Iniciar sesión", "ctaSecondary": "Ver más" },
   "pricing": { "title": "Precios", "monthly": "U$S 15 / mes", "trial": "14 días gratis", "cta": "Empezar" },
   "demo": { "note": "Cuenta demo: demo@turnomas.com / demo123" },
-  "auth": { "logoutCta": "Cerrar sesión" },
+  "auth": {
+    "logoutCta": "Cerrar sesión",
+    "continueWithGoogle": "Continuar con Google",
+    "orSeparator": "o",
+    "oauthError": "No pudimos iniciar con Google. Intenta de nuevo",
+    "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo"
+  },
   "footer": { "rights": "© TurnoMas", "privacy": "Privacidad", "terms": "Términos" }
 }

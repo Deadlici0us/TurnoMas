@@ -1,4 +1,10 @@
 {
   "_status": "Reservado para expansión futura. Locale default: es-AR.",
-  "appName": "TurnoMas"
+  "appName": "TurnoMas",
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "orSeparator": "or",
+    "oauthError": "We couldn't sign you in with Google. Try again",
+    "sessionExpired": "Your session expired. Sign in again"
+  }
 }

@@ -72,7 +72,10 @@
     "invalidData": "Completá todos los datos para continuar",
     "registerError": "No pudimos crear tu cuenta. Probá con otro email",
     "saveError": "No pudimos guardar tu negocio. Intentá de nuevo",
-    "sessionExpired": "Tu sesión venció. Iniciá sesión de nuevo"
+    "sessionExpired": "Tu sesión venció. Iniciá sesión de nuevo",
+    "continueWithGoogle": "Continuar con Google",
+    "orSeparator": "o",
+    "oauthError": "No pudimos iniciar con Google. Probá de nuevo"
   },
   "onboarding": {
     "title": "Poné en marcha tu negocio",
