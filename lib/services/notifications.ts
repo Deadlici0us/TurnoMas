@@ -59,7 +59,7 @@ export class NotificationService
     {
       emailId = await this.emailProvider.send({
         to: data.email as string || "demo@turnomas.com",
-        subject: data.subject as string || "TurnoFijo - Reserva confirmada",
+        subject: data.subject as string || "TurnoMas - Reserva confirmada",
         html: data.html as string || `<p>${data.message || "Tu reserva está confirmada"}</p>`,
       });
     }
@@ -84,7 +84,7 @@ export class NotificationService
   {
     return this.emailProvider.send({
       to: data.email as string || "demo@turnomas.com",
-      subject: data.subject as string || "TurnoFijo - Recordatorio de pago",
+      subject: data.subject as string || "TurnoMas - Recordatorio de pago",
       html: data.html as string || `<p>${data.message || "Tu turno está pendiente de pago"}</p>`,
     });
   }
@@ -94,7 +94,7 @@ export class NotificationService
   {
     return this.emailProvider.send({
       to: data.email as string || "demo@turnomas.com",
-      subject: data.subject as string || "TurnoFijo - Reseña de tu experiencia",
+      subject: data.subject as string || "TurnoMas - Reseña de tu experiencia",
       html: data.html as string || `<p>${data.message || "¿Cómo fue tu experiencia?"}</p>`,
     });
   }

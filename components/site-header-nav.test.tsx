@@ -5,7 +5,7 @@ import SiteHeaderNav from "@/components/site-header-nav";
 
 const LABELS =
 {
-  appName: "TurnoFijo",
+  appName: "TurnoMas",
   homeLabel: "Inicio",
   loginLabel: "Iniciar sesión",
   registerLabel: "Registrarse",
