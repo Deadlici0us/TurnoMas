@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import DemoCredentials from "@/components/demo-credentials";
+import { getDemoCredentials } from "@/lib/auth/demo-credentials";
 import { login } from "./actions";
 
 const ERROR_KEYS = {
@@ -16,6 +18,7 @@ export default async function LoginPage({
   const t = await getTranslations("common");
   const { error } = await searchParams;
   const errorKey = error === "credenciales" ? ERROR_KEYS.credenciales : null;
+  const demo = getDemoCredentials();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
@@ -61,12 +64,23 @@ export default async function LoginPage({
               {t("auth.loginCta")}
             </button>
           </form>
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-3">
+            <div className="text-center">
+              <p className="text-sm font-medium text-slate-700">{t("auth.demoTitle")}</p>
+              <p className="text-xs text-slate-500">{t("auth.demoSubtitle")}</p>
+            </div>
+            <DemoCredentials
+              email={demo.email}
+              password={demo.password}
+              emailLabel={t("auth.demoEmail")}
+              passwordLabel={t("auth.demoPassword")}
+              copyLabel={t("auth.copy")}
+              copiedLabel={t("auth.copied")}
+            />
+          </div>
           <div className="text-center space-y-2 text-sm">
             <Link href="/register" className="block text-blue-600 hover:underline">
               {t("auth.toRegister")}
-            </Link>
-            <Link href="/demo" className="block text-slate-500 hover:underline">
-              {t("auth.demoHint")}
             </Link>
           </div>
         </div>

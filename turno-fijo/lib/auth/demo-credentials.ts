@@ -1,7 +1,7 @@
 /**
  * Credenciales de la cuenta demo permanente (PLAN.md Módulo 1).
  *
- * Públicas por diseño (se muestran en `/demo`); permiten override
+ * Públicas por diseño (se muestran en `/login`); permiten override
  * vía `DEMO_EMAIL` / `DEMO_PASSWORD` sin hardcodear secretos.
  */
 

@@ -4,14 +4,13 @@
     "home": "Inicio",
     "features": "Características",
     "pricing": "Precios",
-    "demo": "Demo",
     "login": "Iniciar sesión",
     "register": "Registrarse"
   },
   "hero": {
     "title": "Eliminá las inasistencias en tu negocio",
     "subtitle": "El sistema de reservas que te ayuda a cobrar señas y reducir las ausencias de clientes mediante recordatorios automáticos y listados negros.",
-    "ctaPrimary": "Probar Demo Gratis",
+    "ctaPrimary": "Iniciar sesión",
     "ctaSecondary": "Ver cómo funciona"
   },
   "features": {
@@ -63,7 +62,12 @@
     "registerCta": "Empezar prueba gratis",
     "toRegister": "¿No tenés cuenta? Registrate gratis",
     "toLogin": "¿Ya tenés cuenta? Iniciá sesión",
-    "demoHint": "¿Querés explorar primero? Entrá a la demo",
+    "demoTitle": "Cuenta demo para probar",
+    "demoSubtitle": "Copiá estos datos e ingresalos arriba para explorar la agenda completa",
+    "demoEmail": "Usuario",
+    "demoPassword": "Contraseña",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
     "invalidCredentials": "Revisá tu email y contraseña e intentá de nuevo",
     "invalidData": "Completá todos los datos para continuar",
     "registerError": "No pudimos crear tu cuenta. Probá con otro email",
@@ -97,9 +101,6 @@
     "resultSuffix": "por mes"
   },
   "demo": {
-    "title": "Probá la demo interactiva",
-    "subtitle": "Ingresá a una cuenta preconfigurada para explorar todas las funcionalidades sin riesgo",
-    "cta": "Entrar a la demo",
     "note": "Usuario: demo@turnofijo.com | Contraseña: demo123"
   },
   "footer": {

@@ -14,7 +14,6 @@ const config = {
   // `*` serves as a catch-all for untranslated paths
   pathnames: {
     "/": "/",
-    "/demo": "/demo",
     "/features": "/features",
     "/pricing": "/pricing",
     "/login": "/login",

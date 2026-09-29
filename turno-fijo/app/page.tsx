@@ -20,7 +20,7 @@ export default function HomePage() {
             {t("hero.subtitle")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Link href="/demo" className="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            <Link href="/login" className="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
               {t("hero.ctaPrimary")}
             </Link>
             <Link href="/features" className="inline-flex items-center px-8 py-4 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors">
@@ -76,9 +76,9 @@ export default function HomePage() {
 
       <div className="w-full bg-slate-900 text-white py-12">
         <div className="max-w-4xl mx-auto px-8 text-center">
-          <h3 className="text-xl font-semibold mb-4">¿Listo para probar la demo?</h3>
-          <Link href="/demo" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-            {t("demo.cta")}
+          <h3 className="text-xl font-semibold mb-4">¿Listo para entrar con la cuenta demo?</h3>
+          <Link href="/login" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            {t("auth.loginCta")}
           </Link>
           <p className="text-sm text-slate-400 mt-4">{t("demo.note")}</p>
         </div>

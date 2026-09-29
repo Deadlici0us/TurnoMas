@@ -11,12 +11,12 @@ async ({ page }) =>
   await expect(page.getByText("Feature list")).toHaveCount(0);
 });
 
-test("CTA principal navega a la demo",
+test("CTA principal navega al login",
 async ({ page }) =>
 {
   await page.goto("/");
 
-  await page.getByRole("link", { name: "Probar Demo Gratis" }).click();
+  await page.getByRole("link", { name: "Iniciar sesión" }).first().click();
 
-  await expect(page).toHaveURL(/\/demo/);
+  await expect(page).toHaveURL(/\/login/);
 });
