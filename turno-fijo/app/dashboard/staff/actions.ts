@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreStaff } from "@/lib/staff/validation";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -23,7 +23,8 @@ export async function agregarStaff(nombre: string): Promise<void>
     throw new Error("Tenés que iniciar sesión para agregar profesionales.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Permitir que el dueño demo modifique su equipo.
+
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
@@ -52,7 +53,8 @@ export async function cambiarEstadoStaff(staffId: string, activo: boolean): Prom
     throw new Error("Tenés que iniciar sesión para modificar el equipo.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Permitir acción para demo.
+
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);

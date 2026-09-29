@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { validarTransicionTurno } from "@/lib/dashboard/estados";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { shouldAutoRefund } from "@/lib/payments/refund-policy";
 import type { RefundableEstado } from "@/lib/payments/refund-policy";
 import { paymentService } from "@/lib/services/payment";
@@ -32,7 +32,8 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
     throw new Error("Tenés que iniciar sesión para modificar la agenda.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // La cuenta demo tiene ownerId = "demo-duenio", siempre permitida en modo editable.
+  // Si quieres que la demo sea readonly, podés optar por dejar que assertDuenoEditable lance acá.
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")

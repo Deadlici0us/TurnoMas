@@ -1,9 +1,4 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { cambiarEstadoServicio, eliminarServicio, guardarServicio } from "./actions";
-import DemoReadonlyBanner from "@/components/demo-readonly-banner";
-import { DEMO_READONLY_MESSAGE } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
 interface ServicioRow
@@ -19,70 +14,32 @@ interface ServicioRow
   readonly activo?: boolean | null;
 }
 
-function redirigirDemo(error: unknown): void
-{
-  if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
-  {
-    redirect("/dashboard/servicios?error=demo");
-  }
-
-  throw error;
-}
-
 async function crearServicio(formData: FormData): Promise<void>
 {
   "use server";
 
-  try
-  {
-    await guardarServicio(null, formData);
-  }
-  catch (error)
-  {
-    redirigirDemo(error);
-  }
+  await guardarServicio(null, formData);
 }
 
 async function editarServicio(servicioId: string, formData: FormData): Promise<void>
 {
   "use server";
 
-  try
-  {
-    await guardarServicio(servicioId, formData);
-  }
-  catch (error)
-  {
-    redirigirDemo(error);
-  }
+  await guardarServicio(servicioId, formData);
 }
 
 async function borrarServicio(servicioId: string): Promise<void>
 {
   "use server";
 
-  try
-  {
-    await eliminarServicio(servicioId);
-  }
-  catch (error)
-  {
-    redirigirDemo(error);
-  }
+  await eliminarServicio(servicioId);
 }
 
 async function alternarServicio(servicioId: string, activo: boolean): Promise<void>
 {
   "use server";
 
-  try
-  {
-    await cambiarEstadoServicio(servicioId, activo);
-  }
-  catch (error)
-  {
-    redirigirDemo(error);
-  }
+  await cambiarEstadoServicio(servicioId, activo);
 }
 
 function CamposServicio({ servicio }: { servicio?: ServicioRow })
@@ -177,49 +134,30 @@ function CamposServicio({ servicio }: { servicio?: ServicioRow })
   );
 }
 
-export default async function ServiciosPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-})
+export default async function ServiciosPage()
 {
-  const { data: dashboard, isDemo } = await getDashboardData();
-  const { error } = await searchParams;
+  const { data: dashboard } = await getDashboardData();
 
   return (
-    <main className="p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Servicios</h1>
-            <p className="text-slate-600 mt-2">Duración, limpieza, precios y seña por servicio.</p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-          >
-            Volver
-          </Link>
-        </div>
-
-        {isDemo ? <DemoReadonlyBanner accionBloqueada={error === "demo"} /> : null}
-
-        {isDemo ? null : (
-          <form action={crearServicio} className="bg-white rounded-xl shadow-sm p-6 mb-6 space-y-4">
-            <h2 className="font-semibold text-slate-900">Nuevo servicio</h2>
-            <CamposServicio />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                hover:bg-blue-700 transition-colors"
-            >
-              Agregar servicio
-            </button>
-          </form>
-        )}
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Servicios</h1>
+        <p className="text-slate-600 mt-1 text-sm">Duración, limpieza, precios y seña por servicio.</p>
+      </div>
+      <form action={crearServicio} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 space-y-4">
+        <h2 className="font-semibold text-slate-900">Nuevo servicio</h2>
+        <CamposServicio />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            hover:bg-blue-700 transition-colors"
+        >
+          Agregar servicio
+        </button>
+      </form>
 
         {(dashboard.servicios as ServicioRow[]).map((servicio) => (
-          <div key={servicio.id} className="bg-white rounded-xl shadow-sm p-6 mb-4">
+          <div key={servicio.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
                 {servicio.nombre.charAt(0)}
@@ -242,8 +180,7 @@ export default async function ServiciosPage({
                 </div>
               </div>
             </div>
-            {isDemo ? null : (
-              <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
                   <form action={alternarServicio.bind(null, servicio.id, servicio.activo === false)}>
                     <button
@@ -280,10 +217,8 @@ export default async function ServiciosPage({
                   </form>
                 </details>
               </div>
-            )}
           </div>
         ))}
-      </div>
-    </main>
+    </div>
   );
 }

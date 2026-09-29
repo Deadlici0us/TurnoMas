@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarServicio } from "@/lib/servicios/validation";
 import type { ServicioInput } from "@/lib/servicios/validation";
@@ -53,7 +53,9 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     throw new Error("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // El dueño demo está permitido si está en modo editable (ej: local).
+  // Si necesitas que la demo sea exclusivamente una sandbox protegida, podrías
+  // activar un segundo controlador más adelante (ej: readOnlyForDemo).
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
@@ -95,7 +97,8 @@ export async function eliminarServicio(servicioId: string): Promise<void>
     throw new Error("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Si querés forzar que el dueño demo no pueda eliminar servicios, podés volver a llamar a assertDuenoEditable.
+  // Por ahora, mantenerlo editable.
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
@@ -130,7 +133,7 @@ export async function cambiarEstadoServicio(servicioId: string, activo: boolean)
     throw new Error("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Mantenerlo editable para la demo también.
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);

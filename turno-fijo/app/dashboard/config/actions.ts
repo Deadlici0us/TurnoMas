@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -34,8 +34,6 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
   {
     throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
   }
-
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("negocios")
@@ -74,7 +72,8 @@ export async function conectarMercadoPago(token: string): Promise<void>
     throw new Error("Tenés que iniciar sesión para conectar MercadoPago.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // La demo puede guardar su token de MP; si es local, no se almacena persistentemente.
+
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -111,7 +110,8 @@ export async function desconectarMercadoPago(): Promise<void>
     throw new Error("Tenés que iniciar sesión para desconectar MercadoPago.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Permitir que la demo modifique su conexión de MP.
+
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -148,7 +148,8 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
     throw new Error("Tenés que iniciar sesión para cambiar el nombre.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
+  // Permitir que la demo renombre su negocio.
+
 
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("negocios").update({ nombre: value }).eq("duenio_id", user.id);

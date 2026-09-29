@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
-import DemoReadonlyBanner from "@/components/demo-readonly-banner";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -22,7 +20,7 @@ function formatARS(centavos: number | null): string
 export default async function DashboardPage()
 {
   const t = await getTranslations("common");
-  const { data: dashboard, isDemo } = await getDashboardData();
+  const { data: dashboard } = await getDashboardData();
 
   const negocioRow = dashboard.negocio as {
     id?: unknown;
@@ -55,46 +53,33 @@ export default async function DashboardPage()
   );
 
   return (
-    <main className="p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">
-            {String(dashboard.negocio.nombre ?? t("appName"))}
-          </h1>
-          <p className="text-slate-600 mt-2">Agenda, equipo, servicios y cobros en un solo lugar.</p>
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">
+          {String(dashboard.negocio.nombre ?? t("appName"))}
+        </h1>
+        <p className="text-slate-600 mt-1 text-sm">Agenda, equipo, servicios y cobros en un solo lugar.</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <p className="text-xs font-medium text-slate-500 uppercase">Turnos hoy</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.turnosHoy}</p>
         </div>
-
-        {isDemo ? <DemoReadonlyBanner accionBloqueada={false} /> : null}
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-xs font-medium text-slate-500 uppercase">Turnos hoy</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.turnosHoy}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-xs font-medium text-slate-500 uppercase">Pendientes</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.pendientes}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-xs font-medium text-slate-500 uppercase">Pagados</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.pagados}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-xs font-medium text-slate-500 uppercase">Ingresos</p>
-            <p className="text-2xl font-bold text-slate-900">{formatARS(stats.totalIngresos)}</p>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <p className="text-xs font-medium text-slate-500 uppercase">Pendientes</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.pendientes}</p>
         </div>
-
-        <div className="flex flex-wrap gap-3 mb-8">
-          <Link href="/dashboard/agenda" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Agenda</Link>
-          <Link href="/dashboard/staff" className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Equipo</Link>
-          <Link href="/dashboard/servicios" className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Servicios</Link>
-          <Link href="/dashboard/clientes" className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Clientes</Link>
-          <Link href="/dashboard/pagos" className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Pagos</Link>
-          <Link href="/dashboard/config" className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Configuración</Link>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <p className="text-xs font-medium text-slate-500 uppercase">Pagados</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.pagados}</p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <p className="text-xs font-medium text-slate-500 uppercase">Ingresos</p>
+          <p className="text-2xl font-bold text-slate-900">{formatARS(stats.totalIngresos)}</p>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -133,6 +118,6 @@ export default async function DashboardPage()
           </table>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
