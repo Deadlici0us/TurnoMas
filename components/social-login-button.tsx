@@ -45,11 +45,13 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
 
       if (error !== null)
       {
+        console.error("Supabase OAuth (Google) devolvió error:", error);
         setFailed(true);
       }
     }
-    catch
+    catch (cause)
     {
+      console.error("No se pudo iniciar OAuth con Google:", cause);
       setFailed(true);
     }
     finally
