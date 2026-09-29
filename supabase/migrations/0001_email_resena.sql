@@ -1,4 +1,4 @@
--- TurnoFijo · Migración 0001 (P2 retención, Módulo 5).
+-- TurnoMas · Migración 0001 (P2 retención, Módulo 5).
 -- Cómo aplicarla: Supabase Dashboard → SQL Editor → pegar todo → Run.
 -- Idempotente: `if not exists` / bloques DO con chequeo de columna.
 --

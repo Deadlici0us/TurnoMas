@@ -1,9 +1,9 @@
--- TurnoFijo · Seed de la cuenta Demo permanente (PLAN.md §3).
+-- TurnoMas · Seed de la cuenta Demo permanente (PLAN.md §3).
 -- Vía preferida (automática): setear DEMO_DUENIO_ID en Vercel y llamar
 -- `curl -X POST https://<app>/api/init` una vez tras el deploy.
 -- Vía manual alternativa:
 -- Orden: 1) aplicar 0000_init.sql
---        2) Authentication → Add user → demo@turnofijo.com / demo123 (auto-confirm)
+--        2) Authentication → Add user → demo@turnomas.com / demo123 (auto-confirm)
 --        3) copiar el UID del usuario, reemplazar DEMO_DUENIO_ID abajo, Run.
 -- Idempotente: re-ejecutable gracias a `on conflict do nothing`.
 
@@ -11,7 +11,7 @@
 insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado)
 values (
   'd0e6b000-0000-4000-8000-000000000001',
-  'DEMO_DUENIO_ID', -- << pegar UID de demo@turnofijo.com
+  'DEMO_DUENIO_ID', -- << pegar UID de demo@turnomas.com
   'Barbería Diego',
   'ar',
   'barberia-diego',

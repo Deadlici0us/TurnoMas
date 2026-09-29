@@ -1,6 +1,7 @@
 # PRD: Micro-SaaS de Reservas Inteligentes (Modelo 1-a-1)
 
-vercel url: https://turnofijo-roan.vercel.app/
+produccion: https://turnomas.com/
+preview: https://turno-mas.vercel.app/
 
 Vercel secrets: 
 RESEND_API_KEY

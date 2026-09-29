@@ -1,4 +1,4 @@
--- TurnoFijo · Migración inicial (Supabase en blanco → esquema PLAN.md §3).
+-- TurnoMas · Migración inicial (Supabase en blanco → esquema PLAN.md §3).
 -- Cómo aplicarla: Supabase Dashboard → SQL Editor → pegar todo → Run.
 -- Idempotente en buckets; tablas se crean una sola vez.
 
