@@ -15,7 +15,7 @@ import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
 import { isSlotAvailable } from "@/lib/availability/availability";
 import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { getBlockedInterval } from "@/lib/availability/availability";
-import { resolveCheckout } from "@/lib/checkout/checkout";
+import { requierePagoSena, resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { plantillaConfirmacion } from "@/lib/notifications/templates";
 import { ResendAdapter } from "@/lib/ports/email";
@@ -189,8 +189,13 @@ export async function POST(request: Request)
   try
   {
     const supabase = await getSupabaseServer();
-    const { data: negocio } = await supabase.from("portal_negocios")
+    const { data: negocio, error: negocioError } = await supabase.from("portal_negocios")
       .select("id, nombre, pais, slug").eq("pais", pais).eq("slug", slug).single();
+
+    if (negocioError !== null)
+    {
+      console.error("Portal negocio no resuelto:", negocioError.message, { pais, slug });
+    }
 
     if (negocio === null)
     {
@@ -198,7 +203,10 @@ export async function POST(request: Request)
     }
 
     const negocioId = negocio.id as string;
-    const [{ data: staff }, { data: servicio }] = await Promise.all([
+    const [
+      { data: staff, error: staffError },
+      { data: servicio, error: servicioError },
+    ] = await Promise.all([
       supabase.from("portal_staff").select("id, nombre, horarios")
         .eq("negocio_id", negocioId).eq("id", staffId).single(),
       supabase.from("portal_servicios")
@@ -206,6 +214,16 @@ export async function POST(request: Request)
           " precio_promocional, sena_requerida, sena_porcentaje")
         .eq("negocio_id", negocioId).eq("id", servicioId).single(),
     ]);
+
+    if (staffError !== null)
+    {
+      console.error("Portal staff no resuelto:", staffError.message, { negocioId, staffId });
+    }
+
+    if (servicioError !== null)
+    {
+      console.error("Portal servicio no resuelto:", servicioError.message, { negocioId, servicioId });
+    }
 
     if (staff === null || servicio === null)
     {
@@ -298,7 +316,7 @@ export async function POST(request: Request)
     }
 
     const fin = new Date(inicio.getTime() + servicioRow.duracion_min * 60_000);
-    const conSena = outcome.kind === "payDeposit";
+    const conSena = requierePagoSena(outcome, montos.senaMonto);
     const { data: turno, error: turnoError } = await admin.from("turnos").insert({
       negocio_id: negocioId,
       staff_id: staffId,

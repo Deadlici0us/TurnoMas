@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { buildAvailableSlots } from "@/lib/booking/slots";
+import { BUFFER_MINUTOS, buildAvailableSlots } from "@/lib/booking/slots";
 import type { DiaDisponible } from "@/lib/booking/slots";
 import type
 {
@@ -11,6 +11,7 @@ import type
   PortalStaff,
   PortalTurno,
 } from "@/lib/portal/demo-business";
+import { tieneSenaEfectiva } from "@/lib/reservas/montos";
 
 interface BookingFlowProps
 {
@@ -21,6 +22,7 @@ interface BookingFlowProps
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
+  readonly horariosNegocio?: Record<string, string> | null;
 }
 
 function formatARS(cents: number): string
@@ -39,7 +41,8 @@ function formatSlot(date: Date): string
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 
-export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos, bloqueos }: BookingFlowProps)
+export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos, bloqueos,
+  horariosNegocio = null }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -79,9 +82,9 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
 
     return buildAvailableSlots(
       profesional.horarios, bloqueosTurnos, servicio.duracionMin,
-      new Date(), 7, 30, profesional.id, bloqueosNegocio,
+      new Date(), 7, 30, profesional.id, bloqueosNegocio, BUFFER_MINUTOS, horariosNegocio,
     );
-  }, [profesional, servicio, turnos, servicios, bloqueos]);
+  }, [profesional, servicio, turnos, servicios, bloqueos, horariosNegocio]);
 
   function elegirProfesional(id: string): void
   {
@@ -190,7 +193,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
           {servicio.nombre} con {profesional.nombre} · {formatSlot(slot)}
         </p>
         <p className="text-sm text-slate-600">Te escribimos al {whatsapp.trim()} con los detalles.</p>
-        {servicio.senaRequerida ? (
+        {tieneSenaEfectiva(servicio.senaRequerida, servicio.senaPorcentaje) ? (
           <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
             En esta demo no se realiza el cobro. En producción serías redirigido a MercadoPago
             para pagar la seña del {servicio.senaPorcentaje}% ({formatARS(servicio.precioBase)}).
@@ -254,7 +257,8 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
                   </div>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  {s.duracionMin} min{s.senaRequerida ? ` · Seña ${s.senaPorcentaje}%` : " · Sin seña"}
+                  {s.duracionMin} min{tieneSenaEfectiva(s.senaRequerida, s.senaPorcentaje)
+                    ? ` · Seña ${s.senaPorcentaje}%` : " · Sin seña"}
                 </div>
               </button>
             ))}

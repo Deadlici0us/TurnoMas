@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calcularMontosReserva } from "./montos";
+import { calcularMontosReserva, tieneSenaEfectiva } from "./montos";
 
 describe("calcularMontosReserva",
 () =>
@@ -53,5 +53,29 @@ describe("calcularMontosReserva",
   {
     expect(() => calcularMontosReserva({ precioBase: 0, precioPromocional: null, senaRequerida: false,
       senaPorcentaje: 50 })).toThrow("El precio base debe ser un entero positivo en centavos.");
+  });
+});
+
+describe("tieneSenaEfectiva",
+() =>
+{
+  it("debería exigir seña con porcentaje mayor a 0",
+  () =>
+  {
+    expect(tieneSenaEfectiva(true, 50)).toBe(true);
+    expect(tieneSenaEfectiva(true, 100)).toBe(true);
+  });
+
+  it("debería tratar la seña 0% como sin seña aunque el tilde esté prendido",
+  () =>
+  {
+    expect(tieneSenaEfectiva(true, 0)).toBe(false);
+  });
+
+  it("debería devolver sin seña cuando el tilde está apagado",
+  () =>
+  {
+    expect(tieneSenaEfectiva(false, 50)).toBe(false);
+    expect(tieneSenaEfectiva(false, 0)).toBe(false);
   });
 });

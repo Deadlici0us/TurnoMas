@@ -60,3 +60,14 @@ function assertValidPercentage(percentage: number): void
     throw new RangeError("El porcentaje de seña debe ser un entero entre 0 y 100.");
   }
 }
+
+/**
+ * Decide si la reserva requiere crear una preferencia de pago.
+ *
+ * Doble protección contra seña 0: aunque el checkout indique pago, un monto
+ * nulo o no positivo confirma sin llamar a MercadoPago (que rechaza $0).
+ */
+export function requierePagoSena(outcome: CheckoutOutcome, senaMonto: number | null): boolean
+{
+  return outcome.kind === "payDeposit" && typeof senaMonto === "number" && senaMonto > 0;
+}

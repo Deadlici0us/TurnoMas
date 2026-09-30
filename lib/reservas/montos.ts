@@ -57,3 +57,14 @@ export function calcularMontosReserva(input: MontosReservaInput): MontosReserva
     senaPorcentaje: input.senaPorcentaje,
   };
 }
+
+/**
+ * Indica si el servicio exige un cobro de seña efectivo.
+ *
+ * Normaliza "seña 0% = sin seña": el tilde prendido con porcentaje 0
+ * confirma instantáneo y nunca muestra etiqueta ni banner de seña.
+ */
+export function tieneSenaEfectiva(senaRequerida: boolean, senaPorcentaje: number): boolean
+{
+  return senaRequerida === true && senaPorcentaje > 0;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveCheckout } from "./checkout";
+import { requierePagoSena, resolveCheckout } from "./checkout";
 import type { CheckoutInput } from "./checkout";
 
 function input(overrides: Partial<CheckoutInput> = {}): CheckoutInput
@@ -77,5 +77,30 @@ describe("resolveCheckout",
       .toThrow(RangeError);
     expect(() => resolveCheckout(input({ serviceRequiresDeposit: true, serviceDepositPercentage: 101 })))
       .toThrow(RangeError);
+  });
+});
+
+describe("requierePagoSena",
+() =>
+{
+  it("debería requerir pago con seña mayor a 0",
+  () =>
+  {
+    expect(requierePagoSena({ kind: "payDeposit", percentage: 50 }, 750000)).toBe(true);
+    expect(requierePagoSena({ kind: "payDeposit", percentage: 100 }, 1500000)).toBe(true);
+  });
+
+  it("debería confirmar sin pago cuando el monto de seña es 0 o nulo",
+  () =>
+  {
+    expect(requierePagoSena({ kind: "payDeposit", percentage: 50 }, 0)).toBe(false);
+    expect(requierePagoSena({ kind: "payDeposit", percentage: 50 }, null)).toBe(false);
+  });
+
+  it("debería confirmar sin pago cuando el checkout ya es confirmado o rechazado",
+  () =>
+  {
+    expect(requierePagoSena({ kind: "confirmed" }, 750000)).toBe(false);
+    expect(requierePagoSena({ kind: "rejected", reason: "blacklisted" }, 750000)).toBe(false);
   });
 });
