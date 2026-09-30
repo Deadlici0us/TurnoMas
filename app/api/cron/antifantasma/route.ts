@@ -19,9 +19,29 @@ const LIMITE_BARRIDO = 100;
 interface TurnoPendiente
 {
   readonly id: string;
+  readonly negocio_id: string;
   readonly created_at: string;
   readonly estado: string;
   readonly sena_monto: number | null;
+  readonly google_calendar_event_id: string | null;
+}
+
+/** Borra el evento inyectado al reservar (best-effort, nunca lanza). */
+async function borrarEventoGoogle(turno: TurnoPendiente): Promise<void>
+{
+  if (typeof turno.google_calendar_event_id !== "string" || turno.google_calendar_event_id.length === 0)
+  {
+    return;
+  }
+
+  if (typeof turno.negocio_id !== "string" || turno.negocio_id.length === 0)
+  {
+    return;
+  }
+
+  const { calendarService } = await import("@/lib/services/calendar");
+
+  await calendarService.deleteEventForNegocio(turno.negocio_id, turno.google_calendar_event_id);
 }
 
 function esPendienteConSena(turno: TurnoPendiente): boolean
@@ -70,7 +90,8 @@ export async function POST(request: Request)
   if (turnoId !== null)
   {
     const { data: turno } = await admin.from("turnos")
-      .select("id, created_at, estado, sena_monto").eq("id", turnoId).single();
+      .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
+      .eq("id", turnoId).single();
 
     if (turno === null)
     {
@@ -95,12 +116,14 @@ export async function POST(request: Request)
     }
 
     await admin.from("turnos").update({ estado: "cancelado" }).eq("id", turnoId);
+    await borrarEventoGoogle(pendiente);
 
     return NextResponse.json({ success: true, liberado: true });
   }
 
   const corte = new Date(ahora.getTime() - GRACIA_MINUTOS * 60_000).toISOString();
-  const { data } = await admin.from("turnos").select("id, created_at, estado, sena_monto")
+  const { data } = await admin.from("turnos")
+    .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
     .eq("estado", "pendiente").not("sena_monto", "is", null).lt("created_at", corte)
     .limit(LIMITE_BARRIDO);
   const vencidos = ((data ?? []) as unknown as TurnoPendiente[])
@@ -110,6 +133,7 @@ export async function POST(request: Request)
   for (const turno of vencidos)
   {
     await admin.from("turnos").update({ estado: "cancelado" }).eq("id", turno.id);
+    await borrarEventoGoogle(turno);
   }
 
   return NextResponse.json({ success: true, liberados: vencidos.length });

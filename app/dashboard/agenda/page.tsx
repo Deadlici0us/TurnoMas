@@ -1,6 +1,8 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
+import AgendaWeekGrid from "@/components/agenda-week-grid";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { calendarService } from "@/lib/services/calendar";
 
 interface StaffRow
 {
@@ -15,6 +17,7 @@ interface TurnoRow
   readonly servicio_id: string;
   readonly cliente_id: string;
   readonly inicio: string;
+  readonly fin: string | null;
   readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly sena_monto: number | null;
   readonly sena_porcentaje: number | null;
@@ -54,12 +57,51 @@ export default async function AgendaPage()
   const staff = dashboard.staff as StaffRow[];
   const turnos = (dashboard.turnos as TurnoRow[]).slice().sort((a, b) =>
     new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
+  const duracionPorServicio = new Map((dashboard.servicios as Array<{ id: string; duracion_min: number }>)
+    .map((s) => [s.id, s.duracion_min]));
   const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
     .map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
     .map((c) => [c.id, c.nombre]));
 
+  const hoy = new Date();
+  const externos = await calendarService.getExternalEventsForNegocio(
+    String((dashboard.negocio as { id?: unknown }).id ?? ""),
+    hoy, new Date(hoy.getTime() + 7 * 86_400_000))
+    .then((eventos) => eventos.map((e) => ({
+      id: e.id,
+      titulo: e.titulo,
+      inicio: e.inicio.toISOString(),
+      fin: e.fin.toISOString(),
+    })))
+    .catch(() => []);
+
+  const turnosGrilla = turnos.map((t) =>
+  {
+    const inicio = new Date(t.inicio);
+    const finReal = t.fin !== null && !Number.isNaN(new Date(t.fin).getTime())
+      ? new Date(t.fin)
+      : new Date(inicio.getTime() + (duracionPorServicio.get(t.servicio_id) ?? 30) * 60_000);
+
+    return {
+      id: t.id,
+      staffId: t.staff_id,
+      inicio: t.inicio,
+      fin: finReal.toISOString(),
+      estado: t.estado,
+      titulo: `${nombrePorCliente.get(t.cliente_id) ?? "Cliente"} · ` +
+        `${nombrePorServicio.get(t.servicio_id) ?? "Servicio"}`,
+    };
+  });
+
   return (
+    <div className="space-y-6">
+    <AgendaWeekGrid
+      base={hoy.toISOString()}
+      staff={staff.map((s) => ({ id: s.id, nombre: s.nombre }))}
+      turnos={turnosGrilla}
+      externos={externos}
+    />
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
       <h1 className="text-2xl font-bold text-slate-900 mb-1">Agenda</h1>
       <p className="text-sm text-slate-600 mb-6">Turnos por profesional con estados reales</p>
@@ -142,6 +184,7 @@ export default async function AgendaPage()
           </section>
         ))}
       </div>
+    </div>
     </div>
   );
 }

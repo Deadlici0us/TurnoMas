@@ -19,11 +19,30 @@ export interface CreatedCalendarEvent
   readonly id: string;
 }
 
+export interface CalendarBusyInterval
+{
+  readonly start: Date;
+  readonly end: Date;
+}
+
+export interface CalendarExternalEvent
+{
+  readonly id: string;
+  readonly titulo: string;
+  readonly descripcion: string | null;
+  readonly inicio: Date;
+  readonly fin: Date;
+}
+
 export interface ICalendarProvider
 {
   createEvent(input: CalendarEventInput, accessToken: string): Promise<CreatedCalendarEvent>;
   updateEvent(eventId: string, input: CalendarEventInput, accessToken: string): Promise<void>;
   deleteEvent(eventId: string, accessToken: string): Promise<void>;
+  /** Ocupación (freebusy) del calendario primario en una ventana. */
+  queryFreeBusy(desde: Date, hasta: Date, accessToken: string): Promise<CalendarBusyInterval[]>;
+  /** Eventos del calendario primario en una ventana (singleEvents). */
+  listEvents(desde: Date, hasta: Date, accessToken: string): Promise<CalendarExternalEvent[]>;
 }
 
 /** Doble de test en memoria: registra eventos sin red. */
@@ -32,6 +51,10 @@ export class FakeCalendarProvider implements ICalendarProvider
   readonly created: Array<{ input: CalendarEventInput; accessToken: string }> = [];
   readonly updated: Array<{ eventId: string; input: CalendarEventInput }> = [];
   readonly deleted: string[] = [];
+  /** Ocupación simulada para tests de bloqueo por eventos. */
+  readonly busy: CalendarBusyInterval[] = [];
+  /** Eventos simulados para tests de grilla. */
+  readonly external: CalendarExternalEvent[] = [];
   private counter = 0;
 
   async createEvent(input: CalendarEventInput, accessToken: string): Promise<CreatedCalendarEvent>
@@ -62,5 +85,23 @@ export class FakeCalendarProvider implements ICalendarProvider
   {
     void _accessToken;
     this.deleted.push(eventId);
+  }
+
+  async queryFreeBusy(_desde: Date, _hasta: Date, _accessToken: string): Promise<CalendarBusyInterval[]>
+  {
+    void _desde;
+    void _hasta;
+    void _accessToken;
+
+    return [...this.busy];
+  }
+
+  async listEvents(_desde: Date, _hasta: Date, _accessToken: string): Promise<CalendarExternalEvent[]>
+  {
+    void _desde;
+    void _hasta;
+    void _accessToken;
+
+    return [...this.external];
   }
 }

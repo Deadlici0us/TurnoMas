@@ -24,6 +24,7 @@ describe("BookingFlow",
         staff={business!.staff}
         servicios={business!.servicios}
         turnos={business!.turnos}
+        bloqueos={business!.bloqueos}
       />,
     );
 

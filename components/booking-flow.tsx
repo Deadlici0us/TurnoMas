@@ -6,6 +6,7 @@ import { buildAvailableSlots } from "@/lib/booking/slots";
 import type { DiaDisponible } from "@/lib/booking/slots";
 import type
 {
+  PortalBloqueo,
   PortalServicio,
   PortalStaff,
   PortalTurno,
@@ -19,6 +20,7 @@ interface BookingFlowProps
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
+  readonly bloqueos: readonly PortalBloqueo[];
 }
 
 function formatARS(cents: number): string
@@ -37,7 +39,7 @@ function formatSlot(date: Date): string
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 
-export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos }: BookingFlowProps)
+export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos, bloqueos }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       return [];
     }
 
-    const bloqueos = turnos.map((t) =>
+    const bloqueosTurnos = turnos.map((t) =>
     {
       const base = servicios.find((s) => s.id === t.servicioId);
 
@@ -71,11 +73,15 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       };
     });
 
+    const bloqueosNegocio = bloqueos
+      .map((b) => ({ start: new Date(b.inicio), end: new Date(b.fin) }))
+      .filter((b) => !Number.isNaN(b.start.getTime()) && !Number.isNaN(b.end.getTime()));
+
     return buildAvailableSlots(
-      profesional.horarios, bloqueos, servicio.duracionMin,
-      new Date(), 7, 30, profesional.id,
+      profesional.horarios, bloqueosTurnos, servicio.duracionMin,
+      new Date(), 7, 30, profesional.id, bloqueosNegocio,
     );
-  }, [profesional, servicio, turnos, servicios]);
+  }, [profesional, servicio, turnos, servicios, bloqueos]);
 
   function elegirProfesional(id: string): void
   {

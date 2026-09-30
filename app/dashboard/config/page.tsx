@@ -247,6 +247,10 @@ export default async function ConfigPage()
               Conectar con Google
             </Link>
           )}
+          <p className="text-xs text-slate-400">
+            Si conectaste antes del bloqueo por eventos, desconectá y conectá de nuevo
+            para otorgar el permiso de lectura.
+          </p>
           <div
             className="flex items-center justify-between p-3 border border-slate-200 rounded-lg"
           >

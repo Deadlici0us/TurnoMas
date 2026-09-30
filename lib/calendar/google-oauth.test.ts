@@ -48,6 +48,7 @@ describe("buildGoogleAuthorizeUrl",
     expect(url.searchParams.get("access_type")).toBe("offline");
     expect(url.searchParams.get("prompt")).toBe("consent");
     expect(url.searchParams.get("scope")).toContain("calendar.events");
+    expect(url.searchParams.get("scope")).toContain("calendar.readonly");
     expect(url.searchParams.get("state")).toBe("negocio-1");
   });
 });

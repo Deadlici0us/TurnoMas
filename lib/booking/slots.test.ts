@@ -124,4 +124,18 @@ describe("buildAvailableSlots",
     expect(week).toHaveLength(1);
     expect(week[0]?.starts).toHaveLength(2);
   });
+
+  it("debería bloquear a todo el equipo por ocupación del negocio",
+  () =>
+  {
+    const horarios = { lun: ["09:00-11:00"] };
+    const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
+    const negocio = [{ start: new Date(2026, 8, 28, 9, 30), end: new Date(2026, 8, 28, 10, 30) }];
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, "diego", negocio);
+
+    expect(week).toHaveLength(1);
+    expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([0, 30]);
+    expect(week[0]?.starts.map((d) => d.getHours())).toEqual([9, 10]);
+  });
 });

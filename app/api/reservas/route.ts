@@ -20,7 +20,7 @@ import { plantillaConfirmacion } from "@/lib/notifications/templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
-import { calendarService } from "@/lib/services/calendar";
+import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -123,6 +123,18 @@ function formatearFechaEsAr(fecha: Date): string
 
   return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} ` +
     `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+}
+
+/** Inicio del día local (ventana para freebusy de Google). */
+function inicioDelDia(fecha: Date): Date
+{
+  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
+}
+
+/** Fin del día local (ventana para freebusy de Google). */
+function finDelDia(fecha: Date): Date
+{
+  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 0, 0, 0, 0);
 }
 
 export async function POST(request: Request)
@@ -244,7 +256,10 @@ export async function POST(request: Request)
         ref?.duracion_min ?? servicioRow.duracion_min);
     });
 
-    const ocupado = !isSlotAvailable(inicio, servicioRow.duracion_min, bloqueos);
+    const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
+      negocioId, inicioDelDia(inicio), finDelDia(inicio));
+    const ocupado = !isSlotAvailable(inicio, servicioRow.duracion_min,
+      [...bloqueos, ...ocupadoGoogle]);
 
     if (ocupado)
     {
@@ -298,17 +313,18 @@ export async function POST(request: Request)
     const turnoId = turno.id as string;
     const servicioNombre = servicioRow.nombre ?? "tu servicio";
     const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
-    const tituloEvento = `${servicioNombre} en ${negocio.nombre as string}`;
     // Sync App → GCal (best-effort): si el dueño conectó Google, inyecta el turno.
     try
     {
-      const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
-        titulo: `${tituloEvento} · ${nombre}`,
-        descripcion: `Reserva TurnoMas · ${servicioNombre} con ${staffNombre} · Cliente ${nombre} (${whatsapp})`,
-        ubicacion: negocio.nombre as string,
+      const gcalEventId = await calendarService.createEventForNegocio(negocioId, buildTurnoEvent({
+        negocio: negocio.nombre as string,
+        servicio: servicioNombre,
+        profesional: staffNombre,
+        cliente: nombre,
+        whatsapp,
         inicio,
         fin,
-      });
+      }));
 
       if (gcalEventId !== null)
       {

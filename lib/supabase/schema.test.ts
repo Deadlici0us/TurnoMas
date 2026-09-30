@@ -89,6 +89,12 @@ describe("esquema Supabase",
     }
   });
 
+  it("debería usar un solo calendario por negocio (sin token por profesional)",
+  () =>
+  {
+    expect(MIGRATION).not.toContain("google_calendar_token");
+  });
+
   it("el seed debería poblar la cuenta demo con agenda llena",
   () =>
   {

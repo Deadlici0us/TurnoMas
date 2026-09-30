@@ -8,6 +8,7 @@ import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { shouldAutoRefund } from "@/lib/payments/refund-policy";
 import type { RefundableEstado } from "@/lib/payments/refund-policy";
 import { paymentService } from "@/lib/services/payment";
+import { calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -46,7 +47,7 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
 
   const negocioId = negocio.id as string;
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, cliente_id, servicio_id, mp_payment_id")
+    .select("id, estado, cliente_id, servicio_id, mp_payment_id, google_calendar_event_id")
     .eq("id", turnoId).eq("negocio_id", negocioId).single();
 
   if (turno === null)
@@ -85,6 +86,17 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   if (error !== null)
   {
     throw new Error("No pudimos actualizar el turno. Probá de nuevo.");
+  }
+
+  if (nuevo === "cancelado")
+  {
+    // Sync App → GCal (best-effort): borra el evento inyectado al reservar.
+    const gcalEventId = (turno as { google_calendar_event_id?: unknown }).google_calendar_event_id;
+
+    if (typeof gcalEventId === "string" && gcalEventId.length > 0)
+    {
+      await calendarService.deleteEventForNegocio(negocioId, gcalEventId);
+    }
   }
 
   if (nuevo === "ausente" && typeof turno.cliente_id === "string")

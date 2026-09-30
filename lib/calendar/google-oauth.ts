@@ -12,7 +12,16 @@ import { readEnv } from "@/lib/env/env";
 
 export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+/**
+ * Scopes por negocio: `calendar.events` (inyectar turnos) +
+ * `calendar.readonly` (leer ocupación y eventos para bloquear la agenda).
+ * Quien conectó antes del readonly debe desconectar y reconectar.
+ */
+export const GOOGLE_CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.readonly",
+];
+export const GOOGLE_CALENDAR_SCOPE = GOOGLE_CALENDAR_SCOPES.join(" ");
 export const GOOGLE_CALLBACK_PATH = "/api/integrations/google/callback";
 
 export interface GoogleTokens

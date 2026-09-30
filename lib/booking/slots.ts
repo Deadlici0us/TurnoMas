@@ -66,6 +66,7 @@ export function buildAvailableSlots(
   days = 7,
   stepMinutes = 30,
   staffId: string | null = null,
+  businessBlocked: readonly BlockedInterval[] = [],
 ): readonly DiaDisponible[]
 {
   const result: DiaDisponible[] = [];
@@ -80,9 +81,13 @@ export function buildAvailableSlots(
       continue;
     }
 
-    const blocked: BlockedInterval[] = turnos
-      .filter((turno) => staffId === null || turno.staffId === staffId)
-      .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin));
+    const blocked: BlockedInterval[] = [
+      ...turnos
+        .filter((turno) => staffId === null || turno.staffId === staffId)
+        .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin)),
+      // Bloqueos del negocio (Google Calendar): aplican a todo el equipo.
+      ...businessBlocked,
+    ];
 
     const allStarts: Date[] = [];
 

@@ -33,6 +33,13 @@ export interface PortalTurno
   readonly inicio: string;
 }
 
+/** Bloqueo del negocio (Google Calendar): ocupa a todo el equipo. */
+export interface PortalBloqueo
+{
+  readonly inicio: string;
+  readonly fin: string;
+}
+
 export interface PortalBusiness
 {
   readonly nombre: string;
@@ -41,6 +48,7 @@ export interface PortalBusiness
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
+  readonly bloqueos: readonly PortalBloqueo[];
 }
 
 const DEMO_DUENIO_ID = "demo-duenio";
@@ -70,5 +78,6 @@ export function getDemoBusiness(pais: string, slug: string): PortalBusiness | nu
       senaPorcentaje: s.sena_porcentaje,
     })),
     turnos: seed.turnos.map((t) => ({ staffId: t.staff_id, servicioId: t.servicio_id, inicio: t.inicio })),
+    bloqueos: [],
   };
 }

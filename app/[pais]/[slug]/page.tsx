@@ -81,6 +81,23 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const negocioRow = negocio as unknown as Row;
 
+  // Ocupación del calendario del negocio (Google): fail-open, best-effort.
+  let bloqueos: Array<{ inicio: string; fin: string }> = [];
+
+  try
+  {
+    const { calendarService } = await import("@/lib/services/calendar");
+    const ahora = new Date();
+    const ocupacion = await calendarService.getBusyIntervalsForNegocio(
+      negocio.id as string, ahora, new Date(ahora.getTime() + 7 * 86_400_000));
+
+    bloqueos = ocupacion.map((b) => ({ inicio: b.start.toISOString(), fin: b.end.toISOString() }));
+  }
+  catch
+  {
+    bloqueos = [];
+  }
+
   return {
     nombre: asString(negocioRow.nombre),
     pais: asString(negocioRow.pais),
@@ -105,6 +122,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
       servicioId: asString(t.servicio_id),
       inicio: asString(t.inicio),
     })),
+    bloqueos,
   };
 }
 
@@ -131,6 +149,7 @@ export default async function PortalPage({ params }: { params: Promise<PortalPar
           staff={business.staff}
           servicios={business.servicios}
           turnos={business.turnos}
+          bloqueos={business.bloqueos}
         />
         <p className="text-xs text-slate-400 text-center mt-4">Reservas por TurnoMas</p>
       </div>

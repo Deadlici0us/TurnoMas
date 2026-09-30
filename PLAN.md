@@ -60,7 +60,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 
 ## 3. Entidades de Base de Datos (Supabase SQL)
 - `negocios`: Suscripciones B2B (`suscripcion_estado`, `suscripcion_mp_id`), Tokens de Meta (`meta_access_token`, `whatsapp_phone_number_id`, `waba_id`), Token de MP (`mercadopago_access_token`), config de lista negra.
-- `staff`: Profesionales del negocio, horarios disponibles (JSONB), token de Google Calendar (`google_calendar_token`).
+- `staff`: Profesionales del negocio, horarios disponibles (JSONB). El calendario Google es uno solo por negocio (ver Módulo 3).
 - `servicios`: Duración, precio_base, precio_promocional (precio tachado), seña requerida.
 - `clientes`: CRM local, acumulación de ausencias, lista negra.
 - `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
@@ -88,8 +88,8 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - **Checkout Flexible:** Captura de Nombre y WhatsApp. Si exige seña, redirección a MercadoPago. Si no, confirmación instantánea.
 
 ### Módulo 3: Panel de Control B2B (Dashboard)
-- **Agenda Multicalendario:** Vista interactiva de turnos por profesional, con código de colores según estado (confirmado, pagado, pendiente).
-- **Sincronización Google Calendar:** Integración OAuth para que el dueño conecte su cuenta y el sistema inyecte sus turnos allí (Sincronización unidireccional: App -> GCal, usando `google_calendar_event_id` para actualizar/borrar).
+- **Agenda Multicalendario:** Vista semanal por profesional con código de colores según estado (confirmado, pagado, pendiente) + eventos del calendario Google del negocio.
+- **Sincronización Google Calendar:** Integración OAuth (un calendario por negocio) en dos direcciones: la app inyecta turnos (crea/borra con `google_calendar_event_id`) y lee ocupación (`freebusy`) para bloquear esos horarios en el portal. Los eventos de Google bloquean a todo el equipo.
 - **Gestión de Servicios:** CRUD de servicios. Configuración individual de **duración estimada**. Toggles para cobro de seña, reembolsos automáticos y remarketing.
 - **Ofertas Flash:** Campo opcional para `precio_promocional` (Precio Tachado).
 - **Turnos Recurrentes:** Capacidad del administrador de agendar turnos manualmente y clonarlos hacia el futuro.

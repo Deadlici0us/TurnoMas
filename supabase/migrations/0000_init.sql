@@ -41,7 +41,6 @@ create table if not exists staff (
   negocio_id uuid not null references negocios (id) on delete cascade,
   nombre text not null check (char_length(nombre) between 2 and 80),
   horarios jsonb not null default '{}',
-  google_calendar_token text null,
   activo boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
