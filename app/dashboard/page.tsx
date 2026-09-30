@@ -2,16 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
-
-const ESTADO_COLOR: Record<string, string> = {
-  pendiente: "bg-amber-50 text-amber-700",
-  confirmado: "bg-blue-50 text-blue-700",
-  pagado: "bg-green-50 text-green-700",
-  completado: "bg-indigo-50 text-indigo-700",
-  ausente: "bg-red-50 text-red-700",
-  cancelado: "bg-slate-100 text-slate-600",
-};
 
 function formatARS(centavos: number | null): string
 {
@@ -75,11 +67,11 @@ export default async function DashboardPage()
           <p className="text-2xl font-bold text-slate-900">{stats.confirmados}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <p className="text-xs font-medium text-slate-500 uppercase">Pagados</p>
+          <p className="text-xs font-medium text-slate-500 uppercase">Señas cobradas</p>
           <p className="text-2xl font-bold text-slate-900">{stats.pagados}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <p className="text-xs font-medium text-slate-500 uppercase">Ingresos</p>
+          <p className="text-xs font-medium text-slate-500 uppercase">Ingresos por señas</p>
           <p className="text-2xl font-bold text-slate-900">{formatARS(stats.totalIngresos)}</p>
         </div>
       </div>
@@ -104,8 +96,8 @@ export default async function DashboardPage()
               }) => (
                 <tr key={turno.id} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${ESTADO_COLOR[turno.estado] ?? ESTADO_COLOR.cancelado}`}>
-                      {turno.estado}
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${claseBadgePara(turno.estado)}`}>
+                      {etiquetaEstadoPara(turno.estado)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-700">

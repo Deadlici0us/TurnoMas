@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import { claseBadgePara } from "@/lib/dashboard/estados-colores";
+import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 
 interface TurnoRow
 {
@@ -67,6 +67,7 @@ export default async function PagosPage()
                   <th className="pb-3 font-semibold">Servicio</th>
                   <th className="pb-3 font-semibold">Total</th>
                   <th className="pb-3 font-semibold">Seña</th>
+                  <th className="pb-3 font-semibold">Saldo</th>
                   <th className="pb-3 font-semibold">Estado</th>
                   <th className="pb-3 font-semibold">Fecha</th>
                 </tr>
@@ -82,10 +83,11 @@ export default async function PagosPage()
                     </td>
                     <td className="py-3 text-slate-600">{formatARS(turno.monto_total)}</td>
                     <td className="py-3 text-slate-600">{formatARS(turno.sena_monto)}</td>
+                    <td className="py-3 text-slate-600">{formatARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
                     <td className="py-3">
                       <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
                         + claseBadgePara(turno.estado)}>
-                        {turno.estado}
+                        {etiquetaEstadoPara(turno.estado)}
                       </span>
                     </td>
                     <td className="py-3 text-slate-600">

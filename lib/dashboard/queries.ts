@@ -128,10 +128,10 @@ export async function getDashboardStats(negocioId: string)
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "completado"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "ausente"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "cancelado"),
-      admin.from("turnos").select("monto_total").eq("negocio_id", negocioId).eq("estado", "pagado"),
+      admin.from("turnos").select("sena_monto").eq("negocio_id", negocioId).eq("estado", "pagado"),
     ]);
 
-    const totalIngresos = (pagos ?? []).reduce((sum: number, t: { monto_total: number | null }) => sum + (t.monto_total ?? 0), 0);
+    const totalIngresos = (pagos ?? []).reduce((sum: number, t: { sena_monto: number | null }) => sum + (t.sena_monto ?? 0), 0);
 
     return {
       turnosHoy: turnosHoy ?? 0,

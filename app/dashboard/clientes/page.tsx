@@ -1,5 +1,6 @@
 import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
+import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
 interface ClienteRow
@@ -323,7 +324,7 @@ export default async function ClientesPage({
                       {historial.length === 0 ? <li>Sin turnos todavía.</li> : null}
                       {historial.slice(0, 5).map((turno) => (
                         <li key={turno.id}>
-                          {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio") + " · " + turno.estado}
+                          {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio") + " · " + etiquetaEstadoPara(turno.estado)}
                         </li>
                       ))}
                     </ul>

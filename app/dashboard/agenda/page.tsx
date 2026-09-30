@@ -1,6 +1,6 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { ESTADO_BADGE } from "@/lib/dashboard/estados-colores";
+import { ESTADO_BADGE, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import AgendaWeekGrid from "@/components/agenda-week-grid";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -125,7 +125,7 @@ export default async function AgendaPage()
                       className={"shrink-0 text-xs font-semibold px-3 py-1 rounded-full border "
                         + ESTADO_ESTILOS[turno.estado]}
                     >
-                      {turno.estado}
+                      {etiquetaEstadoPara(turno.estado)}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -134,7 +134,7 @@ export default async function AgendaPage()
                         <form action={cambiarEstado.bind(null, turno.id, "pagado")}>
                           <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
                             text-white hover:bg-green-700">
-                            Marcar pagado
+                            Marcar seña pagada
                           </button>
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
