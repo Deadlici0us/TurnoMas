@@ -32,6 +32,19 @@ export async function login(formData: FormData): Promise<void>
     redirect("/login?error=credenciales");
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user !== null)
+  {
+    const { data: negocio } = await supabase.from("negocios")
+      .select("id").eq("duenio_id", user.id).maybeSingle();
+
+    if (negocio === null)
+    {
+      redirect("/onboarding");
+    }
+  }
+
   redirect("/dashboard");
 }
 

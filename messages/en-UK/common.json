@@ -3,6 +3,9 @@
   "appName": "TurnoMas",
   "auth": {
     "continueWithGoogle": "Continue with Google",
+    "googleTitle": "Continue with Google (recommended)",
+    "googleHint": "Faster, no password. You connect Google Calendar later in onboarding",
+    "useEmailInstead": "or use email and password",
     "orSeparator": "or",
     "oauthError": "We couldn't sign you in with Google. Try again",
     "sessionExpired": "Your session expired. Sign in again"

@@ -74,8 +74,8 @@
     "saveError": "No pudimos guardar tu negocio. Intentá de nuevo",
     "sessionExpired": "Tu sesión venció. Iniciá sesión de nuevo",
     "continueWithGoogle": "Continuar con Google",
-    "registerWithGoogleTitle": "Registrate con Google (recomendado)",
-    "registerWithGoogleHint": "Te deja Google Calendar a un clic, sin pasos extra",
+    "googleTitle": "Continuá con Google (recomendado)",
+    "googleHint": "Más rápido, sin contraseña. Google Calendar lo conectás después en el onboarding",
     "useEmailInstead": "o usá email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Probá de nuevo"

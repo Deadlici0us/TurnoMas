@@ -56,6 +56,12 @@ export async function createBusiness(formData: FormData): Promise<void>
 
   if (error)
   {
+    // El dueño ya tiene negocio (re-entrada por register): seguir al dashboard.
+    if (error.code === "23505")
+    {
+      redirect("/dashboard");
+    }
+
     redirect("/onboarding?error=guardado");
   }
 

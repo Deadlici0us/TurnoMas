@@ -7,8 +7,8 @@
   "auth": {
     "logoutCta": "Cerrar sesión",
     "continueWithGoogle": "Continuar con Google",
-    "registerWithGoogleTitle": "Regístrate con Google (recomendado)",
-    "registerWithGoogleHint": "Te deja Google Calendar a un clic, sin pasos extra",
+    "googleTitle": "Continúa con Google (recomendado)",
+    "googleHint": "Más rápido, sin contraseña. Google Calendar lo conectas después en el onboarding",
     "useEmailInstead": "o usa email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Intenta de nuevo",
