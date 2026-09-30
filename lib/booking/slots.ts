@@ -11,7 +11,7 @@ import
   isSlotAvailable,
 } from "@/lib/availability/availability";
 import type { BlockedInterval } from "@/lib/availability/availability";
-import { lookupDayRanges } from "@/lib/staff/schedule";
+import { intersectDayRanges, lookupDayRanges } from "@/lib/staff/schedule";
 
 export interface TurnoExistente
 {
@@ -32,6 +32,25 @@ const MS_PER_DAY = 86_400_000;
 export const BUFFER_MINUTOS = 30;
 
 const MS_PER_MINUTE = 60_000;
+
+/**
+ * Indica si el negocio configuró al menos un día abierto.
+ *
+ * Un negocio sin configurar (`{}` o todo cerrado) no restringe:
+ * solo mandan los horarios del profesional.
+ */
+function negocioAbreAlgunDia(horariosNegocio: Record<string, unknown>): boolean
+{
+  for (let weekday = 0; weekday < 7; weekday += 1)
+  {
+    if (lookupDayRanges(horariosNegocio, weekday).length > 0)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 /** Genera inicios candidatos cada `stepMinutes` sin exceder el cierre. */
 export function buildDaySlots(
@@ -73,15 +92,20 @@ export function buildAvailableSlots(
   staffId: string | null = null,
   businessBlocked: readonly BlockedInterval[] = [],
   bufferMinutes: number = BUFFER_MINUTOS,
+  horariosNegocio: Record<string, unknown> | null = null,
 ): readonly DiaDisponible[]
 {
   const result: DiaDisponible[] = [];
   const cutoff = now.getTime() + bufferMinutes * MS_PER_MINUTE;
+  const negocioRestringe = horariosNegocio !== null && negocioAbreAlgunDia(horariosNegocio);
 
   for (let offset = 0; offset < days; offset += 1)
   {
     const date = new Date(now.getTime() + offset * MS_PER_DAY);
-    const ranges = lookupDayRanges(horarios, date.getDay());
+    const staffRanges = lookupDayRanges(horarios, date.getDay());
+    const ranges = negocioRestringe && horariosNegocio !== null
+      ? intersectDayRanges(lookupDayRanges(horariosNegocio, date.getDay()), staffRanges)
+      : staffRanges;
 
     if (ranges.length === 0)
     {

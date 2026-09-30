@@ -1,11 +1,35 @@
 import Link from "next/link";
 
-import { actualizarNombreNegocio, actualizarPoliticaListaNegra, conectarMercadoPago, desconectarGoogleCalendar,
+import { actualizarHorariosNegocio, actualizarNombreNegocio, actualizarPoliticaListaNegra,
+  conectarMercadoPago, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { maskMpToken } from "@/lib/payments/mp-token";
+import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+function franjasDeDia(horarios: unknown, day: DayKey): string
+{
+  if (typeof horarios !== "object" || horarios === null || Array.isArray(horarios))
+  {
+    return "";
+  }
+
+  const raw = (horarios as Record<string, unknown>)[day];
+
+  if (typeof raw === "string")
+  {
+    return raw;
+  }
+
+  if (Array.isArray(raw))
+  {
+    return raw.filter((item): item is string => typeof item === "string").join(", ");
+  }
+
+  return "";
+}
 
 async function guardarPolitica(formData: FormData): Promise<void>
 {
@@ -45,11 +69,25 @@ async function guardarNombre(formData: FormData): Promise<void>
   await actualizarNombreNegocio(String(formData.get("nombre") ?? ""));
 }
 
+async function guardarHorariosNegocio(formData: FormData): Promise<void>
+{
+  "use server";
+
+  const horarios: Record<string, unknown> = {};
+
+  for (const day of DAY_ORDER)
+  {
+    horarios[day] = String(formData.get(day) ?? "");
+  }
+
+  await actualizarHorariosNegocio(horarios);
+}
+
 export default async function ConfigPage()
 {
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as {
-    nombre?: string; pais?: string; slug?: string;
+    nombre?: string; pais?: string; slug?: string; horarios?: unknown;
     blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra;
   };
   const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
@@ -127,6 +165,35 @@ export default async function ConfigPage()
             </Link>
           </p>
         ) : null}
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Horarios del negocio</h2>
+        <p className="text-xs text-slate-500">
+          Rango más amplio en el que aceptás reservas (ej: lun a sáb 08:00-22:00).
+          Cada profesional ajusta su turno dentro de este marco. Vacío = cerrado.
+        </p>
+        <form action={guardarHorariosNegocio} className="space-y-2">
+          {DAY_ORDER.map((day) => (
+            <label key={day} className="flex items-center gap-2 text-sm text-slate-600">
+              <span className="w-20 shrink-0 font-medium">{dayLabel(day)}</span>
+              <input
+                type="text"
+                name={day}
+                defaultValue={franjasDeDia(negocio.horarios, day)}
+                placeholder="Cerrado"
+                className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </label>
+          ))}
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar horarios
+          </button>
+        </form>
       </section>
       <section className="space-y-3">
         <h2 className="font-semibold text-slate-900">Lista negra automática</h2>

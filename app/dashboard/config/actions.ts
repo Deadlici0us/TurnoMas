@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { assertModoEditable } from "@/lib/auth/demo-guard";
+import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
+import { validarHorariosStaff } from "@/lib/staff/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -162,6 +164,34 @@ export async function desconectarGoogleCalendar(): Promise<void>
   if (error !== null)
   {
     throw new Error("No pudimos desconectar Google. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Actualiza los horarios del negocio (techo amplio: cada profesional recorta el suyo). */
+export async function actualizarHorariosNegocio(horarios: unknown): Promise<void>
+{
+  const value = validarHorariosStaff(horarios);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar los horarios.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+
+  const { error } = await admin.from("negocios").update({ horarios: value }).eq("id", negocioId);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar los horarios. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");

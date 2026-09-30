@@ -164,4 +164,43 @@ describe("buildAvailableSlots",
     expect(week[0]?.date.getDay()).toBe(2);
     expect(week[0]?.starts).toHaveLength(2);
   });
+
+  it("debería recortar los slots al horario del negocio cuando se informa",
+  () =>
+  {
+    const horarios = { lun: ["08:00-20:00"] };
+    const negocio = { lun: ["09:00-19:00"] };
+    const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, negocio);
+    const horas = (week[0]?.starts ?? []).map((d) => d.getHours() + d.getMinutes() / 60);
+
+    expect(week).toHaveLength(1);
+    expect(Math.min(...horas)).toBe(9);
+    expect(Math.max(...horas)).toBe(18.5);
+  });
+
+  it("debería cerrar el día cuando el negocio está cerrado aunque el profesional abra",
+  () =>
+  {
+    const horarios = { lun: ["09:00-19:00"] };
+    const negocio = { mar: ["09:00-19:00"] };
+    const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, negocio);
+
+    expect(week).toHaveLength(0);
+  });
+
+  it("debería ignorar el horario del negocio cuando está vacío (sin configurar)",
+  () =>
+  {
+    const horarios = { lun: ["09:00-10:00"] };
+    const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, {});
+
+    expect(week).toHaveLength(1);
+    expect(week[0]?.starts).toHaveLength(2);
+  });
 });

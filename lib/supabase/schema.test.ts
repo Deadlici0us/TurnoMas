@@ -8,6 +8,14 @@ const MIGRATION = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0000_init.sql"),
   "utf8",
 );
+const SENA_CERO = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0003_sena_cero.sql"),
+  "utf8",
+);
+const NEGOCIO_HORARIOS = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0004_negocio_horarios.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -64,6 +72,22 @@ describe("esquema Supabase",
   () =>
   {
     expect(MIGRATION).toContain("'confirmado'");
+  });
+
+  it("debería permitir seña 0% en servicios y turnos",
+  () =>
+  {
+    expect(SENA_CERO).toContain("between 0 and 100");
+    expect(SENA_CERO).toContain("servicios_sena_porcentaje_check");
+    expect(SENA_CERO).toContain("turnos_sena_porcentaje_check");
+  });
+
+  it("debería guardar los horarios del negocio y exponerlos en el portal",
+  () =>
+  {
+    expect(NEGOCIO_HORARIOS).toContain("horarios");
+    expect(NEGOCIO_HORARIOS).toMatch(/alter table negocios add column/i);
+    expect(NEGOCIO_HORARIOS).toContain("portal_negocios");
   });
 
   it("debería fijar search_path en funciones y no re-evaluar auth por fila",

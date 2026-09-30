@@ -45,6 +45,7 @@ export interface PortalBusiness
   readonly nombre: string;
   readonly pais: string;
   readonly slug: string;
+  readonly horarios: Record<string, string>;
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
@@ -67,6 +68,9 @@ export function getDemoBusiness(pais: string, slug: string): PortalBusiness | nu
     nombre: seed.negocio.nombre,
     pais: seed.negocio.pais,
     slug: seed.negocio.slug,
+    horarios: Object.fromEntries(
+      Object.entries(seed.negocio.horarios).map(([day, ranges]) => [day, ranges.join(", ")]),
+    ),
     staff: seed.staff.map((s) => ({ id: s.id, nombre: s.nombre, horarios: s.horarios, activo: true })),
     servicios: seed.servicios.map((s) => ({
       id: s.id,

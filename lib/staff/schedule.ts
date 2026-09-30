@@ -210,3 +210,33 @@ export function lookupDayRanges(horarios: Record<string, unknown>, weekday: numb
 
   return parseDayRanges(legacy);
 }
+
+/**
+ * Intersecta las franjas del negocio con las del profesional.
+ *
+ * El negocio es el techo amplio (cuándo el local acepta reservas) y el
+ * profesional recorta con su turno real. Vacío en alguno = cerrado ese día.
+ */
+export function intersectDayRanges(
+  negocio: readonly DayRange[],
+  staff: readonly DayRange[],
+): DayRange[]
+{
+  const cruce: DayRange[] = [];
+
+  for (const a of negocio)
+  {
+    for (const b of staff)
+    {
+      const openMinutes = Math.max(a.openMinutes, b.openMinutes);
+      const closeMinutes = Math.min(a.closeMinutes, b.closeMinutes);
+
+      if (closeMinutes > openMinutes)
+      {
+        cruce.push({ openMinutes, closeMinutes });
+      }
+    }
+  }
+
+  return cruce.sort((x, y) => x.openMinutes - y.openMinutes);
+}

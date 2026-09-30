@@ -24,6 +24,36 @@ function asBoolean(value: unknown): boolean
   return value === true;
 }
 
+/** Normaliza los horarios JSONB del negocio a texto por día (vacío = sin configurar). */
+function asHorarios(value: unknown): Record<string, string>
+{
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+  {
+    return {};
+  }
+
+  const out: Record<string, string> = {};
+
+  for (const [day, raw] of Object.entries(value as Record<string, unknown>))
+  {
+    if (typeof raw === "string")
+    {
+      out[day] = raw;
+    }
+    else if (Array.isArray(raw))
+    {
+      const franjas = raw.filter((item): item is string => typeof item === "string");
+
+      if (franjas.length > 0)
+      {
+        out[day] = franjas.join(", ");
+      }
+    }
+  }
+
+  return out;
+}
+
 interface PortalParams
 {
   readonly pais: string;
@@ -46,16 +76,38 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const { data: negocio } = await supabase
     .from("portal_negocios")
-    .select("id, nombre, pais, slug")
+    .select("id, nombre, pais, slug, horarios")
     .eq("pais", pais.toLowerCase())
     .eq("slug", slug.toLowerCase())
     .single();
 
   if (negocio === null)
   {
-    return null;
+    // Fallback pre-migración 0004: la vista aún no expone `horarios`.
+    const { data: legacy } = await supabase
+      .from("portal_negocios")
+      .select("id, nombre, pais, slug")
+      .eq("pais", pais.toLowerCase())
+      .eq("slug", slug.toLowerCase())
+      .single();
+
+    if (legacy === null)
+    {
+      return null;
+    }
+
+    return buildPortalBusiness(legacy, supabase);
   }
 
+  return buildPortalBusiness(negocio, supabase);
+}
+
+/** Arma el negocio del portal con staff, servicios, turnos y bloqueos. */
+async function buildPortalBusiness(
+  negocio: { id: unknown },
+  supabase: Awaited<ReturnType<typeof getSupabaseServer>>,
+): Promise<PortalBusiness | null>
+{
   const [{ data: staff }, { data: servicios }] = await Promise.all([
     supabase.from("portal_staff").select("id, nombre, horarios").eq("negocio_id", negocio.id),
     supabase.from("portal_servicios").select("id, nombre, duracion_min, precio_base," +
@@ -102,6 +154,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
     nombre: asString(negocioRow.nombre),
     pais: asString(negocioRow.pais),
     slug: asString(negocioRow.slug),
+    horarios: asHorarios(negocioRow.horarios),
     staff: ((staff ?? []) as unknown as Row[]).map((s) => ({
       id: asString(s.id),
       nombre: asString(s.nombre),
@@ -150,6 +203,7 @@ export default async function PortalPage({ params }: { params: Promise<PortalPar
           servicios={business.servicios}
           turnos={business.turnos}
           bloqueos={business.bloqueos}
+          horariosNegocio={business.horarios}
         />
         <p className="text-xs text-slate-400 text-center mt-4">Reservas por TurnoMas</p>
       </div>

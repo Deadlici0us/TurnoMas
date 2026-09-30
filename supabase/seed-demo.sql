@@ -8,14 +8,16 @@
 -- Idempotente: re-ejecutable gracias a `on conflict do nothing`.
 
 -- NEGOCIO DEMO --------------------------------------------------------------
-insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado)
+insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado, horarios)
 values (
   'd0e6b000-0000-4000-8000-000000000001',
   'DEMO_DUENIO_ID', -- << pegar UID de demo@turnomas.com
   'Barbería Diego',
   'ar',
   'barberia-diego',
-  'active'
+  'active',
+  '{"lun": ["08:00-22:00"], "mar": ["08:00-22:00"], "mié": ["08:00-22:00"], "jue": ["08:00-22:00"],
+    "vie": ["08:00-22:00"], "sáb": ["08:00-20:00"], "dom": []}'
 )
 on conflict (id) do nothing;
 

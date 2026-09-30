@@ -6,6 +6,7 @@ import
   dayKeyForWeekday,
   dayLabel,
   formatDayRange,
+  intersectDayRanges,
   lookupDayRanges,
   parseDayRange,
   parseDayRanges,
@@ -144,5 +145,57 @@ describe("lookupDayRanges",
   {
     expect(lookupDayRanges(horarios, 0)).toEqual([]);
     expect(lookupDayRanges({}, 3)).toEqual([]);
+  });
+});
+
+describe("intersectDayRanges",
+() =>
+{
+  it("debería recortar el horario del profesional al techo del negocio",
+  () =>
+  {
+    const negocio = [{ openMinutes: 480, closeMinutes: 1320 }];
+    const staff = [{ openMinutes: 540, closeMinutes: 1140 }];
+
+    expect(intersectDayRanges(negocio, staff)).toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+  });
+
+  it("debería recortar el horario del negocio al turno del profesional",
+  () =>
+  {
+    const negocio = [{ openMinutes: 540, closeMinutes: 1140 }];
+    const staff = [{ openMinutes: 480, closeMinutes: 1320 }];
+
+    expect(intersectDayRanges(negocio, staff)).toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+  });
+
+  it("debería intersectar jornadas cortadas con descanso",
+  () =>
+  {
+    const negocio = [{ openMinutes: 480, closeMinutes: 1320 }];
+    const staff = [
+      { openMinutes: 540, closeMinutes: 780 },
+      { openMinutes: 900, closeMinutes: 1200 },
+    ];
+
+    expect(intersectDayRanges(negocio, staff)).toEqual(staff);
+  });
+
+  it("debería devolver vacío cuando el negocio está cerrado ese día",
+  () =>
+  {
+    const staff = [{ openMinutes: 540, closeMinutes: 1140 }];
+
+    expect(intersectDayRanges([], staff)).toEqual([]);
+    expect(intersectDayRanges(staff, [])).toEqual([]);
+  });
+
+  it("debería devolver vacío cuando los rangos no se tocan",
+  () =>
+  {
+    const negocio = [{ openMinutes: 480, closeMinutes: 720 }];
+    const staff = [{ openMinutes: 840, closeMinutes: 1140 }];
+
+    expect(intersectDayRanges(negocio, staff)).toEqual([]);
   });
 });
