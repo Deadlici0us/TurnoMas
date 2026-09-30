@@ -31,17 +31,17 @@ on conflict (id) do nothing;
 
 -- SERVICIOS -----------------------------------------------------------------
 insert into servicios
-  (id, negocio_id, nombre, duracion_min, buffer_limpieza_min,
+  (id, negocio_id, nombre, duracion_min,
    precio_base, precio_promocional, sena_requerida, sena_porcentaje)
 values
   ('d0e6b000-0000-4000-8000-000000000021',
-   'd0e6b000-0000-4000-8000-000000000001', 'Corte clásico', 30, 15,
+   'd0e6b000-0000-4000-8000-000000000001', 'Corte clásico', 30,
    1500000, null, true, 50),
   ('d0e6b000-0000-4000-8000-000000000022',
-   'd0e6b000-0000-4000-8000-000000000001', 'Barba + corte', 45, 15,
+   'd0e6b000-0000-4000-8000-000000000001', 'Barba + corte', 45,
    2000000, 1700000, true, 50),
   ('d0e6b000-0000-4000-8000-000000000023',
-   'd0e6b000-0000-4000-8000-000000000001', 'Perfilado de barba', 20, 10,
+   'd0e6b000-0000-4000-8000-000000000001', 'Perfilado de barba', 20,
    800000, null, false, 50)
 on conflict (id) do nothing;
 

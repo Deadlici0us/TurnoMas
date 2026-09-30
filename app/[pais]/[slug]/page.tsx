@@ -58,7 +58,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const [{ data: staff }, { data: servicios }] = await Promise.all([
     supabase.from("portal_staff").select("id, nombre, horarios").eq("negocio_id", negocio.id),
-    supabase.from("portal_servicios").select("id, nombre, duracion_min, buffer_limpieza_min, precio_base," +
+    supabase.from("portal_servicios").select("id, nombre, duracion_min, precio_base," +
       " precio_promocional, sena_requerida, sena_porcentaje").eq("negocio_id", negocio.id),
   ]);
 
@@ -95,7 +95,6 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
       id: asString(s.id),
       nombre: asString(s.nombre),
       duracionMin: asNumber(s.duracion_min),
-      bufferLimpiezaMin: asNumber(s.buffer_limpieza_min),
       precioBase: asNumber(s.precio_base),
       precioPromocional: (s.precio_promocional ?? null) as number | null,
       senaRequerida: asBoolean(s.sena_requerida),

@@ -9,7 +9,6 @@ export interface ServicioInput
 {
   readonly nombre: unknown;
   readonly duracionMin: unknown;
-  readonly bufferMin: unknown;
   readonly precioBase: unknown;
   readonly precioPromocional: unknown;
   readonly senaRequerida: unknown;
@@ -20,7 +19,6 @@ export interface ServicioValidado
 {
   readonly nombre: string;
   readonly duracionMin: number;
-  readonly bufferMin: number;
   readonly precioBase: number;
   readonly precioPromocional: number | null;
   readonly senaRequerida: boolean;
@@ -64,13 +62,6 @@ export function validarServicio(input: ServicioInput): ServicioValidado
     throw new RangeError("La duración tiene que ser mayor a 0 minutos.");
   }
 
-  const bufferMin = exigirEntero(input.bufferMin, "La limpieza tiene que ser en minutos enteros.");
-
-  if (bufferMin < 0)
-  {
-    throw new RangeError("La limpieza no puede ser negativa.");
-  }
-
   const precioBase = exigirEntero(input.precioBase, "El precio tiene que ser en centavos enteros.");
 
   if (precioBase <= 0)
@@ -102,7 +93,6 @@ export function validarServicio(input: ServicioInput): ServicioValidado
   return {
     nombre,
     duracionMin,
-    bufferMin,
     precioBase,
     precioPromocional,
     senaRequerida: input.senaRequerida === true || input.senaRequerida === "on",

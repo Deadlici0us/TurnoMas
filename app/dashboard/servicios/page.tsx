@@ -6,7 +6,6 @@ interface ServicioRow
   readonly id: string;
   readonly nombre: string;
   readonly duracion_min: number;
-  readonly buffer_limpieza_min: number;
   readonly precio_base: number;
   readonly precio_promocional: number | null;
   readonly sena_requerida: boolean;
@@ -72,18 +71,6 @@ function CamposServicio({ servicio }: { servicio?: ServicioRow })
         />
       </label>
       <label className="block text-sm text-slate-600">
-        Limpieza (min)
-        <input
-          type="number"
-          name="bufferMin"
-          required
-          min={0}
-          defaultValue={servicio?.buffer_limpieza_min ?? 10}
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
         Precio base
         <input
           type="number"
@@ -142,7 +129,7 @@ export default async function ServiciosPage()
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Servicios</h1>
-        <p className="text-slate-600 mt-1 text-sm">Duración, limpieza, precios y seña por servicio.</p>
+        <p className="text-slate-600 mt-1 text-sm">Duración, precios y seña por servicio.</p>
       </div>
       <form action={crearServicio} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 space-y-4">
         <h2 className="font-semibold text-slate-900">Nuevo servicio</h2>
@@ -171,7 +158,6 @@ export default async function ServiciosPage()
                 </h3>
                 <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2 text-sm text-slate-600">
                   <span>Duración: {servicio.duracion_min} min</span>
-                  <span>Limpieza: {servicio.buffer_limpieza_min} min</span>
                   <span>Precio: $ {servicio.precio_base.toLocaleString("es-AR")}</span>
                   {servicio.precio_promocional !== null && (
                     <span>Promo: $ {servicio.precio_promocional.toLocaleString("es-AR")}</span>

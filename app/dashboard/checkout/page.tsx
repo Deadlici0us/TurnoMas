@@ -7,7 +7,6 @@ interface ServicioRow
   readonly id: string;
   readonly nombre: string;
   readonly duracion_min: number;
-  readonly buffer_limpieza_min: number;
   readonly precio_base: number;
   readonly precio_promocional: number | null;
   readonly sena_requerida: boolean;
@@ -43,7 +42,7 @@ export default async function CheckoutPage()
               <div className="flex-1">
                 <h3 className="font-semibold text-slate-900">{servicio.nombre}</h3>
                 <p className="text-sm text-slate-500">
-                  {`Duración: ${servicio.duracion_min} min · Limpieza: ${servicio.buffer_limpieza_min} min · Precio: $ ${servicio.precio_base.toLocaleString("es-AR")}`}
+                  {`Duración: ${servicio.duracion_min} min · Precio: $ ${servicio.precio_base.toLocaleString("es-AR")}`}
                 </p>
                 <p className="text-sm text-slate-500">
                   {servicio.sena_requerida ? `Seña del ${servicio.sena_porcentaje}%` : "Sin seña requerida"}

@@ -34,7 +34,6 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
   const servicio = validarServicio({
     nombre: formData.get("nombre"),
     duracionMin: exigirNumeroCrudo(formData.get("duracionMin")),
-    bufferMin: exigirNumeroCrudo(formData.get("bufferMin")),
     precioBase: exigirNumeroCrudo(formData.get("precioBase")),
     precioPromocional: promoCruda === null || String(promoCruda).trim().length === 0
       ? null
@@ -64,7 +63,6 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     negocio_id: negocioId,
     nombre: servicio.nombre,
     duracion_min: servicio.duracionMin,
-    buffer_limpieza_min: servicio.bufferMin,
     precio_base: servicio.precioBase,
     precio_promocional: servicio.precioPromocional,
     sena_requerida: servicio.senaRequerida,

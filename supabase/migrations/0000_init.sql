@@ -52,7 +52,6 @@ create table if not exists servicios (
   negocio_id uuid not null references negocios (id) on delete cascade,
   nombre text not null,
   duracion_min int not null check (duracion_min > 0),
-  buffer_limpieza_min int not null default 0 check (buffer_limpieza_min >= 0),
   precio_base int not null check (precio_base > 0), -- centavos
   precio_promocional int null check (precio_promocional is null
     or (precio_promocional > 0 and precio_promocional <= precio_base)),
@@ -215,7 +214,7 @@ create or replace view portal_staff with (security_invoker = true) as
   select id, negocio_id, nombre, horarios from staff where activo = true;
 
 create or replace view portal_servicios with (security_invoker = true) as
-  select id, negocio_id, nombre, duracion_min, buffer_limpieza_min,
+  select id, negocio_id, nombre, duracion_min,
     precio_base, precio_promocional, sena_requerida, sena_porcentaje
   from servicios where activo = true;
 

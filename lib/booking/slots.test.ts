@@ -49,12 +49,12 @@ describe("filterAvailableSlots",
   {
     const day = day2026();
     const candidates = buildDaySlots(day, 540, 660, 30, 30);
-    const blocked = [{ start: new Date(2026, 8, 28, 9, 0), end: new Date(2026, 8, 28, 9, 45) }];
+    const blocked = [{ start: new Date(2026, 8, 28, 9, 0), end: new Date(2026, 8, 28, 9, 30) }];
 
-    const result = filterAvailableSlots(candidates, 30, 15, blocked);
+    const result = filterAvailableSlots(candidates, 30, blocked);
 
-    expect(result.map((d) => d.getMinutes())).toEqual([0, 30]);
-    expect(result.map((d) => d.getHours())).toEqual([10, 10]);
+    expect(result.map((d) => d.getMinutes())).toEqual([30, 0, 30]);
+    expect(result.map((d) => d.getHours())).toEqual([9, 10, 10]);
   });
 });
 
@@ -74,7 +74,7 @@ describe("buildAvailableSlots",
     };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, 15, monday, 7, 30);
+    const week = buildAvailableSlots(horarios, [], 30, monday, 7, 30);
 
     expect(week).toHaveLength(6);
     expect(week.every((d) => d.starts.length === 2)).toBe(true);
@@ -86,14 +86,14 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-11:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
     const turnos = [
-      { staffId: "diego", inicio: new Date(2026, 8, 28, 9, 0).toISOString(), duracionMin: 30, bufferMin: 15 },
-      { staffId: "otro", inicio: new Date(2026, 8, 28, 9, 0).toISOString(), duracionMin: 30, bufferMin: 15 },
+      { staffId: "diego", inicio: new Date(2026, 8, 28, 9, 0).toISOString(), duracionMin: 30 },
+      { staffId: "otro", inicio: new Date(2026, 8, 28, 9, 0).toISOString(), duracionMin: 30 },
     ];
 
-    const week = buildAvailableSlots(horarios, turnos, 30, 15, monday, 1, 30, "diego");
+    const week = buildAvailableSlots(horarios, turnos, 30, monday, 1, 30, "diego");
 
     expect(week).toHaveLength(1);
-    expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([0, 30]);
+    expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([30, 0, 30]);
   });
 
   it("debería respetar el descanso del mediodía en jornada cortada",
@@ -102,7 +102,7 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-13:00", "15:00-20:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, 0, monday, 1, 30);
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
 
     expect(week).toHaveLength(1);
 
@@ -119,7 +119,7 @@ describe("buildAvailableSlots",
     const horarios = { "lun-vie": "09:00-10:00" };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, 15, monday, 1, 30);
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts).toHaveLength(2);

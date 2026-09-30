@@ -20,7 +20,6 @@ export interface PortalServicio
   readonly id: string;
   readonly nombre: string;
   readonly duracionMin: number;
-  readonly bufferLimpiezaMin: number;
   readonly precioBase: number;
   readonly precioPromocional: number | null;
   readonly senaRequerida: boolean;
@@ -65,7 +64,6 @@ export function getDemoBusiness(pais: string, slug: string): PortalBusiness | nu
       id: s.id,
       nombre: s.nombre,
       duracionMin: s.duracion_min,
-      bufferLimpiezaMin: s.buffer_limpieza_min,
       precioBase: s.precio_base,
       precioPromocional: s.precio_promocional,
       senaRequerida: s.sena_requerida,

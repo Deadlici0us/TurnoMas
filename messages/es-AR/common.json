@@ -30,7 +30,7 @@
     },
     "agenda": {
       "title": "Agenda inteligente",
-      "description": "Bloqueá automáticamente el tiempo de servicio + limpieza para que nunca tengas espacios muertos."
+      "description": "Bloqueá automáticamente la duración de cada servicio para que nunca tengas espacios muertos."
     }
   },
   "pricing": {

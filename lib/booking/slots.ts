@@ -18,7 +18,6 @@ export interface TurnoExistente
   readonly staffId: string;
   readonly inicio: string;
   readonly duracionMin: number;
-  readonly bufferMin: number;
 }
 
 export interface DiaDisponible
@@ -48,15 +47,14 @@ export function buildDaySlots(
   return starts;
 }
 
-/** Filtra candidatos que solapan bloqueos existentes (duración + buffer). */
+/** Filtra candidatos que solapan bloqueos existentes. */
 export function filterAvailableSlots(
   candidates: readonly Date[],
   serviceMinutes: number,
-  bufferMinutes: number,
   existingBlocked: readonly BlockedInterval[],
 ): readonly Date[]
 {
-  return candidates.filter((start) => isSlotAvailable(start, serviceMinutes, bufferMinutes, existingBlocked));
+  return candidates.filter((start) => isSlotAvailable(start, serviceMinutes, existingBlocked));
 }
 
 /** Arma los días disponibles del profesional para los próximos `days` días. */
@@ -64,7 +62,6 @@ export function buildAvailableSlots(
   horarios: Record<string, unknown>,
   turnos: readonly TurnoExistente[],
   serviceMinutes: number,
-  bufferMinutes: number,
   now: Date = new Date(),
   days = 7,
   stepMinutes = 30,
@@ -85,7 +82,7 @@ export function buildAvailableSlots(
 
     const blocked: BlockedInterval[] = turnos
       .filter((turno) => staffId === null || turno.staffId === staffId)
-      .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin, turno.bufferMin));
+      .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin));
 
     const allStarts: Date[] = [];
 
@@ -93,7 +90,7 @@ export function buildAvailableSlots(
     {
       const candidates = buildDaySlots(date, range.openMinutes, range.closeMinutes, serviceMinutes, stepMinutes);
 
-      allStarts.push(...filterAvailableSlots(candidates, serviceMinutes, bufferMinutes, blocked));
+      allStarts.push(...filterAvailableSlots(candidates, serviceMinutes, blocked));
     }
 
     const seen = new Set<number>();

@@ -5,7 +5,7 @@
  *
  * Flujo server-side: valida input → resuelve negocio/staff/servicio por
  * vistas portal → evalúa lista negra con service role → verifica
- * disponibilidad (duración + buffer) → inserta turno → crea preferencia MP.
+ * disponibilidad (duración) → inserta turno → crea preferencia MP.
  */
 
 import { NextResponse } from "next/server";
@@ -182,7 +182,7 @@ export async function POST(request: Request)
       supabase.from("portal_staff").select("id, nombre, horarios")
         .eq("negocio_id", negocioId).eq("id", staffId).single(),
       supabase.from("portal_servicios")
-        .select("id, nombre, duracion_min, buffer_limpieza_min, precio_base," +
+        .select("id, nombre, duracion_min, precio_base," +
           " precio_promocional, sena_requerida, sena_porcentaje")
         .eq("negocio_id", negocioId).eq("id", servicioId).single(),
     ]);
@@ -207,7 +207,7 @@ export async function POST(request: Request)
     const decision = evaluateCustomer(ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
 
     const servicioRow = servicio as unknown as {
-      nombre: string; duracion_min: number; buffer_limpieza_min: number; precio_base: number;
+      nombre: string; duracion_min: number; precio_base: number;
       precio_promocional: number | null; sena_requerida: boolean; sena_porcentaje: number;
     };
     const outcome = resolveCheckout({
@@ -232,21 +232,19 @@ export async function POST(request: Request)
     const { data: turnosExistentes } = await admin.from("turnos").select("inicio, servicio_id")
       .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date().toISOString());
     const { data: serviciosTodos } = await admin.from("servicios")
-      .select("id, duracion_min, buffer_limpieza_min").eq("negocio_id", negocioId);
+      .select("id, duracion_min").eq("negocio_id", negocioId);
     const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
-      id: string; duracion_min: number; buffer_limpieza_min: number;
+      id: string; duracion_min: number;
     }) => [s.id, s]));
     const bloqueos = ((turnosExistentes ?? []) as Array<{ inicio: string; servicio_id: string }>).map((t) =>
     {
       const ref = duracionPorServicio.get(t.servicio_id);
 
       return getBlockedInterval(new Date(t.inicio),
-        ref?.duracion_min ?? servicioRow.duracion_min,
-        ref?.buffer_limpieza_min ?? servicioRow.buffer_limpieza_min);
+        ref?.duracion_min ?? servicioRow.duracion_min);
     });
 
-    const ocupado = !isSlotAvailable(inicio, servicioRow.duracion_min,
-      servicioRow.buffer_limpieza_min, bloqueos);
+    const ocupado = !isSlotAvailable(inicio, servicioRow.duracion_min, bloqueos);
 
     if (ocupado)
     {
@@ -276,8 +274,7 @@ export async function POST(request: Request)
       clienteId = nuevo.id as string;
     }
 
-    const fin = new Date(inicio.getTime()
-      + (servicioRow.duracion_min + servicioRow.buffer_limpieza_min) * 60_000);
+    const fin = new Date(inicio.getTime() + servicioRow.duracion_min * 60_000);
     const conSena = outcome.kind === "payDeposit";
     const { data: turno, error: turnoError } = await admin.from("turnos").insert({
       negocio_id: negocioId,

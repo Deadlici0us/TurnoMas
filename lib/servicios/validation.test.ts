@@ -5,7 +5,6 @@ import { validarServicio } from "./validation";
 const BASE = {
   nombre: "Corte clásico",
   duracionMin: 30,
-  bufferMin: 15,
   precioBase: 1500000,
   precioPromocional: null as number | null,
   senaRequerida: true,
@@ -21,7 +20,6 @@ describe("validarServicio",
     expect(validarServicio(BASE)).toEqual({
       nombre: "Corte clásico",
       duracionMin: 30,
-      bufferMin: 15,
       precioBase: 1500000,
       precioPromocional: null,
       senaRequerida: true,
@@ -43,7 +41,6 @@ describe("validarServicio",
   {
     expect(() => validarServicio({ ...BASE, nombre: "X" })).toThrow(RangeError);
     expect(() => validarServicio({ ...BASE, duracionMin: 0 })).toThrow(RangeError);
-    expect(() => validarServicio({ ...BASE, bufferMin: -1 })).toThrow(RangeError);
     expect(() => validarServicio({ ...BASE, precioBase: 0 })).toThrow(RangeError);
     expect(() => validarServicio({ ...BASE, senaPorcentaje: 101 })).toThrow(RangeError);
   });

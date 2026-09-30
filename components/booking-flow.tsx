@@ -68,12 +68,11 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
         staffId: t.staffId,
         inicio: t.inicio,
         duracionMin: base?.duracionMin ?? servicio.duracionMin,
-        bufferMin: base?.bufferLimpiezaMin ?? servicio.bufferLimpiezaMin,
       };
     });
 
     return buildAvailableSlots(
-      profesional.horarios, bloqueos, servicio.duracionMin, servicio.bufferLimpiezaMin,
+      profesional.horarios, bloqueos, servicio.duracionMin,
       new Date(), 7, 30, profesional.id,
     );
   }, [profesional, servicio, turnos, servicios]);

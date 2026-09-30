@@ -21,20 +21,12 @@ function blocked(startMinutes: number, endMinutes: number): BlockedInterval
 describe("getBlockedInterval",
 () =>
 {
-  it("debería sumar duración del servicio más buffer de limpieza",
+  it("debería bloquear la duración del servicio",
   () =>
   {
-    const result = getBlockedInterval(at(0), 30, 15);
+    const result = getBlockedInterval(at(0), 30);
 
     expect(result.start).toEqual(at(0));
-    expect(result.end).toEqual(at(45));
-  });
-
-  it("debería permitir buffer de limpieza en cero",
-  () =>
-  {
-    const result = getBlockedInterval(at(0), 30, 0);
-
     expect(result.end).toEqual(at(30));
   });
 });
@@ -61,33 +53,33 @@ describe("isSlotAvailable",
   it("debería rechazar un turno que solapa con un bloqueo existente",
   () =>
   {
-    const existing = [blocked(0, 45)];
+    const existing = [blocked(0, 30)];
 
-    expect(isSlotAvailable(at(30), 30, 0, existing)).toBe(false);
+    expect(isSlotAvailable(at(15), 30, existing)).toBe(false);
   });
 
   it("debería aceptar un turno contiguo al bloqueo existente",
   () =>
   {
-    const existing = [blocked(0, 45)];
+    const existing = [blocked(0, 30)];
 
-    expect(isSlotAvailable(at(45), 30, 0, existing)).toBe(true);
+    expect(isSlotAvailable(at(30), 30, existing)).toBe(true);
   });
 
-  it("debería considerar el buffer al evaluar disponibilidad",
+  it("debería rechazar un turno que solapa por minutos",
   () =>
   {
-    const existing = [blocked(60, 105)];
+    const existing = [blocked(60, 90)];
 
-    // Turno de 30 min + 15 min de limpieza = bloquea 10:00-10:45, no solapa con 11:00.
-    expect(isSlotAvailable(at(0), 30, 15, existing)).toBe(true);
-    // Mismo turno a las 10:30 bloquearía 10:30-11:15 y sí solapa con 11:00.
-    expect(isSlotAvailable(at(30), 30, 15, existing)).toBe(false);
+    // Turno de 30 min a las 10:00 bloquea 10:00-10:30, no solapa con 11:00.
+    expect(isSlotAvailable(at(0), 30, existing)).toBe(true);
+    // Mismo turno a las 10:45 bloquearía 10:45-11:15 y sí solapa con 11:00.
+    expect(isSlotAvailable(at(45), 30, existing)).toBe(false);
   });
 
   it("debería aceptar cuando no hay turnos existentes",
   () =>
   {
-    expect(isSlotAvailable(at(0), 30, 15, [])).toBe(true);
+    expect(isSlotAvailable(at(0), 30, [])).toBe(true);
   });
 });

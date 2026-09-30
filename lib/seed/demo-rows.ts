@@ -32,7 +32,6 @@ export interface DemoServicioRow
   readonly negocio_id: string;
   readonly nombre: string;
   readonly duracion_min: number;
-  readonly buffer_limpieza_min: number;
   readonly precio_base: number;
   readonly precio_promocional: number | null;
   readonly sena_requerida: boolean;
@@ -122,7 +121,6 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: NEGOCIO_ID,
         nombre: "Corte clásico",
         duracion_min: 30,
-        buffer_limpieza_min: 15,
         precio_base: 1500000,
         precio_promocional: null,
         sena_requerida: true,
@@ -133,7 +131,6 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: NEGOCIO_ID,
         nombre: "Barba + corte",
         duracion_min: 45,
-        buffer_limpieza_min: 15,
         precio_base: 2000000,
         precio_promocional: 1700000,
         sena_requerida: true,
@@ -144,7 +141,6 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: NEGOCIO_ID,
         nombre: "Perfilado de barba",
         duracion_min: 20,
-        buffer_limpieza_min: 10,
         precio_base: 800000,
         precio_promocional: null,
         sena_requerida: false,

@@ -1,5 +1,5 @@
 /**
- * Motor de disponibilidad: bloquea `duración del servicio + buffer de limpieza`.
+ * Motor de disponibilidad: bloquea la duración del servicio.
  *
  * Las funciones son puras para facilitar TDD y reutilización
  * en Server Components, Route Handlers y Server Actions.
@@ -14,9 +14,9 @@ export interface BlockedInterval
 const MS_PER_MINUTE = 60_000;
 
 /** Calcula el intervalo total bloqueado por un turno. */
-export function getBlockedInterval(start: Date, serviceMinutes: number, bufferMinutes: number): BlockedInterval
+export function getBlockedInterval(start: Date, serviceMinutes: number): BlockedInterval
 {
-  const end = new Date(start.getTime() + (serviceMinutes + bufferMinutes) * MS_PER_MINUTE);
+  const end = new Date(start.getTime() + serviceMinutes * MS_PER_MINUTE);
 
   return { start, end };
 }
@@ -31,11 +31,10 @@ export function intervalsOverlap(a: BlockedInterval, b: BlockedInterval): boolea
 export function isSlotAvailable(
   candidateStart: Date,
   serviceMinutes: number,
-  bufferMinutes: number,
   existingBlocked: readonly BlockedInterval[],
 ): boolean
 {
-  const candidate = getBlockedInterval(candidateStart, serviceMinutes, bufferMinutes);
+  const candidate = getBlockedInterval(candidateStart, serviceMinutes);
 
   return existingBlocked.every((blocked) => !intervalsOverlap(candidate, blocked));
 }
