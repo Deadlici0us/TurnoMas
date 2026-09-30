@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { actualizarNombreNegocio, actualizarPoliticaListaNegra, conectarMercadoPago, desconectarMercadoPago } from "./actions";
+import { actualizarNombreNegocio, actualizarPoliticaListaNegra, conectarMercadoPago, desconectarGoogleCalendar,
+  desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { maskMpToken } from "@/lib/payments/mp-token";
@@ -30,6 +31,13 @@ async function quitarTokenMp(): Promise<void>
   await desconectarMercadoPago();
 }
 
+async function quitarGoogle(): Promise<void>
+{
+  "use server";
+
+  await desconectarGoogleCalendar();
+}
+
 async function guardarNombre(formData: FormData): Promise<void>
 {
   "use server";
@@ -48,6 +56,7 @@ export default async function ConfigPage()
   const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
 
   let mpToken: string | null = null;
+  let gcalConectado = false;
 
   try
   {
@@ -56,17 +65,22 @@ export default async function ConfigPage()
     if (typeof negocioId === "string")
     {
       const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
-        .select("mercadopago_access_token").eq("negocio_id", negocioId).single();
+        .select("mercadopago_access_token, google_refresh_token").eq("negocio_id", negocioId).single();
 
       const raw = (secretos as { mercadopago_access_token?: unknown } | null)
         ?.mercadopago_access_token;
 
       mpToken = typeof raw === "string" && raw.length > 0 ? raw : null;
+
+      const gcalRaw = (secretos as { google_refresh_token?: unknown } | null)?.google_refresh_token;
+
+      gcalConectado = typeof gcalRaw === "string" && gcalRaw.length > 0;
     }
   }
   catch
   {
     mpToken = null;
+    gcalConectado = false;
   }
 
   const mpConectado = mpToken !== null;
@@ -203,24 +217,48 @@ export default async function ConfigPage()
           </p>
         </div>
         <div className="space-y-2">
-          {[
-            { nombre: "WhatsApp", desc: "Recordatorios 24hs antes por WhatsApp" },
-            { nombre: "Google Calendar", desc: "Tus turnos inyectados en tu calendario" },
-          ].map((conexion) => (
-            <div
-              key={conexion.nombre}
-              className="flex items-center justify-between p-3 border border-slate-200 rounded-lg"
-            >
-              <div>
-                <div className="text-sm font-semibold text-slate-900">{conexion.nombre}</div>
-                <div className="text-xs text-slate-500">{conexion.desc}</div>
-              </div>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100
-                text-slate-500 border border-slate-200">
-                Manual en esta versión
-              </span>
+          <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Google Calendar</div>
+              <div className="text-xs text-slate-500">Tus turnos inyectados en tu calendario</div>
             </div>
-          ))}
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${gcalConectado
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+              {gcalConectado ? "Conectado" : "Sin conectar"}
+            </span>
+          </div>
+          {gcalConectado ? (
+            <form action={quitarGoogle}>
+              <button
+                type="submit"
+                className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
+                  text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Desconectar Google
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/api/integrations/google/authorize"
+              className="inline-block bg-white text-slate-900 text-sm font-semibold px-6 py-2 rounded-lg
+                border border-slate-300 hover:bg-slate-50 transition-colors"
+            >
+              Conectar con Google
+            </Link>
+          )}
+          <div
+            className="flex items-center justify-between p-3 border border-slate-200 rounded-lg"
+          >
+            <div>
+              <div className="text-sm font-semibold text-slate-900">WhatsApp</div>
+              <div className="text-xs text-slate-500">Recordatorios 24hs antes por WhatsApp</div>
+            </div>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100
+              text-slate-500 border border-slate-200">
+              Manual en esta versión
+            </span>
+          </div>
         </div>
       </section>
     </div>

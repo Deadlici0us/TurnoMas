@@ -20,6 +20,7 @@ import { plantillaConfirmacion } from "@/lib/notifications/templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
+import { calendarService } from "@/lib/services/calendar";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -301,6 +302,26 @@ export async function POST(request: Request)
     const servicioNombre = servicioRow.nombre ?? "tu servicio";
     const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
     const tituloEvento = `${servicioNombre} en ${negocio.nombre as string}`;
+    // Sync App → GCal (best-effort): si el dueño conectó Google, inyecta el turno.
+    try
+    {
+      const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
+        titulo: `${tituloEvento} · ${nombre}`,
+        descripcion: `Reserva TurnoMas · ${servicioNombre} con ${staffNombre} · Cliente ${nombre} (${whatsapp})`,
+        ubicacion: negocio.nombre as string,
+        inicio,
+        fin,
+      });
+
+      if (gcalEventId !== null)
+      {
+        await admin.from("turnos").update({ google_calendar_event_id: gcalEventId }).eq("id", turnoId);
+      }
+    }
+    catch
+    {
+      // Best-effort: la reserva ya existe aunque falle Google.
+    }
     const gcalUrl = construirLinkGoogleCalendar({
       titulo: tituloEvento,
       inicio,
