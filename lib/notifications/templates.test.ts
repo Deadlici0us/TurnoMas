@@ -18,15 +18,16 @@ const base = {
 describe("plantillaConfirmacion",
 () =>
 {
-  it("debería incluir negocio, servicio y link de Google Calendar en español",
+  it("debería incluir negocio y servicio en español sin links de calendario",
   () =>
   {
-    const t = plantillaConfirmacion({ ...base, gcalUrl: "https://gcal/x" });
+    const t = plantillaConfirmacion(base);
 
     expect(t.subject).toContain("Barbería Diego");
     expect(t.html).toContain("Corte clásico");
     expect(t.html).toContain("Diego");
-    expect(t.html).toContain("https://gcal/x");
+    expect(t.html).not.toContain("Google Calendar");
+    expect(t.html).not.toContain(".ics");
     expect(t.html).not.toMatch(/[A-Za-z]*your[A-Za-z]*/i);
   });
 });

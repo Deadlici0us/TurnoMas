@@ -31,14 +31,12 @@ function layout(titulo: string, cuerpo: string): string
     `<p style="color:#64748b;font-size:12px">Enviado por TurnoMas</p></div>`;
 }
 
-/** Confirmación de reserva con botón de Google Calendar. */
-export function plantillaConfirmacion(input: DatosTurno & { gcalUrl: string }): EmailTemplate
+/** Confirmación de reserva (el turno va directo al calendario del dueño). */
+export function plantillaConfirmacion(input: DatosTurno): EmailTemplate
 {
   const html = layout(`Tu reserva en ${input.negocio} está confirmada`,
     `<p>Hola, reservaste <strong>${escapeHtml(input.servicio)}</strong> ` +
     `con ${escapeHtml(input.profesional)} para el ${escapeHtml(input.fecha)}.</p>` +
-    `<p><a href="${escapeHtml(input.gcalUrl)}">Agregar a Google Calendar</a> ` +
-    `o descargá el archivo .ics adjunto para agendarlo.</p>` +
     `<p>Si no podés venir, cancelá tu turno para liberar el lugar. ¡Te esperamos!</p>`);
 
   return { subject: `Reserva confirmada en ${input.negocio}`, html };

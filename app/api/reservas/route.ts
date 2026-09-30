@@ -13,7 +13,6 @@ import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
 import { isSlotAvailable } from "@/lib/availability/availability";
 import { getBlockedInterval } from "@/lib/availability/availability";
-import { construirICS, construirLinkGoogleCalendar } from "@/lib/automatizaciones/ics";
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { plantillaConfirmacion } from "@/lib/notifications/templates";
@@ -322,20 +321,6 @@ export async function POST(request: Request)
     {
       // Best-effort: la reserva ya existe aunque falle Google.
     }
-    const gcalUrl = construirLinkGoogleCalendar({
-      titulo: tituloEvento,
-      inicio,
-      fin,
-      descripcion: `Reserva TurnoMas · ${servicioNombre} con ${staffNombre}`,
-      ubicacion: negocio.nombre as string,
-    });
-    const ics = construirICS({
-      titulo: tituloEvento,
-      inicio,
-      fin,
-      descripcion: `Reserva TurnoMas · ${servicioNombre} con ${staffNombre}`,
-      ubicacion: negocio.nombre as string,
-    });
 
     if (email !== null)
     {
@@ -346,7 +331,6 @@ export async function POST(request: Request)
           servicio: servicioNombre,
           profesional: staffNombre,
           fecha: formatearFechaEsAr(inicio),
-          gcalUrl,
         });
 
         await new ResendAdapter().send({
@@ -354,10 +338,6 @@ export async function POST(request: Request)
           subject: plantilla.subject,
           fromName: negocio.nombre as string,
           html: plantilla.html,
-          attachments: [{
-            filename: "turno.ics",
-            contentBase64: Buffer.from(ics, "utf8").toString("base64"),
-          }],
         });
       }
       catch
@@ -368,8 +348,7 @@ export async function POST(request: Request)
 
     if (!conSena)
     {
-      return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal,
-        gcalUrl, ics });
+      return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal });
     }
 
     let checkoutUrl: string | null = null;
@@ -416,8 +395,6 @@ export async function POST(request: Request)
       senaMonto: montos.senaMonto,
       checkoutUrl,
       checkoutError,
-      gcalUrl,
-      ics,
     });
   }
   catch (error)
