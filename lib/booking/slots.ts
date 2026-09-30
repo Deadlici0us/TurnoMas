@@ -11,7 +11,7 @@ import
   isSlotAvailable,
 } from "@/lib/availability/availability";
 import type { BlockedInterval } from "@/lib/availability/availability";
-import { lookupDayRange } from "@/lib/staff/schedule";
+import { lookupDayRanges } from "@/lib/staff/schedule";
 
 export interface TurnoExistente
 {
@@ -61,7 +61,7 @@ export function filterAvailableSlots(
 
 /** Arma los días disponibles del profesional para los próximos `days` días. */
 export function buildAvailableSlots(
-  horarios: Record<string, string>,
+  horarios: Record<string, unknown>,
   turnos: readonly TurnoExistente[],
   serviceMinutes: number,
   bufferMinutes: number,
@@ -76,18 +76,40 @@ export function buildAvailableSlots(
   for (let offset = 0; offset < days; offset += 1)
   {
     const date = new Date(now.getTime() + offset * MS_PER_DAY);
-    const range = lookupDayRange(horarios, date.getDay());
+    const ranges = lookupDayRanges(horarios, date.getDay());
 
-    if (range === null)
+    if (ranges.length === 0)
     {
       continue;
     }
 
-    const candidates = buildDaySlots(date, range.openMinutes, range.closeMinutes, serviceMinutes, stepMinutes);
     const blocked: BlockedInterval[] = turnos
       .filter((turno) => staffId === null || turno.staffId === staffId)
       .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin, turno.bufferMin));
-    const starts = filterAvailableSlots(candidates, serviceMinutes, bufferMinutes, blocked);
+
+    const allStarts: Date[] = [];
+
+    for (const range of ranges)
+    {
+      const candidates = buildDaySlots(date, range.openMinutes, range.closeMinutes, serviceMinutes, stepMinutes);
+
+      allStarts.push(...filterAvailableSlots(candidates, serviceMinutes, bufferMinutes, blocked));
+    }
+
+    const seen = new Set<number>();
+    const starts = allStarts
+      .filter((start) =>
+      {
+        if (seen.has(start.getTime()))
+        {
+          return false;
+        }
+
+        seen.add(start.getTime());
+
+        return true;
+      })
+      .sort((a, b) => a.getTime() - b.getTime());
 
     if (starts.length > 0)
     {

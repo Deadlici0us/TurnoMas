@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validarNombreStaff } from "./validation";
+import { validarHorariosStaff, validarNombreStaff } from "./validation";
 
 describe("validarNombreStaff",
 () =>
@@ -30,5 +30,37 @@ describe("validarNombreStaff",
   {
     expect(() => validarNombreStaff(null)).toThrow(RangeError);
     expect(() => validarNombreStaff(42)).toThrow(RangeError);
+  });
+});
+
+describe("validarHorariosStaff",
+() =>
+{
+  it("debería aceptar franjas separadas por coma y normalizarlas",
+  () =>
+  {
+    expect(validarHorariosStaff({ lun: "09:00-13:00, 15:00-20:00", dom: "" })).toEqual({
+      lun: ["09:00-13:00", "15:00-20:00"],
+      mar: [],
+      mié: [],
+      jue: [],
+      vie: [],
+      sáb: [],
+      dom: [],
+    });
+  });
+
+  it("debería aceptar arrays y tratar ausentes como cerrado",
+  () =>
+  {
+    expect(validarHorariosStaff({ mar: ["10:00-20:00"] }).mar).toEqual(["10:00-20:00"]);
+  });
+
+  it("debería rechazar franjas solapadas o con mal formato",
+  () =>
+  {
+    expect(() => validarHorariosStaff({ lun: "09:00-13:00, 12:00-20:00" })).toThrow(RangeError);
+    expect(() => validarHorariosStaff({ lun: "9:00-13:00" })).toThrow(RangeError);
+    expect(() => validarHorariosStaff(null)).toThrow(RangeError);
   });
 });

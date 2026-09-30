@@ -1,8 +1,9 @@
 /**
- * Horarios de profesionales (Módulo 3): rangos `HH:MM-HH:MM` por clave de día.
+ * Horarios de profesionales (Módulo 3): múltiples franjas `HH:MM-HH:MM`
+ * por día individual (lun, mar, mié, jue, vie, sáb, dom).
  *
- * Funciones puras para facilitar TDD y reutilización
- * en la gestión de staff y el portal de reservas.
+ * Legacy compat: un string antiguo `"09:00-19:00"` se lee como `["09:00-19:00"]`.
+ * Franja vacía o clave ausente = cerrado ese día.
  */
 
 export interface DayRange
@@ -11,7 +12,7 @@ export interface DayRange
   readonly closeMinutes: number;
 }
 
-export type DayKey = "lun-vie" | "sab" | "dom";
+export type DayKey = "lun" | "mar" | "mié" | "jue" | "vie" | "sáb" | "dom";
 
 const RANGE_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -36,6 +37,63 @@ export function parseDayRange(raw: string): DayRange
   return { openMinutes, closeMinutes };
 }
 
+/** Parsea un valor crudo (string legacy o array) a un array de DayRange. */
+export function parseDayRanges(raw: unknown): DayRange[]
+{
+  if (raw === null || raw === undefined)
+  {
+    return [];
+  }
+
+  if (typeof raw === "string")
+  {
+    const trimmed = raw.trim();
+
+    if (trimmed.length === 0)
+    {
+      return [];
+    }
+
+    return [parseDayRange(trimmed)];
+  }
+
+  if (!Array.isArray(raw))
+  {
+    throw new RangeError("El horario del día debe ser un texto o una lista.");
+  }
+
+  const ranges: DayRange[] = [];
+
+  for (const item of raw)
+  {
+    if (typeof item !== "string" || item.trim().length === 0)
+    {
+      continue;
+    }
+
+    ranges.push(parseDayRange(item));
+  }
+
+  // Rechaza solapes entre franjas del mismo día.
+  for (let i = 0; i < ranges.length; i += 1)
+  {
+    for (let j = i + 1; j < ranges.length; j += 1)
+    {
+      if (intervalsOverlap(ranges[i], ranges[j]))
+      {
+        throw new RangeError("Las franjas horarias del mismo día no pueden solaparse.");
+      }
+    }
+  }
+
+  return ranges;
+}
+
+function intervalsOverlap(a: DayRange, b: DayRange): boolean
+{
+  return a.openMinutes < b.closeMinutes && b.openMinutes < a.closeMinutes;
+}
+
 /** Formatea minutos desde medianoche como `HH:MM`. */
 export function formatMinutes(minutes: number): string
 {
@@ -54,28 +112,101 @@ export function formatDayRange(range: DayRange): string
 /** Mapea el día de semana JS (0 = domingo) a la clave de horarios. */
 export function dayKeyForWeekday(weekday: number): DayKey
 {
-  if (weekday === 0)
+  switch (weekday)
   {
-    return "dom";
+    case 0:
+    {
+      return "dom";
+    }
+    case 1:
+    {
+      return "lun";
+    }
+    case 2:
+    {
+      return "mar";
+    }
+    case 3:
+    {
+      return "mié";
+    }
+    case 4:
+    {
+      return "jue";
+    }
+    case 5:
+    {
+      return "vie";
+    }
+    case 6:
+    {
+      return "sáb";
+    }
+    default:
+    {
+      return "lun";
+    }
   }
-
-  if (weekday === 6)
-  {
-    return "sab";
-  }
-
-  return "lun-vie";
 }
 
-/** Resuelve el rango del día según los horarios del profesional, o null si no trabaja. */
-export function lookupDayRange(horarios: Record<string, string>, weekday: number): DayRange | null
-{
-  const raw = horarios[dayKeyForWeekday(weekday)];
+/** Devuelve el orden canónico de los días para iterar la semana. */
+export const DAY_ORDER: readonly DayKey[] = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 
-  if (raw === undefined)
+/** Etapa legible para la UI. */
+export function dayLabel(key: DayKey): string
+{
+  switch (key)
   {
-    return null;
+    case "lun":
+    {
+      return "Lunes";
+    }
+    case "mar":
+    {
+      return "Martes";
+    }
+    case "mié":
+    {
+      return "Miércoles";
+    }
+    case "jue":
+    {
+      return "Jueves";
+    }
+    case "vie":
+    {
+      return "Viernes";
+    }
+    case "sáb":
+    {
+      return "Sábado";
+    }
+    case "dom":
+    {
+      return "Domingo";
+    }
+  }
+}
+
+/** Resuelve las franjas del día según los horarios del profesional (vacío = cerrado). */
+export function lookupDayRanges(horarios: Record<string, unknown>, weekday: number): DayRange[]
+{
+  const key = dayKeyForWeekday(weekday);
+  const raw = horarios[key];
+
+  if (raw !== undefined)
+  {
+    return parseDayRanges(raw);
   }
 
-  return parseDayRange(raw);
+  // Compat legacy: claves agrupadas `lun-vie` / `sab` / `dom` con string simple.
+  const legacyKey = weekday === 0 ? "dom" : weekday === 6 ? "sab" : "lun-vie";
+  const legacy = horarios[legacyKey];
+
+  if (legacy === undefined)
+  {
+    return [];
+  }
+
+  return parseDayRanges(legacy);
 }

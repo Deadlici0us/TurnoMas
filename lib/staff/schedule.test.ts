@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import
 {
+  DAY_ORDER,
   dayKeyForWeekday,
+  dayLabel,
   formatDayRange,
-  lookupDayRange,
+  lookupDayRanges,
   parseDayRange,
+  parseDayRanges,
 } from "./schedule";
 
 describe("parseDayRange",
@@ -34,6 +37,52 @@ describe("parseDayRange",
   });
 });
 
+describe("parseDayRanges",
+() =>
+{
+  it("debería aceptar un string legacy como una sola franja",
+  () =>
+  {
+    expect(parseDayRanges("09:00-19:00")).toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+  });
+
+  it("debería aceptar varias franjas (jornada cortada con descanso)",
+  () =>
+  {
+    expect(parseDayRanges(["09:00-13:00", "15:00-20:00"])).toEqual([
+      { openMinutes: 540, closeMinutes: 780 },
+      { openMinutes: 900, closeMinutes: 1200 },
+    ]);
+  });
+
+  it("debería devolver vacío para día cerrado",
+  () =>
+  {
+    expect(parseDayRanges([])).toEqual([]);
+    expect(parseDayRanges("")).toEqual([]);
+    expect(parseDayRanges(null)).toEqual([]);
+    expect(parseDayRanges(undefined)).toEqual([]);
+  });
+
+  it("debería ignorar franjas vacías dentro del array",
+  () =>
+  {
+    expect(parseDayRanges(["09:00-13:00", "  "])).toEqual([{ openMinutes: 540, closeMinutes: 780 }]);
+  });
+
+  it("debería rechazar franjas solapadas del mismo día",
+  () =>
+  {
+    expect(() => parseDayRanges(["09:00-13:00", "12:00-20:00"])).toThrow(RangeError);
+  });
+
+  it("debería rechazar valores que no son texto ni lista",
+  () =>
+  {
+    expect(() => parseDayRanges(42)).toThrow(RangeError);
+  });
+});
+
 describe("formatDayRange",
 () =>
 {
@@ -48,39 +97,52 @@ describe("formatDayRange",
 describe("dayKeyForWeekday",
 () =>
 {
-  it("debería mapear domingo y sábado a sus claves",
+  it("debería mapear cada día a su clave individual",
   () =>
   {
     expect(dayKeyForWeekday(0)).toBe("dom");
-    expect(dayKeyForWeekday(6)).toBe("sab");
+    expect(dayKeyForWeekday(1)).toBe("lun");
+    expect(dayKeyForWeekday(2)).toBe("mar");
+    expect(dayKeyForWeekday(3)).toBe("mié");
+    expect(dayKeyForWeekday(4)).toBe("jue");
+    expect(dayKeyForWeekday(5)).toBe("vie");
+    expect(dayKeyForWeekday(6)).toBe("sáb");
   });
 
-  it("debería mapear lunes a viernes a lun-vie",
+  it("debería exponer el orden canónico y las etiquetas",
   () =>
   {
-    for (const weekday of [1, 2, 3, 4, 5])
-    {
-      expect(dayKeyForWeekday(weekday)).toBe("lun-vie");
-    }
+    expect(DAY_ORDER).toEqual(["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]);
+    expect(dayLabel("mié")).toBe("Miércoles");
+    expect(dayLabel("sáb")).toBe("Sábado");
   });
 });
 
-describe("lookupDayRange",
+describe("lookupDayRanges",
 () =>
 {
-  const horarios = { "lun-vie": "09:00-19:00", sab: "09:00-14:00" };
+  const horarios = { lun: ["09:00-19:00"], sáb: ["09:00-14:00"] };
 
-  it("debería resolver el rango del día según horarios del profesional",
+  it("debería resolver las franjas del día según horarios del profesional",
   () =>
   {
-    expect(lookupDayRange(horarios, 3)).toEqual({ openMinutes: 540, closeMinutes: 1140 });
-    expect(lookupDayRange(horarios, 6)).toEqual({ openMinutes: 540, closeMinutes: 840 });
+    expect(lookupDayRanges(horarios, 1)).toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+    expect(lookupDayRanges(horarios, 6)).toEqual([{ openMinutes: 540, closeMinutes: 840 }]);
   });
 
-  it("debería devolver null cuando el profesional no trabaja ese día",
+  it("debería leer el formato legacy lun-vie y sab/dom antiguos",
   () =>
   {
-    expect(lookupDayRange(horarios, 0)).toBeNull();
-    expect(lookupDayRange({}, 3)).toBeNull();
+    const legacy = { "lun-vie": "09:00-19:00", sab: "09:00-14:00" };
+
+    expect(lookupDayRanges(legacy, 3)).toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+    expect(lookupDayRanges(legacy, 6)).toEqual([{ openMinutes: 540, closeMinutes: 840 }]);
+  });
+
+  it("debería devolver vacío cuando el profesional no trabaja ese día",
+  () =>
+  {
+    expect(lookupDayRanges(horarios, 0)).toEqual([]);
+    expect(lookupDayRanges({}, 3)).toEqual([]);
   });
 });
