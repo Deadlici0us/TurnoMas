@@ -41,3 +41,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# repomix (packaged code for AI review)
+# Generated output files - these are recreated via `npm run repomix`
+repomix-output.xml
+repomix-output.md

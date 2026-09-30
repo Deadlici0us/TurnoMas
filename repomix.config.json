@@ -1,0 +1,79 @@
+{
+  "exclude": [
+    "*.min.*",
+    "*.test.*",
+    "*.spec.*",
+    "**/node_modules/**",
+    "**/coverage/**",
+    "**/.next/**",
+    "**/out/**",
+    "**/.git/**",
+    "**/.vercel/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
+    "**/tmp/**",
+    "**/*.log",
+    "*.log",
+    "**/.DS_Store",
+    "**/*.pem",
+    "**/.env*",
+    "**/*.tsbuildinfo",
+    "**/repomix-output.*",
+    "**/repomix.config.*",
+    "**/README.md",
+    "**/PLAN.md",
+    "**/AGENTS.md",
+    "**/CLAUDE.md"
+  ],
+  "fileTypes": {
+    "typescript": {
+      "patterns": ["*.ts", "*.tsx"],
+      "header": "typescript"
+    },
+    "typescriptX": {
+      "patterns": [".tsx"],
+      "header": "typescript"
+    },
+    "json": {
+      "patterns": ["*.json", "*.jsonc"],
+      "header": "json"
+    },
+    "sql": {
+      "patterns": ["*.sql"],
+      "header": "sql"
+    },
+    "css": {
+      "patterns": ["*.css"],
+      "header": "css"
+    },
+    "cssX": {
+      "patterns": "*.css",
+      "header": "css"
+    },
+    "markdown": {
+      "patterns": ["*.md"],
+      "header": "markdown"
+    },
+    "html": {
+      "patterns": ["*.html"],
+      "header": "html"
+    }
+  },
+  "symbols": {
+    "file": "📄",
+    "dir": "📁",
+    "image": "🖼️",
+    "zip": "📦",
+    "text": "📝"
+  },
+  "style": "xml",
+  "customFilePathStyle": "target-relative",
+  "sortFiles": true,
+  "removeEmptySections": true,
+  "outro": "Generado por Repomix para turnoMas - Sistema de reservas inteligentes",
+  "customSectionDelimiter": "<!--- CUSTOM SECTION: {SECTION_NAME} --->",
+  "wrapLineLength": 120,
+  "tokenCountDelimiter": "<!-- {start}: {count}tokens -->",
+  "embedImages": false,
+  "disallowImages": true
+}

@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "repomix": "repomix",
+    "repomix:md": "repomix --style markdown",
+    "repomix:stdout": "repomix --stdout"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
