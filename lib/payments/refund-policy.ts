@@ -3,9 +3,10 @@
  *
  * Al cancelar un turno `pagado` con `mp_payment_id` y `reembolso_auto`
  * activo en el servicio, se devuelve la seña vía MercadoPago.
+ * `confirmado` nunca reembolsa: no hubo cobro online.
  */
 
-export type RefundableEstado = "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+export type RefundableEstado = "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
 
 export interface RefundPolicyInput
 {

@@ -15,13 +15,14 @@ interface TurnoRow
   readonly servicio_id: string;
   readonly cliente_id: string;
   readonly inicio: string;
-  readonly estado: "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+  readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly sena_monto: number | null;
   readonly sena_porcentaje: number | null;
 }
 
 const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = {
   pagado: "bg-green-100 text-green-800 border-green-200",
+  confirmado: "bg-blue-100 text-blue-800 border-blue-200",
   pendiente: "bg-amber-100 text-amber-800 border-amber-200",
   completado: "bg-slate-100 text-slate-600 border-slate-200",
   cancelado: "bg-slate-100 text-slate-500 border-slate-200",
@@ -109,7 +110,7 @@ export default async function AgendaPage()
                         </form>
                       </>
                     ) : null}
-                    {turno.estado === "pagado" ? (
+                    {turno.estado === "pagado" || turno.estado === "confirmado" ? (
                       <>
                         <form action={cambiarEstado.bind(null, turno.id, "completado")}>
                           <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600

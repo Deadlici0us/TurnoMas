@@ -11,8 +11,8 @@ import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-const ESTADOS_VALIDOS: readonly EstadoTurno[] = ["pendiente", "pagado", "completado", "cancelado",
-  "ausente"];
+const ESTADOS_VALIDOS: readonly EstadoTurno[] = ["pendiente", "confirmado", "pagado", "completado",
+  "cancelado", "ausente"];
 
 /** Actualiza el estado de un turno del negocio del dueño autenticado. */
 export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno): Promise<void>

@@ -8,7 +8,7 @@ interface TurnoRow
   readonly cliente_id: string;
   readonly servicio_id: string;
   readonly inicio: string;
-  readonly estado: "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+  readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly monto_total: number | null;
   readonly sena_monto: number | null;
 }
@@ -33,8 +33,11 @@ export default async function PagosPage()
     .map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
     .map((c) => [c.id, c.nombre]));
-  const totalPendiente = turnos.filter((t) => t.estado === "pendiente")
-    .reduce((acum, t) => acum + ((t.monto_total ?? 0) - (t.sena_monto ?? 0)), 0);
+  const totalPendiente = turnos
+    .filter((t) => t.estado === "pendiente" || t.estado === "confirmado")
+    .reduce((acum, t) => acum + (t.estado === "confirmado"
+      ? (t.monto_total ?? 0)
+      : ((t.monto_total ?? 0) - (t.sena_monto ?? 0))), 0);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -79,7 +82,8 @@ export default async function PagosPage()
                     <td className="py-3">
                       <span className={"px-2 py-0.5 text-xs rounded-full font-semibold "
                         + (turno.estado === "pagado" ? "bg-green-100 text-green-800"
-                          : turno.estado === "pendiente" ? "bg-amber-100 text-amber-800"
+                          : turno.estado === "confirmado" ? "bg-blue-100 text-blue-800"
+                            : turno.estado === "pendiente" ? "bg-amber-100 text-amber-800"
                             : turno.estado === "ausente" ? "bg-red-100 text-red-800"
                               : "bg-slate-100 text-slate-600")}>
                         {turno.estado}

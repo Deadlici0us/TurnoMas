@@ -6,8 +6,9 @@ import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate
 
 const ESTADO_COLOR: Record<string, string> = {
   pendiente: "bg-amber-50 text-amber-700",
+  confirmado: "bg-blue-50 text-blue-700",
   pagado: "bg-green-50 text-green-700",
-  completado: "bg-blue-50 text-blue-700",
+  completado: "bg-indigo-50 text-indigo-700",
   ausente: "bg-red-50 text-red-700",
   cancelado: "bg-slate-100 text-slate-600",
 };
@@ -60,7 +61,7 @@ export default async function DashboardPage()
         </h1>
         <p className="text-slate-600 mt-1 text-sm">Agenda, equipo, servicios y cobros en un solo lugar.</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <p className="text-xs font-medium text-slate-500 uppercase">Turnos hoy</p>
           <p className="text-2xl font-bold text-slate-900">{stats.turnosHoy}</p>
@@ -68,6 +69,10 @@ export default async function DashboardPage()
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <p className="text-xs font-medium text-slate-500 uppercase">Pendientes</p>
           <p className="text-2xl font-bold text-slate-900">{stats.pendientes}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <p className="text-xs font-medium text-slate-500 uppercase">Confirmados</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.confirmados}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <p className="text-xs font-medium text-slate-500 uppercase">Pagados</p>

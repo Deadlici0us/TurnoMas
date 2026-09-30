@@ -12,7 +12,7 @@ export interface BookingData
   montoTotal: number;
   senaMonto: number | null;
   senaPorcentaje: number;
-  estado: "pendiente" | "pagado" | "completado" | "cancelado" | "ausente";
+  estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
 }
 
 export class BookingService

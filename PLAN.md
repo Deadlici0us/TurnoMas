@@ -63,7 +63,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - `staff`: Profesionales del negocio, horarios disponibles (JSONB), token de Google Calendar (`google_calendar_token`).
 - `servicios`: Duración personalizada, precio_base, precio_promocional (precio tachado), seña requerida, tiempos ocultos de limpieza.
 - `clientes`: CRM local, acumulación de ausencias, lista negra.
-- `turnos`: Estados (pendiente, pagado, completado, cancelado, ausente), tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
+- `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
 - **Seed Data (Población de datos):** Script SQL automatizado para inyectar datos ficticios (turnos, ingresos, clientes, staff) asignados a una cuenta "Demo" permanente.
 
 ## 4. Módulos del Sistema
@@ -88,7 +88,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - **Checkout Flexible:** Captura de Nombre y WhatsApp. Si exige seña, redirección a MercadoPago. Si no, confirmación instantánea.
 
 ### Módulo 3: Panel de Control B2B (Dashboard)
-- **Agenda Multicalendario:** Vista interactiva de turnos por profesional, con código de colores según estado (pagado, pendiente).
+- **Agenda Multicalendario:** Vista interactiva de turnos por profesional, con código de colores según estado (confirmado, pagado, pendiente).
 - **Sincronización Google Calendar:** Integración OAuth para que el dueño conecte su cuenta y el sistema inyecte sus turnos allí (Sincronización unidireccional: App -> GCal, usando `google_calendar_event_id` para actualizar/borrar).
 - **Gestión de Servicios:** CRUD de servicios. Configuración individual de **duración estimada** y **tiempo oculto de limpieza (buffer)**. Toggles para cobro de seña, reembolsos automáticos y remarketing.
 - **Ofertas Flash:** Campo opcional para `precio_promocional` (Precio Tachado).
@@ -108,3 +108,30 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - **El Boomerang (Remarketing):** Disparador programado (QStash) que envía un mensaje a los `X` días invitando a renovar el servicio (marcando `remarketing_enviado` en `true`).
 - **Recolector de Reseñas:** 2 horas post-turno, solicita calificación. 4-5 estrellas derivan a Google Maps; 1-3 estrellas generan feedback interno.
 - **Alerta de Fallo en Meta:** Si la cuenta de WhatsApp del dueño se queda sin fondos, el backend captura el error y muestra una alerta roja en el Dashboard B2B.
+
+---
+
+## Revisión de código con Repomix
+
+Para revisar y documentar cambios de código sin exponer archivos grandes ni perder contexto, se configura Repomix (`repomix`) como herramienta de empaquetado de código para IA.
+
+### Configuración del repo (`repomix.config.json`)
+- Ignora `node_modules`, `.next`, `.env*`, `repomix-output.*`, `coverage`, tests (`*.test.*`, `*.spec.*`) y archivos de configuración (README, PLAN, AGENTS, CLAUDE).
+- Salida por defecto: `repomix-output.xml` (formato XML, ordenado por cambios git, sin archivos vacíos).
+- Scripts de npm disponibles (`package.json`):
+  - `npm run repomix` → genera `repomix-output.xml`.
+  - `npm run repomix:md` → genera `repomix-output.md`.
+  - `npm run repomix:stdout` → salida directa a stdout.
+
+### Uso recomendado para revisión
+1. Antes de revisar un módulo (ej. `lib/availability/`, `app/api/webhooks/`, `lib/adapters/`):
+   ```bash
+   repomix lib/availability/ -o repomix-availability.xml --quiet
+   ```
+2. Si hay muchos archivos, usar el archivo generado (`repomix-output.xml`) para alimentar al asistente sin enviar cada archivo individual.
+3. El archivo generado está en `.gitignore` implícito (`repomix-output.*`) — no commitear; reconstruir según necesidad.
+
+### Regla de flujo
+- No modificar `repomix-output.xml` a mano (es read-only por diseño).
+- Al hacer PR o revisión: regenerar el archivo para el módulo afectado y incluir referencia al archivo generado en el comentario del PR.
+- No exponer credenciales (`.env*`, `supabase/seed-demo.sql`) en el output: excluir con `repomix.config.json`.

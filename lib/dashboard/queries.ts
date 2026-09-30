@@ -97,12 +97,12 @@ export async function getDashboardData()
   };
 }
 
-/** Contadores del dashboard por estado + ingresos de señas pagadas. */
+/** Contadores del dashboard por estado + ingresos de señas cobradas. */
 export async function getDashboardStats(negocioId: string)
 {
   if (negocioId.trim().length === 0)
   {
-    return { turnosHoy: 0, pendientes: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
+    return { turnosHoy: 0, pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
   }
 
   try
@@ -114,6 +114,7 @@ export async function getDashboardStats(negocioId: string)
     const [
       { count: turnosHoy },
       { count: pendientes },
+      { count: confirmados },
       { count: pagados },
       { count: completados },
       { count: ausentes },
@@ -122,6 +123,7 @@ export async function getDashboardStats(negocioId: string)
     ] = await Promise.all([
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).gte("inicio", todayStart.toISOString()),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "pendiente"),
+      admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "confirmado"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "pagado"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "completado"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "ausente"),
@@ -134,6 +136,7 @@ export async function getDashboardStats(negocioId: string)
     return {
       turnosHoy: turnosHoy ?? 0,
       pendientes: pendientes ?? 0,
+      confirmados: confirmados ?? 0,
       pagados: pagados ?? 0,
       completados: completados ?? 0,
       ausentes: ausentes ?? 0,
@@ -143,6 +146,6 @@ export async function getDashboardStats(negocioId: string)
   }
   catch
   {
-    return { turnosHoy: 0, pendientes: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
+    return { turnosHoy: 0, pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
   }
 }

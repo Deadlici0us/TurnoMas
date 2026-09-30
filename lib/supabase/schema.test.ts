@@ -53,6 +53,40 @@ describe("esquema Supabase",
     {
       expect(MIGRATION).toContain(vista);
     }
+
+    // Linter Supabase: vistas con SECURITY INVOKER, no DEFINER.
+    expect(MIGRATION).toMatch(/portal_negocios with \(security_invoker = true\)/);
+    expect(MIGRATION).toMatch(/portal_staff with \(security_invoker = true\)/);
+    expect(MIGRATION).toMatch(/portal_servicios with \(security_invoker = true\)/);
+  });
+
+  it("debería separar confirmado (sin seña) de pagado (seña cobrada)",
+  () =>
+  {
+    expect(MIGRATION).toContain("'confirmado'");
+  });
+
+  it("debería fijar search_path en funciones y no re-evaluar auth por fila",
+  () =>
+  {
+    expect(MIGRATION).toMatch(/set search_path = ''/);
+    expect(MIGRATION).toContain("(select auth.uid())");
+    expect(MIGRATION).not.toMatch(/duenio_id = auth\.uid\(\)/);
+  });
+
+  it("debería cubrir FKs e índices calientes",
+  () =>
+  {
+    for (const indice of [
+      "turnos_por_staff",
+      "turnos_por_servicio",
+      "turnos_por_staff_agenda",
+      "turnos_por_negocio_estado",
+      "turnos_mp_payment_id_unique",
+    ])
+    {
+      expect(MIGRATION).toContain(indice);
+    }
   });
 
   it("el seed debería poblar la cuenta demo con agenda llena",

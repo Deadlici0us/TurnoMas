@@ -20,6 +20,14 @@ describe("validarTransicionTurno",
     expect(validarTransicionTurno("pagado", "cancelado")).toBe(true);
   });
 
+  it("debería permitir confirmado (sin seña, $0 cobrado) a cierre sin pago",
+  () =>
+  {
+    expect(validarTransicionTurno("confirmado", "completado")).toBe(true);
+    expect(validarTransicionTurno("confirmado", "ausente")).toBe(true);
+    expect(validarTransicionTurno("confirmado", "cancelado")).toBe(true);
+  });
+
   it("debería bloquear estados finales en español",
   () =>
   {

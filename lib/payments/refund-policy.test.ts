@@ -32,7 +32,7 @@ describe("shouldAutoRefund",
   it("debería solo reembolsar turnos pagados",
   () =>
   {
-    for (const estado of ["pendiente", "completado", "cancelado", "ausente"] as const)
+    for (const estado of ["pendiente", "confirmado", "completado", "cancelado", "ausente"] as const)
     {
       expect(shouldAutoRefund({ reembolsoAuto: true, estado, mpPaymentId: "123" })).toBe(false);
     }

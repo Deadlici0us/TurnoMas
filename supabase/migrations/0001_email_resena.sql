@@ -11,3 +11,7 @@ alter table clientes add column if not exists email text null
   check (email is null or email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
 alter table turnos add column if not exists resena_pedida boolean not null default false;
+
+-- Cron reseñas: barrido por estado + flag (linter: índice covering).
+create index if not exists turnos_cron_resena on turnos (estado, resena_pedida)
+  where estado = 'completado';

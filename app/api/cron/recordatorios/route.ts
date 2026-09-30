@@ -1,8 +1,10 @@
 /**
  * Recordatorios 24h antes (Módulo 5): cron llamado por QStash.
  *
- * Barrido global idempotente: turnos `pagado` con inicio en las próximas
- * 24h y `notificacion_enviada = false` cuyo cliente tenga email.
+ * Barrido global idempotente: turnos `pagado` o `confirmado` con inicio
+ * en las próximas 24h y `notificacion_enviada = false` cuyo cliente
+ * tenga email. `confirmado` = sin seña ($0 cobrado) también avisa;
+ * `pendiente` espera pago y lo libera el antifantasma.
  * Envía por Resend y marca el flag para no repetir.
  *
  * Programar en QStash Schedules cada hora:
@@ -68,7 +70,7 @@ export async function POST(request: Request)
   const { data } = await admin.from("turnos")
     .select("id, inicio, notificacion_enviada, negocio:negocios(nombre)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
-    .eq("estado", "pagado").eq("notificacion_enviada", false)
+    .in("estado", ["pagado", "confirmado"]).eq("notificacion_enviada", false)
     .gte("inicio", ahora.toISOString()).lte("inicio", ventana)
     .limit(LIMITE_BARRIDO);
 

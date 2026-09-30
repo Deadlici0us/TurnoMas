@@ -1,5 +1,6 @@
 /**
- * Reserva pública del portal (Módulo 2): crea cliente + turno pendiente,
+ * Reserva pública del portal (Módulo 2): crea cliente + turno
+ * (pendiente con seña / confirmado sin seña),
  * aplica lista negra y devuelve checkout de seña cuando corresponde.
  *
  * Flujo server-side: valida input → resuelve negocio/staff/servicio por
@@ -285,7 +286,7 @@ export async function POST(request: Request)
       cliente_id: clienteId,
       inicio: inicio.toISOString(),
       fin: fin.toISOString(),
-      estado: conSena ? "pendiente" : "pagado",
+      estado: conSena ? "pendiente" : "confirmado",
       monto_total: montos.montoTotal,
       sena_monto: montos.senaMonto,
       sena_porcentaje: montos.senaPorcentaje,
