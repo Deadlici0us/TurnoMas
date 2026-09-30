@@ -138,4 +138,30 @@ describe("buildAvailableSlots",
     expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([0, 30]);
     expect(week[0]?.starts.map((d) => d.getHours())).toEqual([9, 10]);
   });
+
+  it("debería ocultar los horarios de hoy con menos de 30 min de anticipación",
+  () =>
+  {
+    const horarios = { lun: ["09:00-12:00"] };
+    const monday = new Date(2026, 8, 28, 10, 0, 0, 0);
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
+
+    expect(week).toHaveLength(1);
+    expect(week[0]?.starts.map((d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`))
+      .toEqual(["11:00", "11:30"]);
+  });
+
+  it("debería mostrar el día siguiente completo aunque hoy esté recortado",
+  () =>
+  {
+    const horarios = { lun: ["09:00-10:00"], mar: ["09:00-10:00"] };
+    const monday = new Date(2026, 8, 28, 9, 45, 0, 0);
+
+    const week = buildAvailableSlots(horarios, [], 30, monday, 2, 30);
+
+    expect(week).toHaveLength(1);
+    expect(week[0]?.date.getDay()).toBe(2);
+    expect(week[0]?.starts).toHaveLength(2);
+  });
 });

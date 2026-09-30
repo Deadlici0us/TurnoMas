@@ -40,9 +40,9 @@ export class PaymentNotFoundError extends Error
 /** Calcula el monto de la seña en centavos, redondeando al entero más cercano. */
 export function calculateDepositAmount(totalCents: number, percentage: number): number
 {
-  if (!Number.isInteger(percentage) || percentage < 1 || percentage > 100)
+  if (!Number.isInteger(percentage) || percentage < 0 || percentage > 100)
   {
-    throw new RangeError("El porcentaje de seña debe ser un entero entre 1 y 100.");
+    throw new RangeError("El porcentaje de seña debe ser un entero entre 0 y 100.");
   }
 
   return Math.round((totalCents * percentage) / 100);

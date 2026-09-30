@@ -30,6 +30,8 @@ function exigirNumeroCrudo(valor: FormDataEntryValue | null): number
 export async function guardarServicio(servicioId: string | null, formData: FormData): Promise<void>
 {
   const promoCruda = formData.get("precioPromocional");
+  const senaRequerida = formData.get("senaRequerida") === "on";
+  const senaCruda = formData.get("senaPorcentaje");
 
   const servicio = validarServicio({
     nombre: formData.get("nombre"),
@@ -38,8 +40,11 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     precioPromocional: promoCruda === null || String(promoCruda).trim().length === 0
       ? null
       : exigirNumeroCrudo(promoCruda),
+    promoActiva: formData.get("promoActiva"),
     senaRequerida: formData.get("senaRequerida"),
-    senaPorcentaje: exigirNumeroCrudo(formData.get("senaPorcentaje")),
+    senaPorcentaje: !senaRequerida || senaCruda === null || String(senaCruda).trim().length === 0
+      ? 0
+      : exigirNumeroCrudo(senaCruda),
   } satisfies ServicioInput);
 
   await assertModoEditable();

@@ -1,4 +1,5 @@
 import { cambiarEstadoServicio, eliminarServicio, guardarServicio } from "./actions";
+import CamposServicio from "@/components/campos-servicio";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
 interface ServicioRow
@@ -39,86 +40,6 @@ async function alternarServicio(servicioId: string, activo: boolean): Promise<vo
   "use server";
 
   await cambiarEstadoServicio(servicioId, activo);
-}
-
-function CamposServicio({ servicio }: { servicio?: ServicioRow })
-{
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <label className="block text-sm text-slate-600 sm:col-span-2">
-        Nombre
-        <input
-          type="text"
-          name="nombre"
-          required
-          minLength={2}
-          maxLength={80}
-          defaultValue={servicio?.nombre ?? ""}
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Duración (min)
-        <input
-          type="number"
-          name="duracionMin"
-          required
-          min={1}
-          defaultValue={servicio?.duracion_min ?? 30}
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Precio base
-        <input
-          type="number"
-          name="precioBase"
-          required
-          min={1}
-          defaultValue={servicio?.precio_base ?? ""}
-          placeholder="Ej: 15000"
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Precio promo (opcional)
-        <input
-          type="number"
-          name="precioPromocional"
-          min={1}
-          defaultValue={servicio?.precio_promocional ?? ""}
-          placeholder="Vacío = sin promo"
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-      <label className="flex items-center gap-2 text-sm text-slate-600">
-        <input
-          type="checkbox"
-          name="senaRequerida"
-          defaultChecked={servicio?.sena_requerida ?? true}
-          className="w-4 h-4"
-        />
-        Exige seña
-      </label>
-      <label className="block text-sm text-slate-600">
-        Seña (%)
-        <input
-          type="number"
-          name="senaPorcentaje"
-          required
-          min={1}
-          max={100}
-          defaultValue={servicio?.sena_porcentaje ?? 50}
-          className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </label>
-    </div>
-  );
 }
 
 export default async function ServiciosPage()

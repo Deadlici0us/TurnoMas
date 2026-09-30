@@ -59,5 +59,5 @@ export async function createBusiness(formData: FormData): Promise<void>
     redirect("/onboarding?error=guardado");
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard/config?gcal=pending");
 }

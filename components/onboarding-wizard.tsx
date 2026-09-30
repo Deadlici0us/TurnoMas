@@ -15,6 +15,8 @@ export default function OnboardingWizard()
   const [pais, setPais] = useState(DEFAULT_COUNTRY);
   const [paso, setPaso] = useState(1);
   const [mpConectado, setMpConectado] = useState(false);
+  const [waConectado, setWaConectado] = useState(false);
+  const [gcalConectado, setGcalConectado] = useState(false);
 
   let preview = "";
 
@@ -112,6 +114,43 @@ export default function OnboardingWizard()
           <section className="space-y-4">
             <h2 className="font-semibold text-slate-900">{t("onboarding.step3Title")}</h2>
             <p className="text-sm text-slate-600">{t("onboarding.step3Desc")}</p>
+            <button
+              onClick={() => setWaConectado(true)}
+              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
+                hover:bg-blue-700 transition-colors"
+            >
+              {waConectado ? "✓ " : ""}{t("onboarding.connectWa")}
+            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPaso(2)}
+                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
+                  rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => setPaso(4)}
+                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
+                  rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                {t("onboarding.skipWa")}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {paso === 4 && (
+          <section className="space-y-4">
+            <h2 className="font-semibold text-slate-900">{t("onboarding.step4Title")}</h2>
+            <p className="text-sm text-slate-600">{t("onboarding.step4Desc")}</p>
+            <button
+              onClick={() => setGcalConectado(true)}
+              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
+                hover:bg-blue-700 transition-colors"
+            >
+              {gcalConectado ? "✓ " : ""}{t("onboarding.connectGcal")}
+            </button>
             <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
               {t("onboarding.trialNote")}
             </p>
@@ -127,7 +166,7 @@ export default function OnboardingWizard()
               </button>
             </form>
             <button
-              onClick={() => setPaso(2)}
+              onClick={() => setPaso(3)}
               className="w-full border border-slate-300 text-slate-700 font-semibold py-3
                 rounded-lg hover:bg-slate-50 transition-colors"
             >

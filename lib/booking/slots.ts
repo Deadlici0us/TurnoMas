@@ -28,6 +28,11 @@ export interface DiaDisponible
 
 const MS_PER_DAY = 86_400_000;
 
+/** Margen mínimo para que el profesional tenga tiempo de prepararse. */
+export const BUFFER_MINUTOS = 30;
+
+const MS_PER_MINUTE = 60_000;
+
 /** Genera inicios candidatos cada `stepMinutes` sin exceder el cierre. */
 export function buildDaySlots(
   day: Date,
@@ -67,9 +72,11 @@ export function buildAvailableSlots(
   stepMinutes = 30,
   staffId: string | null = null,
   businessBlocked: readonly BlockedInterval[] = [],
+  bufferMinutes: number = BUFFER_MINUTOS,
 ): readonly DiaDisponible[]
 {
   const result: DiaDisponible[] = [];
+  const cutoff = now.getTime() + bufferMinutes * MS_PER_MINUTE;
 
   for (let offset = 0; offset < days; offset += 1)
   {
@@ -102,6 +109,11 @@ export function buildAvailableSlots(
     const starts = allStarts
       .filter((start) =>
       {
+        if (offset === 0 && start.getTime() <= cutoff)
+        {
+          return false;
+        }
+
         if (seen.has(start.getTime()))
         {
           return false;

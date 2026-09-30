@@ -11,6 +11,7 @@ export interface ServicioInput
   readonly duracionMin: unknown;
   readonly precioBase: unknown;
   readonly precioPromocional: unknown;
+  readonly promoActiva?: unknown;
   readonly senaRequerida: unknown;
   readonly senaPorcentaje: unknown;
 }
@@ -27,7 +28,7 @@ export interface ServicioValidado
 
 const NOMBRE_MINIMO = 2;
 const NOMBRE_MAXIMO = 80;
-const PORCENTAJE_MINIMO = 1;
+const PORCENTAJE_MINIMO = 0;
 const PORCENTAJE_MAXIMO = 100;
 
 function exigirEntero(valor: unknown, mensaje: string): number
@@ -71,7 +72,13 @@ export function validarServicio(input: ServicioInput): ServicioValidado
 
   let precioPromocional: number | null = null;
 
-  if (input.precioPromocional !== null && input.precioPromocional !== undefined && input.precioPromocional !== "")
+  const promoCrudaPresente = input.precioPromocional !== null && input.precioPromocional !== undefined
+    && input.precioPromocional !== "";
+  const promoActiva = input.promoActiva === undefined || input.promoActiva === null || input.promoActiva === ""
+    ? promoCrudaPresente
+    : input.promoActiva === true || input.promoActiva === "on";
+
+  if (promoActiva && promoCrudaPresente)
   {
     const promo = exigirEntero(input.precioPromocional, "La promo tiene que ser en centavos enteros.");
 
@@ -83,11 +90,17 @@ export function validarServicio(input: ServicioInput): ServicioValidado
     precioPromocional = promo;
   }
 
-  const senaPorcentaje = exigirEntero(input.senaPorcentaje, "La seña tiene que ser un porcentaje entero.");
+  const senaRequerida = input.senaRequerida === true || input.senaRequerida === "on";
+  let senaPorcentaje = 0;
 
-  if (senaPorcentaje < PORCENTAJE_MINIMO || senaPorcentaje > PORCENTAJE_MAXIMO)
+  if (senaRequerida)
   {
-    throw new RangeError("La seña tiene que estar entre 1% y 100%.");
+    senaPorcentaje = exigirEntero(input.senaPorcentaje, "La seña tiene que ser un porcentaje entero.");
+
+    if (senaPorcentaje < PORCENTAJE_MINIMO || senaPorcentaje > PORCENTAJE_MAXIMO)
+    {
+      throw new RangeError("La seña tiene que estar entre 0% y 100%.");
+    }
   }
 
   return {
@@ -95,7 +108,7 @@ export function validarServicio(input: ServicioInput): ServicioValidado
     duracionMin,
     precioBase,
     precioPromocional,
-    senaRequerida: input.senaRequerida === true || input.senaRequerida === "on",
+    senaRequerida,
     senaPorcentaje,
   };
 }

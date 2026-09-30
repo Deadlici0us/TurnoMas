@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
 import { isSlotAvailable } from "@/lib/availability/availability";
+import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { getBlockedInterval } from "@/lib/availability/availability";
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
@@ -85,9 +86,16 @@ function exigirInicio(valor: unknown): Date
 
   const inicio = new Date(valor);
 
-  if (Number.isNaN(inicio.getTime()) || inicio.getTime() <= Date.now())
+  if (Number.isNaN(inicio.getTime()))
   {
     throw new RangeError("Elegí un horario válido para tu reserva.");
+  }
+
+  const minimo = Date.now() + BUFFER_MINUTOS * 60_000;
+
+  if (inicio.getTime() <= minimo)
+  {
+    throw new RangeError("Elegí un horario con al menos 30 min de anticipación.");
   }
 
   return inicio;

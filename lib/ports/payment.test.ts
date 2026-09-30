@@ -29,10 +29,16 @@ describe("calculateDepositAmount",
     expect(calculateDepositAmount(15_000, 100)).toBe(15_000);
   });
 
+  it("debería devolver 0 con seña del 0%",
+  () =>
+  {
+    expect(calculateDepositAmount(10_000, 0)).toBe(0);
+  });
+
   it("debería rechazar porcentajes inválidos",
   () =>
   {
-    expect(() => calculateDepositAmount(10_000, 0)).toThrow(RangeError);
+    expect(() => calculateDepositAmount(10_000, -1)).toThrow(RangeError);
     expect(() => calculateDepositAmount(10_000, 101)).toThrow(RangeError);
   });
 });

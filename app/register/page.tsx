@@ -40,6 +40,25 @@ export default async function RegisterPage({
               {t(ERROR_KEYS[error])}
             </p>
           )}
+          {showSocialLogin && (
+            <>
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-3">
+                <p className="text-sm font-semibold text-slate-900">{t("auth.registerWithGoogleTitle")}</p>
+                <p className="text-xs text-slate-600">{t("auth.registerWithGoogleHint")}</p>
+                <SocialLoginButton
+                  label={t("auth.continueWithGoogle")}
+                  errorLabel={t("auth.oauthError")}
+                  next="/onboarding"
+                  scopes="email profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
+                />
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="flex-1 border-t border-slate-200" />
+                {t("auth.useEmailInstead")}
+                <span className="flex-1 border-t border-slate-200" />
+              </div>
+            </>
+          )}
           <form className="space-y-4" action={register}>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -86,20 +105,6 @@ export default async function RegisterPage({
               {t("auth.registerCta")}
             </button>
           </form>
-          {showSocialLogin && (
-            <>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
-                <span className="flex-1 border-t border-slate-200" />
-                {t("auth.orSeparator")}
-                <span className="flex-1 border-t border-slate-200" />
-              </div>
-              <SocialLoginButton
-                label={t("auth.continueWithGoogle")}
-                errorLabel={t("auth.oauthError")}
-                next="/onboarding"
-              />
-            </>
-          )}
           <div className="text-center text-sm">
             <Link href="/login" className="text-blue-600 hover:underline">
               {t("auth.toLogin")}

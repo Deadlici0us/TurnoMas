@@ -38,6 +38,16 @@ describe("calcularMontosReserva",
     expect(montos.senaPorcentaje).toBe(100);
   });
 
+  it("debería confirmar sin seña cuando el porcentaje es 0%",
+  () =>
+  {
+    const montos = calcularMontosReserva({ precioBase: 1500000, precioPromocional: null, senaRequerida: true,
+      senaPorcentaje: 0 });
+
+    expect(montos.montoTotal).toBe(1500000);
+    expect(montos.senaMonto).toBeNull();
+  });
+
   it("debería rechazar montos inválidos en español",
   () =>
   {

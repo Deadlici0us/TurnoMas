@@ -46,7 +46,7 @@ export function calcularMontosReserva(input: MontosReservaInput): MontosReserva
     return { montoTotal, senaMonto: montoTotal, senaPorcentaje: FULL_DEPOSIT_PERCENTAGE };
   }
 
-  if (!input.senaRequerida)
+  if (!input.senaRequerida || input.senaPorcentaje === 0)
   {
     return { montoTotal, senaMonto: null, senaPorcentaje: input.senaPorcentaje };
   }

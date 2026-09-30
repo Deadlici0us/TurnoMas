@@ -9,6 +9,7 @@ export interface SocialLoginButtonProps
   readonly label: string;
   readonly errorLabel?: string;
   readonly next?: string;
+  readonly scopes?: string;
 }
 
 /**
@@ -39,6 +40,9 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
         provider: "google",
         options: {
           redirectTo,
+          ...(props.scopes === undefined || props.scopes.trim().length === 0
+            ? {}
+            : { scopes: props.scopes }),
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });

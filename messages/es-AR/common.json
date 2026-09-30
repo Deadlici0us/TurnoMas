@@ -74,12 +74,15 @@
     "saveError": "No pudimos guardar tu negocio. Intentá de nuevo",
     "sessionExpired": "Tu sesión venció. Iniciá sesión de nuevo",
     "continueWithGoogle": "Continuar con Google",
+    "registerWithGoogleTitle": "Registrate con Google (recomendado)",
+    "registerWithGoogleHint": "Te deja Google Calendar a un clic, sin pasos extra",
+    "useEmailInstead": "o usá email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Probá de nuevo"
   },
   "onboarding": {
     "title": "Poné en marcha tu negocio",
-    "subtitle": "En 3 pasos empezás a recibir reservas con seña",
+    "subtitle": "En 4 pasos empezás a recibir reservas con seña",
     "step1Title": "1. Datos de tu negocio",
     "step1Desc": "Elegí el nombre y el país. Te generamos tu link público de reservas",
     "country": "País",
@@ -91,6 +94,11 @@
     "step3Title": "3. WhatsApp opcional",
     "step3Desc": "Si lo conectás, los recordatorios salen por WhatsApp. Si no, salen por email",
     "connectWa": "Conectar WhatsApp",
+    "skipWa": "Continuar",
+    "step4Title": "4. Google Calendar",
+    "step4Desc": "Conectá tu agenda de Google para que los turnos se sincronicen solos y no te dupliquen reservas",
+    "connectGcal": "Conectar Google Calendar",
+    "skipGcal": "Conectar después",
     "finish": "Terminar y ver mi agenda",
     "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de 15.000 ARS/mes"
   },

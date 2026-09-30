@@ -36,6 +36,25 @@ describe("validarServicio",
     expect(result.senaRequerida).toBe(false);
   });
 
+  it("debería aceptar seña 0% y promo desactivada por tilde",
+  () =>
+  {
+    const result = validarServicio({ ...BASE, precioPromocional: 1200000, promoActiva: false,
+      senaRequerida: true, senaPorcentaje: 0 });
+
+    expect(result.precioPromocional).toBeNull();
+    expect(result.senaPorcentaje).toBe(0);
+  });
+
+  it("debería ignorar el porcentaje cuando la seña está desactivada",
+  () =>
+  {
+    const result = validarServicio({ ...BASE, senaRequerida: false, senaPorcentaje: 99 });
+
+    expect(result.senaRequerida).toBe(false);
+    expect(result.senaPorcentaje).toBe(0);
+  });
+
   it("debería rechazar nombre corto, duración o precio inválidos",
   () =>
   {

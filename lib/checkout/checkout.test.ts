@@ -62,10 +62,18 @@ describe("resolveCheckout",
     expect(result).toEqual({ kind: "payDeposit", percentage: 100 });
   });
 
+  it("debería confirmar instantáneo con seña 0% aunque se exija seña",
+  () =>
+  {
+    const result = resolveCheckout(input({ serviceRequiresDeposit: true, serviceDepositPercentage: 0 }));
+
+    expect(result).toEqual({ kind: "confirmed" });
+  });
+
   it("debería rechazar porcentajes de seña inválidos",
   () =>
   {
-    expect(() => resolveCheckout(input({ serviceRequiresDeposit: true, serviceDepositPercentage: 0 })))
+    expect(() => resolveCheckout(input({ serviceRequiresDeposit: true, serviceDepositPercentage: -1 })))
       .toThrow(RangeError);
     expect(() => resolveCheckout(input({ serviceRequiresDeposit: true, serviceDepositPercentage: 101 })))
       .toThrow(RangeError);

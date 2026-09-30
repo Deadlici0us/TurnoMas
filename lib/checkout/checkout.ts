@@ -22,7 +22,7 @@ export interface CheckoutInput
 }
 
 const FULL_DEPOSIT_PERCENTAGE = 100;
-const MIN_DEPOSIT_PERCENTAGE = 1;
+const MIN_DEPOSIT_PERCENTAGE = 0;
 const MAX_DEPOSIT_PERCENTAGE = 100;
 
 /** Resuelve el resultado del checkout para una reserva. */
@@ -45,6 +45,11 @@ export function resolveCheckout(input: CheckoutInput): CheckoutOutcome
 
   assertValidPercentage(input.serviceDepositPercentage);
 
+  if (input.serviceDepositPercentage === 0)
+  {
+    return { kind: "confirmed" };
+  }
+
   return { kind: "payDeposit", percentage: input.serviceDepositPercentage };
 }
 
@@ -52,6 +57,6 @@ function assertValidPercentage(percentage: number): void
 {
   if (!Number.isInteger(percentage) || percentage < MIN_DEPOSIT_PERCENTAGE || percentage > MAX_DEPOSIT_PERCENTAGE)
   {
-    throw new RangeError("El porcentaje de seña debe ser un entero entre 1 y 100.");
+    throw new RangeError("El porcentaje de seña debe ser un entero entre 0 y 100.");
   }
 }

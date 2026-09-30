@@ -7,9 +7,34 @@
   "auth": {
     "logoutCta": "Cerrar sesión",
     "continueWithGoogle": "Continuar con Google",
+    "registerWithGoogleTitle": "Regístrate con Google (recomendado)",
+    "registerWithGoogleHint": "Te deja Google Calendar a un clic, sin pasos extra",
+    "useEmailInstead": "o usa email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Intenta de nuevo",
     "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo"
+  },
+  "onboarding": {
+    "title": "Pon en marcha tu negocio",
+    "subtitle": "En 4 pasos empiezas a recibir reservas con seña",
+    "step1Title": "1. Datos de tu negocio",
+    "step1Desc": "Elige el nombre y el país. Te generamos tu link público de reservas",
+    "country": "País",
+    "urlPreview": "Tu link va a ser",
+    "step2Title": "2. Conecta MercadoPago",
+    "step2Desc": "Vincula tu cuenta para cobrar señas directo en tu billetera",
+    "connectMp": "Conectar MercadoPago",
+    "skipMp": "Conectar después",
+    "step3Title": "3. WhatsApp opcional",
+    "step3Desc": "Si lo conectas, los recordatorios salen por WhatsApp. Si no, salen por email",
+    "connectWa": "Conectar WhatsApp",
+    "skipWa": "Continuar",
+    "step4Title": "4. Google Calendar",
+    "step4Desc": "Conecta tu agenda de Google para que los turnos se sincronicen solos",
+    "connectGcal": "Conectar Google Calendar",
+    "skipGcal": "Conectar después",
+    "finish": "Terminar y ver mi agenda",
+    "trialNote": "Tienes 14 días gratis."
   },
   "footer": { "rights": "© TurnoMas", "privacy": "Privacidad", "terms": "Términos" }
 }

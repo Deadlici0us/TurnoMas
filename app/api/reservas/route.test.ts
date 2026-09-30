@@ -53,4 +53,15 @@ describe("POST /api/reservas",
     expect(response.status).toBe(400);
     expect(body.error).toBe("Elegí un horario válido para tu reserva.");
   });
+
+  it("debería exigir 30 min de anticipación en español",
+  async () =>
+  {
+    const response = await POST(requestWith(
+      { ...BASE, inicio: new Date(Date.now() + 10 * 60_000).toISOString() }));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Elegí un horario con al menos 30 min de anticipación.");
+  });
 });
