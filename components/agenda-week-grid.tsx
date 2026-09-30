@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import LeyendaEstados from "@/components/leyenda-estados";
+import { claseGrillaPara, EXTERNO_LEYENDA } from "@/lib/dashboard/estados-colores";
+
 export interface WeekGridTurno
 {
   readonly id: string;
@@ -28,22 +31,21 @@ interface AgendaWeekGridProps
   readonly externos: readonly WeekGridExterno[];
 }
 
-const HORA_DESDE = 8;
-const HORA_HASTA = 20;
+const HORA_DESDE_DEFECTO = 8;
+const HORA_HASTA_DEFECTO = 20;
 const PX_POR_HORA = 44;
-
-const ESTADO_FONDO: Record<string, string> = {
-  pendiente: "bg-amber-200 border-amber-400 text-amber-900",
-  confirmado: "bg-blue-200 border-blue-400 text-blue-900",
-  pagado: "bg-green-200 border-green-400 text-green-900",
-  completado: "bg-slate-200 border-slate-300 text-slate-600",
-  ausente: "bg-red-200 border-red-400 text-red-900",
-  cancelado: "bg-slate-100 border-slate-200 text-slate-400 line-through",
-};
 
 function inicioDelDia(base: Date, offset: number): Date
 {
   return new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset, 0, 0, 0, 0);
+}
+
+function inicioDeSemana(fecha: Date): Date
+{
+  const lunes = inicioDelDia(fecha, 0);
+  const desfase = (lunes.getDay() + 6) % 7;
+
+  return inicioDelDia(lunes, -desfase);
 }
 
 function minutosDesdeHora(date: Date): number
@@ -54,16 +56,66 @@ function minutosDesdeHora(date: Date): number
 export default function AgendaWeekGrid({ base, staff, turnos, externos }: AgendaWeekGridProps)
 {
   const [staffId, setStaffId] = useState<string | null>(staff.length === 1 ? staff[0]?.id ?? null : null);
+  const [semanaOffset, setSemanaOffset] = useState(0);
   const hoy = useMemo(() => new Date(base), [base]);
-  const dias = useMemo(() => Array.from({ length: 7 }, (_, i) => inicioDelDia(hoy, i)), [hoy]);
-  const horas = useMemo(
-    () => Array.from({ length: HORA_HASTA - HORA_DESDE }, (_, i) => HORA_DESDE + i),
-    [],
-  );
+  const inicioSemana = useMemo(() =>
+  {
+    const referencia = new Date(hoy.getTime() + semanaOffset * 7 * 86_400_000);
+
+    return inicioDeSemana(referencia);
+  }, [hoy, semanaOffset]);
+  const dias = useMemo(() => Array.from({ length: 7 }, (_, i) => inicioDelDia(inicioSemana, i)), [inicioSemana]);
 
   const turnosFiltrados = staffId === null
     ? turnos
     : turnos.filter((t) => t.staffId === staffId);
+
+  const rango = useMemo(() =>
+  {
+    const finSemana = new Date(inicioSemana.getTime() + 7 * 86_400_000);
+    let min = HORA_DESDE_DEFECTO * 60;
+    let max = HORA_HASTA_DEFECTO * 60;
+
+    const considerar = (inicioIso: string, finIso: string): void =>
+    {
+      const inicio = new Date(inicioIso);
+      const fin = new Date(finIso);
+
+      if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin <= inicioSemana || inicio >= finSemana)
+      {
+        return;
+      }
+
+      min = Math.min(min, minutosDesdeHora(inicio));
+      max = Math.max(max, minutosDesdeHora(fin) <= minutosDesdeHora(inicio)
+        ? HORA_HASTA_DEFECTO * 60
+        : minutosDesdeHora(fin));
+    };
+
+    for (const t of turnosFiltrados)
+    {
+      considerar(t.inicio, t.fin);
+    }
+
+    for (const e of externos)
+    {
+      considerar(e.inicio, e.fin);
+    }
+
+    const horaDesde = Math.max(0, Math.min(HORA_DESDE_DEFECTO, Math.floor(min / 60)));
+    const horaHasta = Math.min(24, Math.max(HORA_HASTA_DEFECTO, Math.ceil(max / 60)));
+
+    return { horaDesde, horaHasta: Math.max(horaHasta, horaDesde + 4) };
+  }, [turnosFiltrados, externos, inicioSemana]);
+
+  const horas = useMemo(
+    () => Array.from({ length: rango.horaHasta - rango.horaDesde }, (_, i) => rango.horaDesde + i),
+    [rango],
+  );
+  const alto = (rango.horaHasta - rango.horaDesde) * PX_POR_HORA;
+  const finSemanaVisible = new Date(inicioSemana.getTime() + 6 * 86_400_000);
+  const etiquetaRango = `${inicioSemana.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} – ` +
+    `${finSemanaVisible.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}`;
 
   function bloquesDelDia(dia: Date): Array<{ key: string; top: number; height: number; clase: string; titulo: string }>
   {
@@ -80,8 +132,8 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
         continue;
       }
 
-      const desde = Math.max(minutosDesdeHora(inicio), HORA_DESDE * 60);
-      const hasta = Math.min(minutosDesdeHora(fin), HORA_HASTA * 60);
+      const desde = Math.max(minutosDesdeHora(inicio), rango.horaDesde * 60);
+      const hasta = Math.min(minutosDesdeHora(fin), rango.horaHasta * 60);
 
       if (hasta <= desde)
       {
@@ -90,9 +142,9 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
 
       salida.push({
         key: `t-${t.id}`,
-        top: ((desde - HORA_DESDE * 60) / 60) * PX_POR_HORA,
+        top: ((desde - rango.horaDesde * 60) / 60) * PX_POR_HORA,
         height: Math.max(((hasta - desde) / 60) * PX_POR_HORA, 18),
-        clase: ESTADO_FONDO[t.estado] ?? ESTADO_FONDO.cancelado,
+        clase: claseGrillaPara(t.estado),
         titulo: t.titulo,
       });
     }
@@ -107,8 +159,8 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
         continue;
       }
 
-      const desde = Math.max(minutosDesdeHora(inicio), HORA_DESDE * 60);
-      const hasta = Math.min(minutosDesdeHora(fin), HORA_HASTA * 60);
+      const desde = Math.max(minutosDesdeHora(inicio), rango.horaDesde * 60);
+      const hasta = Math.min(minutosDesdeHora(fin), rango.horaHasta * 60);
 
       if (hasta <= desde)
       {
@@ -117,9 +169,9 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
 
       salida.push({
         key: `e-${e.id}`,
-        top: ((desde - HORA_DESDE * 60) / 60) * PX_POR_HORA,
+        top: ((desde - rango.horaDesde * 60) / 60) * PX_POR_HORA,
         height: Math.max(((hasta - desde) / 60) * PX_POR_HORA, 18),
-        clase: "bg-slate-300/70 border-slate-400 text-slate-700",
+        clase: EXTERNO_LEYENDA.clase,
         titulo: `Google · ${e.titulo}`,
       });
     }
@@ -132,8 +184,45 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Semana</h2>
-          <p className="text-xs text-slate-500">Turnos y eventos de Google del negocio (8 a 20h)</p>
+          <p className="text-xs text-slate-500">
+            {`Turnos y eventos de Google del negocio (${rango.horaDesde} a ${rango.horaHasta}h) · ${etiquetaRango}`}
+          </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSemanaOffset((v) => v - 1)}
+            aria-label="Semana anterior"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300
+              text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            ← Anterior
+          </button>
+          <button
+            type="button"
+            onClick={() => setSemanaOffset(0)}
+            disabled={semanaOffset === 0}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+              semanaOffset === 0
+                ? "border-slate-200 text-slate-400 cursor-default"
+                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            onClick={() => setSemanaOffset((v) => v + 1)}
+            aria-label="Semana siguiente"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300
+              text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Siguiente →
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <LeyendaEstados incluirExterno />
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setStaffId(null)}
@@ -160,7 +249,7 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
           ))}
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[70vh]">
         <div className="min-w-[720px]">
           <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden">
             <div className="bg-slate-50" />
@@ -174,24 +263,24 @@ export default function AgendaWeekGrid({ base, staff, turnos, externos }: Agenda
                 </div>
               </div>
             ))}
-            <div className="bg-white relative" style={{ height: (HORA_HASTA - HORA_DESDE) * PX_POR_HORA }}>
+            <div className="bg-white relative" style={{ height: alto }}>
               {horas.map((h) => (
                 <div
                   key={h}
                   className="absolute inset-x-0 border-t border-slate-100 text-[10px] text-slate-400 pl-1"
-                  style={{ top: (h - HORA_DESDE) * PX_POR_HORA }}
+                  style={{ top: (h - rango.horaDesde) * PX_POR_HORA }}
                 >
                   {`${String(h).padStart(2, "0")}:00`}
                 </div>
               ))}
             </div>
             {dias.map((dia) => (
-              <div key={dia.toISOString()} className="bg-white relative" style={{ height: (HORA_HASTA - HORA_DESDE) * PX_POR_HORA }}>
+              <div key={dia.toISOString()} className="bg-white relative" style={{ height: alto }}>
                 {horas.map((h) => (
                   <div
                     key={h}
                     className="absolute inset-x-0 border-t border-slate-100"
-                    style={{ top: (h - HORA_DESDE) * PX_POR_HORA }}
+                    style={{ top: (h - rango.horaDesde) * PX_POR_HORA }}
                   />
                 ))}
                 {bloquesDelDia(dia).map((b) => (

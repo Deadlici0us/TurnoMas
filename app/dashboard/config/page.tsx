@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarHorariosNegocio, actualizarNombreNegocio, actualizarPoliticaListaNegra,
   conectarMercadoPago, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
@@ -331,6 +332,10 @@ export default async function ConfigPage()
             </span>
           </div>
         </div>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Zona de peligro</h2>
+        <ZonaPeligroEliminar />
       </section>
     </div>
   );

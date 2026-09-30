@@ -1,6 +1,8 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
+import { ESTADO_BADGE } from "@/lib/dashboard/estados-colores";
 import AgendaWeekGrid from "@/components/agenda-week-grid";
+import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { calendarService } from "@/lib/services/calendar";
 
@@ -23,14 +25,7 @@ interface TurnoRow
   readonly sena_porcentaje: number | null;
 }
 
-const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = {
-  pagado: "bg-green-100 text-green-800 border-green-200",
-  confirmado: "bg-blue-100 text-blue-800 border-blue-200",
-  pendiente: "bg-amber-100 text-amber-800 border-amber-200",
-  completado: "bg-slate-100 text-slate-600 border-slate-200",
-  cancelado: "bg-slate-100 text-slate-500 border-slate-200",
-  ausente: "bg-red-100 text-red-800 border-red-200",
-};
+const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = ESTADO_BADGE;
 
 function formatearInicio(iso: string): string
 {
@@ -67,7 +62,7 @@ export default async function AgendaPage()
   const hoy = new Date();
   const externos = await calendarService.getExternalEventsForNegocio(
     String((dashboard.negocio as { id?: unknown }).id ?? ""),
-    hoy, new Date(hoy.getTime() + 7 * 86_400_000))
+    new Date(hoy.getTime() - 30 * 86_400_000), new Date(hoy.getTime() + 60 * 86_400_000))
     .then((eventos) => eventos.map((e) => ({
       id: e.id,
       titulo: e.titulo,
@@ -104,7 +99,8 @@ export default async function AgendaPage()
     />
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
       <h1 className="text-2xl font-bold text-slate-900 mb-1">Agenda</h1>
-      <p className="text-sm text-slate-600 mb-6">Turnos por profesional con estados reales</p>
+      <p className="text-sm text-slate-600 mb-4">Turnos por profesional con estados reales</p>
+      <div className="mb-6"><LeyendaEstados incluirExterno /></div>
       <div className="space-y-6">
         {staff.map((profesional) => (
           <section key={profesional.id}>

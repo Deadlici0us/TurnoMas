@@ -5,6 +5,19 @@ import { revalidatePath } from "next/cache";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
+import
+{
+  codigoCoincide,
+  enmascararEmail,
+  firmarTokenEliminacion,
+  generarCodigoEliminacion,
+  hashCodigoEliminacion,
+  MINUTOS_VIGENCIA_CODIGO,
+  validarTextoConfirmacion,
+  verificarTokenEliminacion,
+} from "@/lib/negocios/eliminacion";
+import { ResendAdapter } from "@/lib/ports/email";
+import { readEnv } from "@/lib/env/env";
 import { validarHorariosStaff } from "@/lib/staff/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -225,4 +238,158 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
 
   revalidatePath("/dashboard/config");
   revalidatePath("/dashboard");
+}
+
+export interface SolicitudEliminacion
+{
+  readonly token: string;
+  readonly emailEnmascarado: string;
+}
+
+function secretoEliminacion(): string
+{
+  const secreto = readEnv("ELIMINACION_SECRET") ?? readEnv("SUPABASE_SECRET_KEY");
+
+  if (secreto === null || secreto.trim().length === 0)
+  {
+    throw new Error("Falta configurar el secreto de eliminación en el entorno.");
+  }
+
+  return secreto;
+}
+
+function escapeHtmlEliminacion(valor: string): string
+{
+  return valor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Envía el código de 6 dígitos al email del dueño para borrar el negocio.
+ *
+ * @return Token firmado (campo oculto) + email enmascarado para la UI.
+ */
+export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacion>
+{
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email ?? "";
+
+  if (user === null || email.length === 0)
+  {
+    throw new Error("Tenés que iniciar sesión para eliminar tu negocio.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+  const { data: negocio } = await admin.from("negocios").select("nombre").eq("id", negocioId).single();
+  const nombre = typeof (negocio as { nombre?: unknown } | null)?.nombre === "string"
+    ? (negocio as { nombre: string }).nombre
+    : "tu negocio";
+
+  const codigo = generarCodigoEliminacion();
+  const token = firmarTokenEliminacion({
+    negocioId,
+    email,
+    codigoHash: hashCodigoEliminacion(codigo),
+    exp: Date.now() + MINUTOS_VIGENCIA_CODIGO * 60_000,
+  }, secretoEliminacion());
+
+  await new ResendAdapter().send({
+    to: email,
+    subject: `Confirmá la eliminación de ${nombre} (${codigo})`,
+    fromName: "TurnoMas",
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">` +
+      `<h2>Confirmá la eliminación de ${escapeHtmlEliminacion(nombre)}</h2>` +
+      `<p>Tu código es <strong style="font-size:24px;letter-spacing:4px">${codigo}</strong> ` +
+      `y vence en ${MINUTOS_VIGENCIA_CODIGO} minutos.</p>` +
+      `<p>Ingresalo en el panel junto con la palabra ELIMINAR. ` +
+      `Esto borra turnos, clientes, servicios, staff e integraciones. No se puede deshacer.</p>` +
+      `<p style="color:#64748b;font-size:12px">Si no pediste esto, ignorá este email.</p></div>`,
+  });
+
+  return { token, emailEnmascarado: enmascararEmail(email) };
+}
+
+/** Borra el negocio y la cuenta tras validar token + código del email + texto. */
+export async function confirmarEliminacionNegocio(token: string, codigo: string, texto: string): Promise<void>
+{
+  await assertModoEditable();
+  validarTextoConfirmacion(texto);
+
+  const payload = verificarTokenEliminacion(token, secretoEliminacion());
+
+  if (!codigoCoincide(codigo.trim(), payload.codigoHash))
+  {
+    throw new Error("El código no coincide. Revisá tu email e intentá de nuevo.");
+  }
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para eliminar tu negocio.");
+  }
+
+  if (user.email !== payload.email)
+  {
+    throw new Error("Ese código se envió a otro email. Pedí uno nuevo.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+
+  if (negocioId !== payload.negocioId)
+  {
+    throw new Error("Ese código no corresponde a tu negocio. Pedí uno nuevo.");
+  }
+
+  // Turnos referencia staff/servicios/clientes con restrict: van primero.
+  const { error: errorTurnos } = await admin.from("turnos").delete().eq("negocio_id", negocioId);
+
+  if (errorTurnos !== null)
+  {
+    throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+  }
+
+  const borrados = await Promise.all([
+    admin.from("clientes").delete().eq("negocio_id", negocioId),
+    admin.from("servicios").delete().eq("negocio_id", negocioId),
+    admin.from("staff").delete().eq("negocio_id", negocioId),
+  ]);
+
+  for (const r of borrados)
+  {
+    if (r.error !== null)
+    {
+      throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+    }
+  }
+
+  // Turnos usa restrict hacia staff/servicios/clientes: ya se borraron arriba.
+  const resto = await Promise.all([
+    admin.from("negocio_secretos").delete().eq("negocio_id", negocioId),
+    admin.from("negocios").delete().eq("id", negocioId),
+  ]);
+
+  for (const r of resto)
+  {
+    if (r.error !== null)
+    {
+      throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+    }
+  }
+
+  try
+  {
+    await admin.auth.admin.deleteUser(user.id);
+  }
+  catch
+  {
+    // El negocio ya se borró; si el usuario auth persiste, el signOut lo desloguea igual.
+  }
+
+  await supabase.auth.signOut();
 }
