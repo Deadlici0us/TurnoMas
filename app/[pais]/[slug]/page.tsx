@@ -6,6 +6,7 @@ import { getDemoBusiness } from "@/lib/portal/demo-business";
 import type { PortalBusiness } from "@/lib/portal/demo-business";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 type Row = Record<string, unknown>;
 
@@ -76,7 +77,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const { data: negocio } = await supabase
     .from("portal_negocios")
-    .select("id, nombre, pais, slug, horarios")
+    .select("id, nombre, pais, slug, horarios, timezone")
     .eq("pais", pais.toLowerCase())
     .eq("slug", slug.toLowerCase())
     .single();
@@ -154,6 +155,7 @@ async function buildPortalBusiness(
     nombre: asString(negocioRow.nombre),
     pais: asString(negocioRow.pais),
     slug: asString(negocioRow.slug),
+    timezone: resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais }),
     horarios: asHorarios(negocioRow.horarios),
     staff: ((staff ?? []) as unknown as Row[]).map((s) => ({
       id: asString(s.id),

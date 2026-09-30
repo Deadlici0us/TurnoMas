@@ -16,8 +16,8 @@ function toGcalEvent(input: CalendarEventInput): Record<string, unknown>
     summary: input.titulo,
     description: input.descripcion ?? undefined,
     location: input.ubicacion ?? undefined,
-    start: { dateTime: input.inicio.toISOString() },
-    end: { dateTime: input.fin.toISOString() },
+    start: { dateTime: input.inicio.toISOString(), timeZone: input.timeZone ?? undefined },
+    end: { dateTime: input.fin.toISOString(), timeZone: input.timeZone ?? undefined },
   };
 }
 

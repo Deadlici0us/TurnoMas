@@ -18,6 +18,7 @@ import { readEnv } from "@/lib/env/env";
 import { plantillaRecordatorio } from "@/lib/notifications/templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
 
 const LIMITE_BARRIDO = 100;
@@ -27,18 +28,19 @@ interface TurnoCandidato
   readonly id: string;
   readonly inicio: string;
   readonly notificacion_enviada: boolean;
-  readonly negocio: { nombre: string } | null;
+  readonly negocio: { nombre: string; timezone?: unknown; pais?: unknown } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
   readonly cliente: { email: string | null } | null;
 }
 
-function formatearFechaEsAr(fecha: Date): string
+function formatearFechaEnZona(fecha: Date, timeZone: string): string
 {
-  const dos = (n: number): string => String(n).padStart(2, "0");
+  const etiqueta = formatearEnZona(fecha, timeZone);
+  const [diaMes, hora] = etiqueta.split(" ");
+  const [dia, mes] = (diaMes ?? "").split("/");
 
-  return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} ` +
-    `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+  return `${dia}/${mes}/${fecha.getFullYear()} ${hora ?? ""}`.trim();
 }
 
 export async function POST(request: Request)
@@ -68,7 +70,7 @@ export async function POST(request: Request)
   const ahora = new Date();
   const ventana = new Date(ahora.getTime() + 24 * 3_600_000).toISOString();
   const { data } = await admin.from("turnos")
-    .select("id, inicio, notificacion_enviada, negocio:negocios(nombre)," +
+    .select("id, inicio, notificacion_enviada, negocio:negocios(nombre, timezone, pais)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
     .in("estado", ["pagado", "confirmado"]).eq("notificacion_enviada", false)
     .gte("inicio", ahora.toISOString()).lte("inicio", ventana)
@@ -86,11 +88,12 @@ export async function POST(request: Request)
   {
     try
     {
+      const timeZone = resolverTimezoneNegocio({ timezone: turno.negocio?.timezone, pais: turno.negocio?.pais });
       const plantilla = plantillaRecordatorio({
         negocio: turno.negocio?.nombre ?? "tu negocio",
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
-        fecha: formatearFechaEsAr(new Date(turno.inicio)),
+        fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
       });
 
       await email.send({

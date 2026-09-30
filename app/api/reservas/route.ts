@@ -25,6 +25,7 @@ import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
@@ -124,13 +125,14 @@ function exigirEmailOpcional(valor: unknown): string | null
   return email;
 }
 
-/** Formatea fecha/hora en es-AR (DD/MM/YYYY HH:mm). */
-function formatearFechaEsAr(fecha: Date): string
+/** Formatea fecha/hora en hora del negocio (DD/MM/YYYY HH:mm). */
+function formatearFechaEnZona(fecha: Date, timeZone: string): string
 {
-  const dos = (n: number): string => String(n).padStart(2, "0");
+  const etiqueta = formatearEnZona(fecha, timeZone);
+  const [diaMes, hora] = etiqueta.split(" ");
+  const [dia, mes] = (diaMes ?? "").split("/");
 
-  return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} ` +
-    `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+  return `${dia}/${mes}/${fecha.getFullYear()} ${hora ?? ""}`.trim();
 }
 
 /** Inicio del día local (ventana para freebusy de Google). */
@@ -233,7 +235,11 @@ export async function POST(request: Request)
 
     const admin = getSupabaseAdmin();
     const { data: negocioFull } = await admin.from("negocios")
-      .select("id, blacklist_umbral, blacklist_penalidad").eq("id", negocioId).single();
+      .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais").eq("id", negocioId).single();
+
+    const timeZone = resolverTimezoneNegocio(
+      { timezone: (negocioFull as { timezone?: unknown } | null)?.timezone,
+        pais: (negocioFull as { pais?: unknown } | null)?.pais ?? pais });
 
     const { data: clienteExistente } = await admin.from("clientes").select("id, ausencias")
       .eq("negocio_id", negocioId).eq("whatsapp", whatsapp).single();
@@ -342,15 +348,18 @@ export async function POST(request: Request)
     // Sync App → GCal (best-effort): si el dueño conectó Google, inyecta el turno.
     try
     {
-      const gcalEventId = await calendarService.createEventForNegocio(negocioId, buildTurnoEvent({
-        negocio: negocio.nombre as string,
-        servicio: servicioNombre,
-        profesional: staffNombre,
-        cliente: nombre,
-        whatsapp,
-        inicio,
-        fin,
-      }));
+      const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
+        ...buildTurnoEvent({
+          negocio: negocio.nombre as string,
+          servicio: servicioNombre,
+          profesional: staffNombre,
+          cliente: nombre,
+          whatsapp,
+          inicio,
+          fin,
+        }),
+        timeZone,
+      });
 
       if (gcalEventId !== null)
       {
@@ -370,7 +379,7 @@ export async function POST(request: Request)
           negocio: negocio.nombre as string,
           servicio: servicioNombre,
           profesional: staffNombre,
-          fecha: formatearFechaEsAr(inicio),
+          fecha: formatearFechaEnZona(inicio, timeZone),
         });
 
         await new ResendAdapter().send({

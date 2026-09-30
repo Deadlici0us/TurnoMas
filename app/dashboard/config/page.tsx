@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarHorariosNegocio, actualizarNombreNegocio, actualizarPoliticaListaNegra,
-  conectarMercadoPago, desconectarGoogleCalendar,
+  actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { resolverTimezoneNegocio, TIMEZONES_SOPORTADAS } from "@/lib/timezone/timezone";
 
 function franjasDeDia(horarios: unknown, day: DayKey): string
 {
@@ -70,6 +71,13 @@ async function guardarNombre(formData: FormData): Promise<void>
   await actualizarNombreNegocio(String(formData.get("nombre") ?? ""));
 }
 
+async function guardarTimezone(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await actualizarTimezoneNegocio(String(formData.get("timezone") ?? ""));
+}
+
 async function guardarHorariosNegocio(formData: FormData): Promise<void>
 {
   "use server";
@@ -88,11 +96,12 @@ export default async function ConfigPage()
 {
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as {
-    nombre?: string; pais?: string; slug?: string; horarios?: unknown;
+    nombre?: string; pais?: string; slug?: string; horarios?: unknown; timezone?: unknown;
     blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra;
   };
   const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
   const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
+  const timezoneActual = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
 
   let mpToken: string | null = null;
   let gcalConectado = false;
@@ -153,6 +162,32 @@ export default async function ConfigPage()
               hover:bg-blue-700 transition-colors"
           >
             Guardar nombre
+          </button>
+        </form>
+        <form action={guardarTimezone} className="space-y-3">
+          <label className="block text-sm text-slate-600">
+            Zona horaria del negocio
+            <select
+              name="timezone"
+              defaultValue={timezoneActual}
+              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {TIMEZONES_SOPORTADAS.map((zona) => (
+                <option key={zona} value={zona}>{zona}</option>
+              ))}
+            </select>
+          </label>
+          <p className="text-xs text-slate-500">
+            La agenda (lista y calendario) muestra los turnos en esta zona. Importante en países
+            con varios husos (MX, BR, ES, US).
+          </p>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar zona horaria
           </button>
         </form>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (

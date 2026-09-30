@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { resolveAuthMode, buildOnboardingResult } from "@/lib/auth/auth-mode";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 /**
  * Crea el perfil del negocio (paso 1 del onboarding).
@@ -14,6 +15,7 @@ export async function createBusiness(formData: FormData): Promise<void>
 {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const pais = String(formData.get("pais") ?? "").trim();
+  const timezone = resolverTimezoneNegocio({ timezone: String(formData.get("timezone") ?? ""), pais });
 
   let url = "";
 
@@ -52,6 +54,7 @@ export async function createBusiness(formData: FormData): Promise<void>
     nombre,
     pais: pais.toLowerCase(),
     slug,
+    timezone,
   });
 
   if (error)

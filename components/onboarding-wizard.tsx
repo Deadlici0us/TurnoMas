@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { buildBusinessUrl } from "@/lib/onboarding/slug";
 import { createBusiness } from "@/app/onboarding/actions";
+import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 const DEFAULT_COUNTRY = "ar";
 
@@ -19,6 +20,18 @@ export default function OnboardingWizard()
   const [gcalConectado, setGcalConectado] = useState(false);
 
   let preview = "";
+
+  let timezoneDetectada = "";
+
+  try
+  {
+    timezoneDetectada = resolverTimezoneNegocio(
+      { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, pais });
+  }
+  catch
+  {
+    timezoneDetectada = resolverTimezoneNegocio({ pais });
+  }
 
   try
   {
@@ -157,6 +170,8 @@ export default function OnboardingWizard()
             <form action={createBusiness} className="space-y-4">
               <input type="hidden" name="nombre" value={nombre} />
               <input type="hidden" name="pais" value={pais} />
+              <input type="hidden" name="timezone" value={timezoneDetectada} />
+              <p className="text-xs text-slate-500">Zona horaria detectada: {timezoneDetectada}.</p>
               <button
                 type="submit"
                 className="block text-center w-full bg-blue-600 text-white font-semibold py-3

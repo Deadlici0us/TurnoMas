@@ -16,6 +16,10 @@ const NEGOCIO_HORARIOS = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0004_negocio_horarios.sql"),
   "utf8",
 );
+const NEGOCIO_TIMEZONE = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0005_negocio_timezone.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -88,6 +92,16 @@ describe("esquema Supabase",
     expect(NEGOCIO_HORARIOS).toContain("horarios");
     expect(NEGOCIO_HORARIOS).toMatch(/alter table negocios add column/i);
     expect(NEGOCIO_HORARIOS).toContain("portal_negocios");
+  });
+
+  it("debería guardar la zona horaria por negocio (no por país) y exponerla en el portal",
+  () =>
+  {
+    expect(NEGOCIO_TIMEZONE).toMatch(/alter table negocios add column/i);
+    expect(NEGOCIO_TIMEZONE).toContain("timezone");
+    expect(NEGOCIO_TIMEZONE).toContain("portal_negocios");
+    expect(NEGOCIO_TIMEZONE).toContain("America/Mexico_City");
+    expect(NEGOCIO_TIMEZONE).toContain("lower(pais)");
   });
 
   it("debería fijar search_path en funciones y no re-evaluar auth por fila",

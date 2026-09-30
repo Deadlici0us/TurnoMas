@@ -5,6 +5,7 @@ import AgendaWeekGrid from "@/components/agenda-week-grid";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { calendarService } from "@/lib/services/calendar";
+import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 interface StaffRow
 {
@@ -27,16 +28,9 @@ interface TurnoRow
 
 const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = ESTADO_BADGE;
 
-function formatearInicio(iso: string): string
+function formatearInicio(iso: string, timeZone: string): string
 {
-  const fecha = new Date(iso);
-
-  if (Number.isNaN(fecha.getTime()))
-  {
-    return iso;
-  }
-
-  return fecha.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatearEnZona(iso, timeZone);
 }
 
 async function cambiarEstado(turnoId: string, nuevo: EstadoTurno): Promise<void>
@@ -50,6 +44,8 @@ export default async function AgendaPage()
 {
   const { data: dashboard } = await getDashboardData();
   const staff = dashboard.staff as StaffRow[];
+  const negocioRow = dashboard.negocio as { id?: unknown; timezone?: unknown; pais?: unknown };
+  const timeZone = resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais });
   const turnos = (dashboard.turnos as TurnoRow[]).slice().sort((a, b) =>
     new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
   const duracionPorServicio = new Map((dashboard.servicios as Array<{ id: string; duracion_min: number }>)
@@ -93,6 +89,7 @@ export default async function AgendaPage()
     <div className="space-y-6">
     <AgendaWeekGrid
       base={hoy.toISOString()}
+      timeZone={timeZone}
       staff={staff.map((s) => ({ id: s.id, nombre: s.nombre }))}
       turnos={turnosGrilla}
       externos={externos}
@@ -115,7 +112,7 @@ export default async function AgendaPage()
                       </h3>
                       <p className="text-sm text-slate-600">
                         {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio")
-                          + " · " + formatearInicio(turno.inicio)}
+                          + " · " + formatearInicio(turno.inicio, timeZone)}
                       </p>
                       {turno.sena_monto !== null ? (
                         <p className="text-xs text-slate-500 mt-1">

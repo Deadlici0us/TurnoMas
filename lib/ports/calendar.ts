@@ -12,6 +12,7 @@ export interface CalendarEventInput
   readonly ubicacion?: string | null;
   readonly inicio: Date;
   readonly fin: Date;
+  readonly timeZone?: string | null;
 }
 
 export interface CreatedCalendarEvent

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
+import { validarTimezone } from "@/lib/timezone/timezone";
 import
 {
   codigoCoincide,
@@ -208,6 +209,35 @@ export async function actualizarHorariosNegocio(horarios: unknown): Promise<void
   }
 
   revalidatePath("/dashboard/config");
+}
+
+/** Actualiza la zona horaria IANA del negocio (ej. America/Mexico_City). */
+export async function actualizarTimezoneNegocio(timezone: string): Promise<void>
+{
+  const value = validarTimezone(timezone);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la zona horaria.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+
+  const { error } = await admin.from("negocios").update({ timezone: value }).eq("id", negocioId);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la zona horaria. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+  revalidatePath("/dashboard/agenda");
 }
 
 /** Actualiza el nombre del negocio del dueño (el link público no cambia). */

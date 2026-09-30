@@ -16,6 +16,7 @@ export interface DemoNegocioRow
   readonly pais: string;
   readonly slug: string;
   readonly suscripcion_estado: string;
+  readonly timezone: string;
   readonly horarios: Record<string, readonly string[]>;
 }
 
@@ -101,6 +102,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       pais: "ar",
       slug: "barberia-diego",
       suscripcion_estado: "active",
+      timezone: "America/Argentina/Buenos_Aires",
       horarios: {
         lun: ["08:00-22:00"],
         mar: ["08:00-22:00"],
