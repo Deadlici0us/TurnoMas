@@ -14,6 +14,8 @@ export interface ServicioInput
   readonly promoActiva?: unknown;
   readonly senaRequerida: unknown;
   readonly senaPorcentaje: unknown;
+  readonly remarketingActivo?: unknown;
+  readonly remarketingDias?: unknown;
 }
 
 export interface ServicioValidado
@@ -24,12 +26,16 @@ export interface ServicioValidado
   readonly precioPromocional: number | null;
   readonly senaRequerida: boolean;
   readonly senaPorcentaje: number;
+  readonly remarketingActivo: boolean;
+  readonly remarketingDias: number | null;
 }
 
 const NOMBRE_MINIMO = 2;
 const NOMBRE_MAXIMO = 80;
 const PORCENTAJE_MINIMO = 0;
 const PORCENTAJE_MAXIMO = 100;
+const REMARKETING_MIN_DIAS = 1;
+const REMARKETING_MAX_DIAS = 90;
 
 function exigirEntero(valor: unknown, mensaje: string): number
 {
@@ -103,6 +109,24 @@ export function validarServicio(input: ServicioInput): ServicioValidado
     }
   }
 
+  const remarketingActivo = input.remarketingActivo === undefined || input.remarketingActivo === null
+    ? true
+    : input.remarketingActivo === true || input.remarketingActivo === "on";
+  let remarketingDias: number | null = null;
+
+  if (remarketingActivo && input.remarketingDias !== null && input.remarketingDias !== undefined
+    && input.remarketingDias !== "")
+  {
+    const dias = exigirEntero(input.remarketingDias, "El remarketing tiene que ser en días enteros.");
+
+    if (dias < REMARKETING_MIN_DIAS || dias > REMARKETING_MAX_DIAS)
+    {
+      throw new RangeError("El remarketing tiene que estar entre 1 y 90 días.");
+    }
+
+    remarketingDias = dias;
+  }
+
   return {
     nombre,
     duracionMin,
@@ -110,5 +134,7 @@ export function validarServicio(input: ServicioInput): ServicioValidado
     precioPromocional,
     senaRequerida,
     senaPorcentaje,
+    remarketingActivo,
+    remarketingDias,
   };
 }

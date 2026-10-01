@@ -61,7 +61,7 @@ export async function POST(request: Request)
   }
 
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, cliente_id, negocio:negocios(nombre)")
+    .select("id, estado, cliente_id, negocio:negocios(nombre, google_maps_url)")
     .eq("id", body.turnoId.trim()).single();
 
   if (turno === null)
@@ -70,15 +70,19 @@ export async function POST(request: Request)
   }
 
   const turnoRow = turno as unknown as {
-    estado: string; cliente_id: string; negocio: { nombre: string } | null;
+    estado: string; cliente_id: string; negocio: { nombre: string; google_maps_url?: unknown } | null;
   };
   const nombreNegocio = turnoRow.negocio?.nombre ?? "tu negocio";
+  const mapsConfigurado = typeof turnoRow.negocio?.google_maps_url === "string"
+    && turnoRow.negocio.google_maps_url.length > 0
+    ? turnoRow.negocio.google_maps_url
+    : null;
 
   await admin.from("turnos").update({ resena_pedida: true }).eq("id", body.turnoId.trim());
 
   if (destino === "google-maps")
   {
-    return NextResponse.json({ success: true, destino, mapsUrl: mapsUrl(nombreNegocio) });
+    return NextResponse.json({ success: true, destino, mapsUrl: mapsConfigurado ?? mapsUrl(nombreNegocio) });
   }
 
   const comentario = typeof body.comentario === "string" ? body.comentario.trim().slice(0, 500) : "";

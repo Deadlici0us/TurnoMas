@@ -2,6 +2,9 @@ import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente }
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { readEnv } from "@/lib/env/env";
+import { textoWhatsapp } from "@/lib/notifications/custom-templates";
+import { linkWhatsapp } from "@/lib/notifications/whatsapp";
 
 interface ClienteRow
 {
@@ -63,6 +66,37 @@ export default async function ClientesPage({
     .blacklist_penalidad ?? "fullDeposit";
   const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
     .map((s) => [s.id, s.nombre]));
+  const negocioRow = dashboard.negocio as {
+    nombre?: string; pais?: string; slug?: string;
+    msg_remarketing_subject?: unknown; msg_remarketing_cuerpo?: unknown;
+  };
+  const negocioNombre = typeof negocioRow.nombre === "string" ? negocioRow.nombre : "tu negocio";
+  const base = readEnv("NEXT_PUBLIC_APP_URL")
+    ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : null);
+  const portalUrl = base !== null && typeof negocioRow.pais === "string" && typeof negocioRow.slug === "string"
+    ? `${base}/${negocioRow.pais}/${negocioRow.slug}`
+    : null;
+
+  /** Link wa.me de remarketing manual para un cliente (null sin portal). */
+  function linkRemarketing(cliente: ClienteRow, ultimoServicio: string): string | null
+  {
+    if (portalUrl === null)
+    {
+      return null;
+    }
+
+    return linkWhatsapp(cliente.whatsapp, textoWhatsapp("remarketing", {
+      subject: typeof negocioRow.msg_remarketing_subject === "string"
+        ? negocioRow.msg_remarketing_subject
+        : null,
+      cuerpo: typeof negocioRow.msg_remarketing_cuerpo === "string" ? negocioRow.msg_remarketing_cuerpo : null,
+    }, {
+      negocio: negocioNombre,
+      servicio: ultimoServicio,
+      profesional: "",
+      fecha: "",
+    }, portalUrl));
+  }
   const turnosPorCliente = new Map<string, TurnoRow[]>();
 
   for (const turno of turnos)
@@ -255,6 +289,24 @@ export default async function ClientesPage({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
+                        {(() =>
+                        {
+                          const wa = linkRemarketing(cliente, ultimo !== undefined
+                            ? (nombrePorServicio.get(ultimo.servicio_id) ?? "tu servicio")
+                            : "tu servicio");
+
+                          return wa !== null ? (
+                            <a
+                              href={wa}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                                border-green-300 text-green-700 hover:bg-green-50"
+                            >
+                              WhatsApp
+                            </a>
+                          ) : null;
+                        })()}
                         <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
                           <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50" title="Sumar ausencia">
@@ -329,6 +381,25 @@ export default async function ClientesPage({
                       ))}
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-3">
+                      {(() =>
+                      {
+                        const ultimoMovil = historial[0];
+                        const wa = linkRemarketing(cliente, ultimoMovil !== undefined
+                          ? (nombrePorServicio.get(ultimoMovil.servicio_id) ?? "tu servicio")
+                          : "tu servicio");
+
+                        return wa !== null ? (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                              border-green-300 text-green-700 hover:bg-green-50"
+                          >
+                            WhatsApp
+                          </a>
+                        ) : null;
+                      })()}
                       <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
                         <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                           border-slate-300 hover:bg-slate-50">

@@ -20,6 +20,10 @@ const NEGOCIO_TIMEZONE = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0005_negocio_timezone.sql"),
   "utf8",
 );
+const AUTOMATIZACIONES = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0007_automatizaciones.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -139,5 +143,24 @@ describe("esquema Supabase",
     expect(SEED).toContain("barberia-diego");
     expect(SEED).toContain("demo@turnomas.com");
     expect(SEED).toContain("DEMO_DUENIO_ID");
+  });
+
+  it("debería guardar automatizaciones y mensajes configurables por negocio",
+  () =>
+  {
+    for (const columna of [
+      "recordatorio_activo", "recordatorio_hs",
+      "resena_activa", "resena_hs",
+      "remarketing_activo", "remarketing_dias",
+      "msg_confirmacion_subject", "msg_recordatorio_cuerpo",
+      "msg_resena_subject", "msg_remarketing_cuerpo",
+      "google_maps_url",
+    ])
+    {
+      expect(AUTOMATIZACIONES).toContain(columna);
+    }
+
+    expect(AUTOMATIZACIONES).toContain("remarketing_dias");
+    expect(AUTOMATIZACIONES).toMatch(/alter table servicios add column/i);
   });
 });

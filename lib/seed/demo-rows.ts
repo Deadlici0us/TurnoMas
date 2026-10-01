@@ -18,6 +18,13 @@ export interface DemoNegocioRow
   readonly suscripcion_estado: string;
   readonly timezone: string;
   readonly sena_retencion_hs: number;
+  readonly recordatorio_activo: boolean;
+  readonly recordatorio_hs: number;
+  readonly resena_activa: boolean;
+  readonly resena_hs: number;
+  readonly remarketing_activo: boolean;
+  readonly remarketing_dias: number;
+  readonly google_maps_url: string | null;
   readonly horarios: Record<string, readonly string[]>;
 }
 
@@ -39,6 +46,8 @@ export interface DemoServicioRow
   readonly precio_promocional: number | null;
   readonly sena_requerida: boolean;
   readonly sena_porcentaje: number;
+  readonly remarketing: boolean;
+  readonly remarketing_dias: number | null;
 }
 
 export interface DemoClienteRow
@@ -105,6 +114,13 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       suscripcion_estado: "active",
       timezone: "America/Argentina/Buenos_Aires",
       sena_retencion_hs: 72,
+      recordatorio_activo: true,
+      recordatorio_hs: 24,
+      resena_activa: true,
+      resena_hs: 2,
+      remarketing_activo: true,
+      remarketing_dias: 30,
+      google_maps_url: null,
       horarios: {
         lun: ["08:00-22:00"],
         mar: ["08:00-22:00"],
@@ -139,6 +155,8 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         precio_promocional: null,
         sena_requerida: true,
         sena_porcentaje: 50,
+        remarketing: true,
+        remarketing_dias: null,
       },
       {
         id: SERV_BARBA_CORTE,
@@ -149,6 +167,8 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         precio_promocional: 1700000,
         sena_requerida: true,
         sena_porcentaje: 50,
+        remarketing: true,
+        remarketing_dias: 45,
       },
       {
         id: SERV_BARBA,
@@ -159,6 +179,8 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         precio_promocional: null,
         sena_requerida: false,
         sena_porcentaje: 50,
+        remarketing: true,
+        remarketing_dias: null,
       },
     ],
     clientes: [

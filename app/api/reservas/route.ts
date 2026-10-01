@@ -17,7 +17,7 @@ import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { getBlockedInterval } from "@/lib/availability/availability";
 import { requierePagoSena, resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
-import { plantillaConfirmacion } from "@/lib/notifications/templates";
+import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
@@ -235,7 +235,8 @@ export async function POST(request: Request)
 
     const admin = getSupabaseAdmin();
     const { data: negocioFull } = await admin.from("negocios")
-      .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais").eq("id", negocioId).single();
+      .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais," +
+        " msg_confirmacion_subject, msg_confirmacion_cuerpo").eq("id", negocioId).single();
 
     const timeZone = resolverTimezoneNegocio(
       { timezone: (negocioFull as { timezone?: unknown } | null)?.timezone,
@@ -245,8 +246,12 @@ export async function POST(request: Request)
       .eq("negocio_id", negocioId).eq("whatsapp", whatsapp).single();
 
     const ausencias = typeof clienteExistente?.ausencias === "number" ? clienteExistente.ausencias : 0;
-    const umbral = typeof negocioFull?.blacklist_umbral === "number" ? negocioFull.blacklist_umbral : 2;
-    const penalidad = (negocioFull?.blacklist_penalidad as BlacklistPenalty | undefined)
+    const negocioRow = negocioFull as {
+      blacklist_umbral?: unknown; blacklist_penalidad?: unknown;
+      msg_confirmacion_subject?: unknown; msg_confirmacion_cuerpo?: unknown;
+    } | null;
+    const umbral = typeof negocioRow?.blacklist_umbral === "number" ? negocioRow.blacklist_umbral : 2;
+    const penalidad = (negocioRow?.blacklist_penalidad as BlacklistPenalty | undefined)
       ?? "fullDeposit";
     const decision = evaluateCustomer(ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
 
@@ -405,7 +410,10 @@ export async function POST(request: Request)
     {
       try
       {
-        const plantilla = plantillaConfirmacion({
+        const plantilla = resolverPlantilla("confirmacion", {
+          subject: negocioRow?.msg_confirmacion_subject ?? null,
+          cuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
+        }, {
           negocio: negocio.nombre as string,
           servicio: servicioNombre,
           profesional: staffNombre,

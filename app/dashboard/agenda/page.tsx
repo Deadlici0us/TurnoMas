@@ -4,6 +4,9 @@ import { ESTADO_BADGE, etiquetaEstadoPara } from "@/lib/dashboard/estados-colore
 import AgendaWeekGrid from "@/components/agenda-week-grid";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { readEnv } from "@/lib/env/env";
+import { linkWhatsapp } from "@/lib/notifications/whatsapp";
+import { textoWhatsapp } from "@/lib/notifications/custom-templates";
 import { calendarService } from "@/lib/services/calendar";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
@@ -44,16 +47,66 @@ export default async function AgendaPage()
 {
   const { data: dashboard } = await getDashboardData();
   const staff = dashboard.staff as StaffRow[];
-  const negocioRow = dashboard.negocio as { id?: unknown; timezone?: unknown; pais?: unknown };
+  const negocioRow = dashboard.negocio as {
+    id?: unknown; nombre?: unknown; timezone?: unknown; pais?: unknown;
+    msg_recordatorio_subject?: unknown; msg_recordatorio_cuerpo?: unknown;
+    msg_resena_subject?: unknown; msg_resena_cuerpo?: unknown;
+  };
+  const negocioNombre = typeof negocioRow.nombre === "string" ? negocioRow.nombre : "tu negocio";
   const timeZone = resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais });
+  const base = readEnv("NEXT_PUBLIC_APP_URL")
+    ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : null);
   const turnos = (dashboard.turnos as TurnoRow[]).slice().sort((a, b) =>
     new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
   const duracionPorServicio = new Map((dashboard.servicios as Array<{ id: string; duracion_min: number }>)
     .map((s) => [s.id, s.duracion_min]));
   const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
     .map((s) => [s.id, s.nombre]));
+  const nombrePorStaff = new Map((staff as StaffRow[]).map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
     .map((c) => [c.id, c.nombre]));
+  const whatsappPorCliente = new Map(
+    (dashboard.clientes as Array<{ id: string; whatsapp: string }>).map((c) => [c.id, c.whatsapp]));
+
+  /** Link wa.me de refuerzo manual (recordatorio o reseña según estado). */
+  function linkRefuerzo(turno: TurnoRow): string | null
+  {
+    const whatsapp = whatsappPorCliente.get(turno.cliente_id);
+
+    if (whatsapp === undefined)
+    {
+      return null;
+    }
+
+    const datos = {
+      negocio: negocioNombre,
+      servicio: nombrePorServicio.get(turno.servicio_id) ?? "tu servicio",
+      profesional: nombrePorStaff.get(turno.staff_id) ?? "tu profesional",
+      fecha: formatearInicio(turno.inicio, timeZone),
+    };
+
+    if (turno.estado === "pagado" || turno.estado === "confirmado")
+    {
+      return linkWhatsapp(whatsapp, textoWhatsapp("recordatorio", {
+        subject: typeof negocioRow.msg_recordatorio_subject === "string"
+          ? negocioRow.msg_recordatorio_subject
+          : null,
+        cuerpo: typeof negocioRow.msg_recordatorio_cuerpo === "string"
+          ? negocioRow.msg_recordatorio_cuerpo
+          : null,
+      }, datos));
+    }
+
+    if (turno.estado === "completado" && base !== null)
+    {
+      return linkWhatsapp(whatsapp, textoWhatsapp("resena", {
+        subject: typeof negocioRow.msg_resena_subject === "string" ? negocioRow.msg_resena_subject : null,
+        cuerpo: typeof negocioRow.msg_resena_cuerpo === "string" ? negocioRow.msg_resena_cuerpo : null,
+      }, datos, `${base}/resena/${turno.id}`));
+    }
+
+    return null;
+  }
 
   const hoy = new Date();
   const externos = await calendarService.getExternalEventsForNegocio(
@@ -169,6 +222,22 @@ export default async function AgendaPage()
                         </form>
                       </>
                     ) : null}
+                    {(() =>
+                    {
+                      const wa = linkRefuerzo(turno);
+
+                      return wa !== null ? (
+                        <a
+                          href={wa}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                            border-green-300 text-green-700 hover:bg-green-50"
+                        >
+                          WhatsApp
+                        </a>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               ))}

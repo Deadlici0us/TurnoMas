@@ -1,11 +1,15 @@
 import Link from "next/link";
 
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
-import { actualizarHorariosNegocio, actualizarNombreNegocio, actualizarPoliticaListaNegra,
-  actualizarPoliticaSena, actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
+import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
+  actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
+  actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
+  actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import type { TipoPlantilla } from "@/lib/notifications/custom-templates";
+import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -48,6 +52,51 @@ async function guardarSena(formData: FormData): Promise<void>
   "use server";
 
   await actualizarPoliticaSena(Number(formData.get("retencionHs")));
+}
+
+async function guardarRecordatorios(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await actualizarPoliticaRecordatorios(
+    formData.get("recordatorioActivo") === "on", Number(formData.get("recordatorioHs")));
+}
+
+async function guardarResenas(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await actualizarPoliticaResenas(
+    formData.get("resenaActiva") === "on", Number(formData.get("resenaHs")));
+}
+
+async function guardarRemarketing(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await actualizarPoliticaRemarketing(
+    formData.get("remarketingActivo") === "on", Number(formData.get("remarketingDias")));
+}
+
+async function guardarPlantilla(tipo: TipoPlantilla, formData: FormData): Promise<void>
+{
+  "use server";
+
+  const subject = formData.get("subject");
+  const cuerpo = formData.get("cuerpo");
+
+  await actualizarPlantillaMensaje(tipo,
+    typeof subject === "string" ? subject : null,
+    typeof cuerpo === "string" ? cuerpo : null);
+}
+
+async function guardarMaps(formData: FormData): Promise<void>
+{
+  "use server";
+
+  const url = formData.get("mapsUrl");
+
+  await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
 }
 
 async function guardarTokenMp(formData: FormData): Promise<void>
@@ -105,10 +154,24 @@ export default async function ConfigPage()
   const negocio = dashboard.negocio as {
     nombre?: string; pais?: string; slug?: string; horarios?: unknown; timezone?: unknown;
     blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra; sena_retencion_hs?: number;
+    recordatorio_activo?: boolean; recordatorio_hs?: number;
+    resena_activa?: boolean; resena_hs?: number;
+    remarketing_activo?: boolean; remarketing_dias?: number;
+    msg_confirmacion_subject?: string | null; msg_confirmacion_cuerpo?: string | null;
+    msg_recordatorio_subject?: string | null; msg_recordatorio_cuerpo?: string | null;
+    msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
+    msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
+    google_maps_url?: string | null;
   };
   const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
   const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
   const retencionHs = typeof negocio.sena_retencion_hs === "number" ? negocio.sena_retencion_hs : 72;
+  const recordatorioActivo = negocio.recordatorio_activo !== false;
+  const recordatorioHs = typeof negocio.recordatorio_hs === "number" ? negocio.recordatorio_hs : 24;
+  const resenaActiva = negocio.resena_activa !== false;
+  const resenaHs = typeof negocio.resena_hs === "number" ? negocio.resena_hs : 2;
+  const remarketingActivo = negocio.remarketing_activo !== false;
+  const remarketingDias = typeof negocio.remarketing_dias === "number" ? negocio.remarketing_dias : 30;
   const timezoneActual = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
 
   let mpToken: string | null = null;
@@ -304,6 +367,189 @@ export default async function ConfigPage()
             Guardar
           </button>
         </form>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Recordatorios automáticos</h2>
+        <form action={guardarRecordatorios} className="space-y-3">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              name="recordatorioActivo"
+              defaultChecked={recordatorioActivo}
+              className="w-4 h-4"
+            />
+            Enviar recordatorio antes del turno
+          </label>
+          <label className="block text-sm text-slate-600">
+            Horas antes del turno
+            <input
+              type="number"
+              name="recordatorioHs"
+              min={1}
+              max={72}
+              defaultValue={recordatorioHs}
+              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar
+          </button>
+        </form>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Reseñas</h2>
+        <p className="text-xs text-slate-500">Solo llega a clientes con email. El email sigue opcional en la reserva.</p>
+        <form action={guardarResenas} className="space-y-3">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              name="resenaActiva"
+              defaultChecked={resenaActiva}
+              className="w-4 h-4"
+            />
+            Pedir reseña después del turno
+          </label>
+          <label className="block text-sm text-slate-600">
+            Horas después del fin
+            <input
+              type="number"
+              name="resenaHs"
+              min={1}
+              max={72}
+              defaultValue={resenaHs}
+              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar
+          </button>
+        </form>
+        {resenaActiva ? (
+          <form action={guardarMaps} className="space-y-3">
+            <label className="block text-sm text-slate-600">
+              Link de Google Maps (4-5 estrellas derivan acá)
+              <input
+                type="url"
+                name="mapsUrl"
+                defaultValue={negocio.google_maps_url ?? ""}
+                placeholder="https://maps.app.goo.gl/..."
+                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </label>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                hover:bg-blue-700 transition-colors"
+            >
+              Guardar link
+            </button>
+          </form>
+        ) : null}
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Remarketing</h2>
+        <p className="text-xs text-slate-500">
+          Solo llega a clientes con email. Cada servicio puede tener sus propios días.
+        </p>
+        <form action={guardarRemarketing} className="space-y-3">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              name="remarketingActivo"
+              defaultChecked={remarketingActivo}
+              className="w-4 h-4"
+            />
+            Invitar a renovar después del turno
+          </label>
+          <label className="block text-sm text-slate-600">
+            Días por defecto (cada servicio puede overridear)
+            <input
+              type="number"
+              name="remarketingDias"
+              min={1}
+              max={90}
+              defaultValue={remarketingDias}
+              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar
+          </button>
+        </form>
+      </section>
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-slate-900">Mensajes</h2>
+          <p className="text-xs text-slate-500">
+            Personalizá subject y cuerpo. Variables: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
+            Vacío = mensaje default. Recomendá el refuerzo por WhatsApp desde Agenda y Clientes.
+          </p>
+        </div>
+        {([
+          { tipo: "confirmacion", titulo: "Confirmación de reserva" },
+          { tipo: "recordatorio", titulo: "Recordatorio" },
+          { tipo: "resena", titulo: "Pedido de reseña" },
+          { tipo: "remarketing", titulo: "Remarketing" },
+        ] as const).map(({ tipo, titulo }) =>
+        {
+          const key = `msg_${tipo}` as const;
+          const subject = negocio[`${key}_subject` as keyof typeof negocio] as string | null | undefined;
+          const cuerpo = negocio[`${key}_cuerpo` as keyof typeof negocio] as string | null | undefined;
+
+          return (
+            <form key={tipo} action={guardarPlantilla.bind(null, tipo as TipoPlantilla)} className="space-y-3
+              p-4 border border-slate-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
+              <label className="block text-sm text-slate-600">
+                Asunto
+                <input
+                  type="text"
+                  name="subject"
+                  maxLength={120}
+                  defaultValue={subject ?? ""}
+                  placeholder="Vacío = default"
+                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+              <label className="block text-sm text-slate-600">
+                Cuerpo
+                <textarea
+                  name="cuerpo"
+                  rows={4}
+                  maxLength={2000}
+                  defaultValue={cuerpo ?? ""}
+                  placeholder="Vacío = default"
+                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+              <button
+                type="submit"
+                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                  hover:bg-blue-700 transition-colors"
+              >
+                Guardar
+              </button>
+            </form>
+          );
+        })}
       </section>
       <section className="space-y-3">
         <h2 className="font-semibold text-slate-900">Conexiones</h2>

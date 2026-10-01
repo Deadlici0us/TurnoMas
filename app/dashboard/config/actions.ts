@@ -22,6 +22,11 @@ import { readEnv } from "@/lib/env/env";
 import { validarHorariosStaff } from "@/lib/staff/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
 import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy";
+import { REMARKETING_MAX_DIAS, REMARKETING_MIN_DIAS } from "@/lib/automations/remarketing";
+import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/recordatorios";
+import { RESENA_MAX_HS, RESENA_MIN_HS } from "@/lib/automations/resenas";
+import type { TipoPlantilla } from "@/lib/notifications/custom-templates";
+import { normalizarTextoPlantilla, validarGoogleMapsUrl } from "@/lib/notifications/custom-templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -85,6 +90,191 @@ export async function actualizarPoliticaSena(retencionHs: number): Promise<void>
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("negocios")
     .update({ sena_retencion_hs: retencionHs }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Lee el negocio del dueño o lanza si no existe. */
+async function exigirNegocioDelDueno(admin: ReturnType<typeof getSupabaseAdmin>, userId: string)
+{
+  const { data: negocio } = await admin.from("negocios").select("id, resena_activa")
+    .eq("duenio_id", userId).single();
+
+  if (negocio === null)
+  {
+    throw new Error("No encontramos tu negocio.");
+  }
+
+  return negocio as { id: string; resena_activa?: unknown };
+}
+
+/** Actualiza recordatorios automáticos del negocio (toggle + ventana). */
+export async function actualizarPoliticaRecordatorios(activo: boolean, hs: number): Promise<void>
+{
+  if (!Number.isInteger(hs) || hs < RECORDATORIO_MIN_HS || hs > RECORDATORIO_MAX_HS)
+  {
+    throw new RangeError(
+      `El recordatorio debe ser un entero entre ${RECORDATORIO_MIN_HS} y ${RECORDATORIO_MAX_HS} horas.`);
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ recordatorio_activo: activo, recordatorio_hs: hs }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Actualiza el pedido de reseñas del negocio (toggle + demora). */
+export async function actualizarPoliticaResenas(activa: boolean, hs: number): Promise<void>
+{
+  if (!Number.isInteger(hs) || hs < RESENA_MIN_HS || hs > RESENA_MAX_HS)
+  {
+    throw new RangeError(`La reseña debe ser un entero entre ${RESENA_MIN_HS} y ${RESENA_MAX_HS} horas.`);
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ resena_activa: activa, resena_hs: hs }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Actualiza el remarketing del negocio (toggle + default de días). */
+export async function actualizarPoliticaRemarketing(activo: boolean, dias: number): Promise<void>
+{
+  if (!Number.isInteger(dias) || dias < REMARKETING_MIN_DIAS || dias > REMARKETING_MAX_DIAS)
+  {
+    throw new RangeError(
+      `El remarketing debe ser un entero entre ${REMARKETING_MIN_DIAS} y ${REMARKETING_MAX_DIAS} días.`);
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ remarketing_activo: activo, remarketing_dias: dias }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+const TIPOS_PLANTILLA: Record<TipoPlantilla, { subject: string; cuerpo: string }> = {
+  confirmacion: { subject: "msg_confirmacion_subject", cuerpo: "msg_confirmacion_cuerpo" },
+  recordatorio: { subject: "msg_recordatorio_subject", cuerpo: "msg_recordatorio_cuerpo" },
+  resena: { subject: "msg_resena_subject", cuerpo: "msg_resena_cuerpo" },
+  remarketing: { subject: "msg_remarketing_subject", cuerpo: "msg_remarketing_cuerpo" },
+};
+
+/** Guarda la plantilla personalizada de un tipo de mensaje (null = default). */
+export async function actualizarPlantillaMensaje(
+  tipo: TipoPlantilla,
+  subject: string | null,
+  cuerpo: string | null,
+): Promise<void>
+{
+  const columnas = TIPOS_PLANTILLA[tipo];
+
+  if (columnas === undefined)
+  {
+    throw new RangeError("Ese tipo de mensaje no existe.");
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios").update({
+    [columnas.subject]: normalizarTextoPlantilla(subject, 120),
+    [columnas.cuerpo]: normalizarTextoPlantilla(cuerpo, 2000),
+  }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Guarda el link de Google Maps (solo editable con reseñas activas). */
+export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
+{
+  const valor = validarGoogleMapsUrl(url);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocio = await exigirNegocioDelDueno(admin, user.id);
+
+  if (negocio.resena_activa === false && valor !== null)
+  {
+    throw new RangeError("Activá las reseñas para guardar el link de Google Maps.");
+  }
+
+  const { error } = await admin.from("negocios")
+    .update({ google_maps_url: valor }).eq("duenio_id", user.id);
 
   if (error !== null)
   {

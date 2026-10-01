@@ -14,18 +14,41 @@ export interface TurnoParaResena
 
 export type DestinoResena = "google-maps" | "feedback-interno";
 
-const MS_PER_HOUR = 3_600_000;
-const REVIEW_DELAY_HOURS = 2;
+export const RESENA_DEFAULT_HS = 2;
+export const RESENA_MIN_HS = 1;
+export const RESENA_MAX_HS = 72;
 
-/** Indica si corresponde pedir la reseña 2h después del fin. */
-export function shouldAskReview(turno: TurnoParaResena, ahora: Date): boolean
+/** Normaliza la demora de pedido de reseña del negocio (default 2hs). */
+export function resolverResenaHs(valor: unknown): number
+{
+  if (typeof valor !== "number" || !Number.isFinite(valor))
+  {
+    return RESENA_DEFAULT_HS;
+  }
+
+  const entero = Math.floor(valor);
+
+  if (entero < RESENA_MIN_HS || entero > RESENA_MAX_HS)
+  {
+    return RESENA_DEFAULT_HS;
+  }
+
+  return entero;
+}
+
+/** Indica si corresponde pedir la reseña tras la demora configurada. */
+export function shouldAskReview(
+  turno: TurnoParaResena,
+  ahora: Date,
+  demoraHs: number = RESENA_DEFAULT_HS,
+): boolean
 {
   if (turno.resenaPedida)
   {
     return false;
   }
 
-  return ahora.getTime() - turno.fin.getTime() >= REVIEW_DELAY_HOURS * MS_PER_HOUR;
+  return ahora.getTime() - turno.fin.getTime() >= resolverResenaHs(demoraHs) * 3_600_000;
 }
 
 /** Resuelve el destino de la reseña según las estrellas. */

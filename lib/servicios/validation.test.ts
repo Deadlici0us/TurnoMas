@@ -24,6 +24,8 @@ describe("validarServicio",
       precioPromocional: null,
       senaRequerida: true,
       senaPorcentaje: 50,
+      remarketingActivo: true,
+      remarketingDias: null,
     });
   });
 
@@ -69,5 +71,21 @@ describe("validarServicio",
   {
     expect(() => validarServicio({ ...BASE, precioPromocional: 1500000 })).toThrow(RangeError);
     expect(() => validarServicio({ ...BASE, precioPromocional: 9999999 })).toThrow(RangeError);
+  });
+
+  it("debería aceptar remarketing con días por servicio y desactivado",
+  () =>
+  {
+    expect(validarServicio({ ...BASE, remarketingDias: 45 }).remarketingDias).toBe(45);
+    expect(validarServicio({ ...BASE, remarketingActivo: false }).remarketingActivo).toBe(false);
+    expect(validarServicio({ ...BASE, remarketingActivo: false, remarketingDias: 45 }).remarketingDias)
+      .toBeNull();
+  });
+
+  it("debería rechazar días de remarketing fuera de 1 a 90",
+  () =>
+  {
+    expect(() => validarServicio({ ...BASE, remarketingDias: 0 })).toThrow(RangeError);
+    expect(() => validarServicio({ ...BASE, remarketingDias: 91 })).toThrow(RangeError);
   });
 });

@@ -11,6 +11,8 @@ interface ServicioRow
   readonly precio_promocional: number | null;
   readonly sena_requerida: boolean;
   readonly sena_porcentaje: number;
+  readonly remarketing?: boolean | null;
+  readonly remarketing_dias?: number | null;
   readonly activo?: boolean | null;
 }
 
@@ -84,6 +86,9 @@ export default async function ServiciosPage()
                     <span>Promo: $ {servicio.precio_promocional.toLocaleString("es-AR")}</span>
                   )}
                   <span>{servicio.sena_requerida ? `Seña ${servicio.sena_porcentaje}%` : "Sin seña"}</span>
+                  <span>{servicio.remarketing === false
+                    ? "Sin remarketing"
+                    : `Remarketing ${servicio.remarketing_dias ?? 30}d`}</span>
                 </div>
               </div>
             </div>

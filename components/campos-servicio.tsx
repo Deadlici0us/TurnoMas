@@ -10,6 +10,8 @@ export interface CamposServicioValue
   readonly precio_promocional?: number | null;
   readonly sena_requerida?: boolean;
   readonly sena_porcentaje?: number;
+  readonly remarketing?: boolean | null;
+  readonly remarketing_dias?: number | null;
 }
 
 /**
@@ -22,6 +24,7 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
   const [exigeSena, setExigeSena] = useState(servicio?.sena_requerida ?? true);
   const [promoActiva, setPromoActiva] = useState(servicio?.precio_promocional !== null
     && servicio?.precio_promocional !== undefined);
+  const [remarketingActivo, setRemarketingActivo] = useState(servicio?.remarketing !== false);
 
   const inputBase = "mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none"
     + " focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
@@ -107,6 +110,29 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
           defaultValue={servicio?.sena_porcentaje ?? 50}
           placeholder={exigeSena ? "0 a 100" : "Sin seña"}
           className={`${inputBase}${exigeSena ? "" : inputDeshabilitado}`}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          name="remarketingActivo"
+          checked={remarketingActivo}
+          onChange={(event) => setRemarketingActivo(event.target.checked)}
+          className="w-4 h-4"
+        />
+        Remarketing
+      </label>
+      <label className="block text-sm text-slate-600">
+        Remarketing (días)
+        <input
+          type="number"
+          name="remarketingDias"
+          min={1}
+          max={90}
+          disabled={!remarketingActivo}
+          defaultValue={servicio?.remarketing_dias ?? ""}
+          placeholder={remarketingActivo ? "Vacío = 30 del negocio" : "Desactivado"}
+          className={`${inputBase}${remarketingActivo ? "" : inputDeshabilitado}`}
         />
       </label>
     </div>

@@ -14,6 +14,33 @@ export interface TurnoParaRemarketing
 
 const MS_PER_DAY = 86_400_000;
 
+export const REMARKETING_DEFAULT_DIAS = 30;
+export const REMARKETING_MIN_DIAS = 1;
+export const REMARKETING_MAX_DIAS = 90;
+
+/**
+ * Resuelve los días efectivos de remarketing: el servicio manda
+ * (`servicios.remarketing_dias`), si es null hereda el default del
+ * negocio (`negocios.remarketing_dias`), y ante valor inválido cae a 30.
+ */
+export function resolverRemarketingDias(valorServicio: unknown, valorNegocio: unknown): number
+{
+  for (const candidato of [valorServicio, valorNegocio])
+  {
+    if (typeof candidato === "number" && Number.isFinite(candidato))
+    {
+      const entero = Math.floor(candidato);
+
+      if (entero >= REMARKETING_MIN_DIAS && entero <= REMARKETING_MAX_DIAS)
+      {
+        return entero;
+      }
+    }
+  }
+
+  return REMARKETING_DEFAULT_DIAS;
+}
+
 /** Indica si corresponde enviar el mensaje de remarketing. */
 export function shouldSendRemarketing(
   turno: TurnoParaRemarketing,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldSendRemarketing } from "./remarketing";
+import { resolverRemarketingDias, shouldSendRemarketing } from "./remarketing";
 
 const AHORA = new Date("2026-09-28T10:00:00Z");
 
@@ -38,5 +38,14 @@ describe("shouldSendRemarketing",
 
     expect(() => shouldSendRemarketing({ fin, remarketingEnviado: false }, AHORA, 0))
       .toThrow(RangeError);
+  });
+
+  it("debería preferir los días del servicio y heredar los del negocio",
+  () =>
+  {
+    expect(resolverRemarketingDias(45, 30)).toBe(45);
+    expect(resolverRemarketingDias(null, 30)).toBe(30);
+    expect(resolverRemarketingDias(undefined, undefined)).toBe(30);
+    expect(resolverRemarketingDias(0, 200)).toBe(30);
   });
 });

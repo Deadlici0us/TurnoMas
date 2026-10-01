@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveReviewDestination, shouldAskReview } from "./resenas";
+import { resolverResenaHs, resolveReviewDestination, shouldAskReview } from "./resenas";
 
 const AHORA = new Date("2026-09-28T10:00:00Z");
 
@@ -23,12 +23,22 @@ describe("shouldAskReview",
     expect(shouldAskReview({ fin, resenaPedida: false }, AHORA)).toBe(false);
   });
 
-  it("debería conservar cuando ya fue pedida",
+  it("debería respetar la demora configurable del negocio",
   () =>
   {
-    const fin = new Date("2026-09-28T05:00:00Z");
+    const fin = new Date("2026-09-28T06:00:00Z");
 
-    expect(shouldAskReview({ fin, resenaPedida: true }, AHORA)).toBe(false);
+    expect(shouldAskReview({ fin, resenaPedida: false }, AHORA, 4)).toBe(true);
+    expect(shouldAskReview({ fin, resenaPedida: false }, AHORA, 5)).toBe(false);
+  });
+
+  it("debería normalizar demoras inválidas a 2hs",
+  () =>
+  {
+    expect(resolverResenaHs(undefined)).toBe(2);
+    expect(resolverResenaHs(0)).toBe(2);
+    expect(resolverResenaHs(100)).toBe(2);
+    expect(resolverResenaHs(6)).toBe(6);
   });
 });
 

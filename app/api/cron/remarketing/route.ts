@@ -12,8 +12,9 @@
 import { NextResponse } from "next/server";
 
 import { shouldSendRemarketing } from "@/lib/automations/remarketing";
+import { resolverRemarketingDias } from "@/lib/automations/remarketing";
 import { readEnv } from "@/lib/env/env";
-import { plantillaRemarketing } from "@/lib/notifications/templates";
+import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
@@ -27,8 +28,14 @@ interface TurnoCandidato
   readonly inicio: string;
   readonly fin: string | null;
   readonly remarketing_enviado: boolean;
-  readonly negocio: { nombre: string; pais: string; slug: string } | null;
-  readonly servicio: { nombre: string; remarketing: boolean } | null;
+  readonly negocio: {
+    nombre: string; pais: string; slug: string;
+    remarketing_activo?: boolean | null; remarketing_dias?: number | null;
+    msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
+  } | null;
+  readonly servicio: {
+    nombre: string; remarketing: boolean; remarketing_dias?: number | null;
+  } | null;
   readonly staff: { nombre: string } | null;
   readonly cliente: { email: string | null } | null;
 }
@@ -76,17 +83,22 @@ export async function POST(request: Request)
 
   const ahora = new Date();
   const { data } = await admin.from("turnos")
-    .select("id, inicio, fin, remarketing_enviado, negocio:negocios(nombre, pais, slug)," +
-      " servicio:servicios(nombre, remarketing), staff:staff(nombre), cliente:clientes(email)")
+    .select("id, inicio, fin, remarketing_enviado," +
+      " negocio:negocios(nombre, pais, slug, remarketing_activo, remarketing_dias," +
+      " msg_remarketing_subject, msg_remarketing_cuerpo)," +
+      " servicio:servicios(nombre, remarketing, remarketing_dias)," +
+      " staff:staff(nombre), cliente:clientes(email)")
     .eq("estado", "completado").eq("remarketing_enviado", false)
     .limit(LIMITE_BARRIDO);
 
   const candidatos = ((data ?? []) as unknown as TurnoCandidato[])
+    .filter((t) => t.negocio?.remarketing_activo !== false)
     .filter((t) => t.servicio?.remarketing !== false)
     .filter((t) => shouldSendRemarketing({
       fin: new Date(t.fin ?? t.inicio),
       remarketingEnviado: t.remarketing_enviado,
-    }, ahora, diasEspera))
+    }, ahora, resolverRemarketingDias(
+      t.servicio?.remarketing_dias, t.negocio?.remarketing_dias ?? diasEspera)))
     .filter((t) => typeof t.cliente?.email === "string" && t.cliente.email.length > 0);
 
   const email = new ResendAdapter();
@@ -99,13 +111,15 @@ export async function POST(request: Request)
       const portalUrl = turno.negocio !== null
         ? `/${turno.negocio.pais}/${turno.negocio.slug}`
         : "/";
-      const plantilla = plantillaRemarketing({
+      const plantilla = resolverPlantilla("remarketing", {
+        subject: turno.negocio?.msg_remarketing_subject ?? null,
+        cuerpo: turno.negocio?.msg_remarketing_cuerpo ?? null,
+      }, {
         negocio: turno.negocio?.nombre ?? "tu negocio",
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: "",
-        portalUrl,
-      });
+      }, portalUrl);
 
       await email.send({
         to: turno.cliente?.email as string,

@@ -12,8 +12,9 @@
 import { NextResponse } from "next/server";
 
 import { shouldAskReview } from "@/lib/automations/resenas";
+import { resolverResenaHs } from "@/lib/automations/resenas";
 import { readEnv } from "@/lib/env/env";
-import { plantillaResena } from "@/lib/notifications/templates";
+import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
@@ -26,7 +27,11 @@ interface TurnoCandidato
   readonly inicio: string;
   readonly fin: string | null;
   readonly resena_pedida: boolean;
-  readonly negocio: { nombre: string } | null;
+  readonly negocio: {
+    nombre: string;
+    resena_activa?: boolean | null; resena_hs?: number | null;
+    msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
+  } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
   readonly cliente: { email: string | null } | null;
@@ -80,16 +85,18 @@ export async function POST(request: Request)
 
   const ahora = new Date();
   const { data } = await admin.from("turnos")
-    .select("id, inicio, fin, resena_pedida, negocio:negocios(nombre)," +
+    .select("id, inicio, fin, resena_pedida," +
+      " negocio:negocios(nombre, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
     .eq("estado", "completado").eq("resena_pedida", false)
     .limit(LIMITE_BARRIDO);
 
   const candidatos = ((data ?? []) as unknown as TurnoCandidato[])
+    .filter((t) => t.negocio?.resena_activa !== false)
     .filter((t) => shouldAskReview({
       fin: new Date(t.fin ?? t.inicio),
       resenaPedida: t.resena_pedida,
-    }, ahora))
+    }, ahora, resolverResenaHs(t.negocio?.resena_hs)))
     .filter((t) => typeof t.cliente?.email === "string" && t.cliente.email.length > 0);
 
   const email = new ResendAdapter();
@@ -99,13 +106,16 @@ export async function POST(request: Request)
   {
     try
     {
-      const plantilla = plantillaResena({
+      const datos = {
         negocio: turno.negocio?.nombre ?? "tu negocio",
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: "",
-        resenaUrl: `${base}/resena/${turno.id}`,
-      });
+      };
+      const plantilla = resolverPlantilla("resena", {
+        subject: turno.negocio?.msg_resena_subject ?? null,
+        cuerpo: turno.negocio?.msg_resena_cuerpo ?? null,
+      }, datos, `${base}/resena/${turno.id}`);
 
       await email.send({
         to: turno.cliente?.email as string,

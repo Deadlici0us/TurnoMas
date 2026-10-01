@@ -1,9 +1,10 @@
 /**
- * Recordatorios 24h antes (Módulo 5): decide si corresponde enviar
+ * Recordatorios antes del turno (Módulo 5): decide si corresponde enviar
  * el recordatorio de un turno aún no notificado.
  *
- * Función pura para facilitar TDD; el Route Handler llamado por QStash
- * la usará para filtrar turnos próximos.
+ * La ventana es configurable por negocio (`negocios.recordatorio_hs`,
+ * default 24). Función pura para facilitar TDD; el Route Handler llamado
+ * por QStash la usará para filtrar turnos próximos.
  */
 
 export interface TurnoParaRecordar
@@ -12,11 +13,34 @@ export interface TurnoParaRecordar
   readonly notificacionEnviada: boolean;
 }
 
-const MS_PER_HOUR = 3_600_000;
-const REMINDER_WINDOW_HOURS = 24;
+export const RECORDATORIO_DEFAULT_HS = 24;
+export const RECORDATORIO_MIN_HS = 1;
+export const RECORDATORIO_MAX_HS = 72;
 
-/** Indica si corresponde enviar el recordatorio 24h antes. */
-export function shouldSendReminder(turno: TurnoParaRecordar, ahora: Date): boolean
+/** Normaliza la ventana de recordatorio del negocio (default 24hs). */
+export function resolverRecordatorioHs(valor: unknown): number
+{
+  if (typeof valor !== "number" || !Number.isFinite(valor))
+  {
+    return RECORDATORIO_DEFAULT_HS;
+  }
+
+  const entero = Math.floor(valor);
+
+  if (entero < RECORDATORIO_MIN_HS || entero > RECORDATORIO_MAX_HS)
+  {
+    return RECORDATORIO_DEFAULT_HS;
+  }
+
+  return entero;
+}
+
+/** Indica si corresponde enviar el recordatorio dentro de la ventana. */
+export function shouldSendReminder(
+  turno: TurnoParaRecordar,
+  ahora: Date,
+  ventanaHs: number = RECORDATORIO_DEFAULT_HS,
+): boolean
 {
   if (turno.notificacionEnviada)
   {
@@ -25,5 +49,5 @@ export function shouldSendReminder(turno: TurnoParaRecordar, ahora: Date): boole
 
   const diffMs = turno.inicio.getTime() - ahora.getTime();
 
-  return diffMs > 0 && diffMs <= REMINDER_WINDOW_HOURS * MS_PER_HOUR;
+  return diffMs > 0 && diffMs <= resolverRecordatorioHs(ventanaHs) * 3_600_000;
 }

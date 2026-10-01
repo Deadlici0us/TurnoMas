@@ -45,6 +45,18 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     senaPorcentaje: !senaRequerida || senaCruda === null || String(senaCruda).trim().length === 0
       ? 0
       : exigirNumeroCrudo(senaCruda),
+    remarketingActivo: formData.get("remarketingActivo"),
+    remarketingDias: (() =>
+    {
+      const cruda = formData.get("remarketingDias");
+
+      if (cruda === null || String(cruda).trim().length === 0)
+      {
+        return null;
+      }
+
+      return exigirNumeroCrudo(cruda);
+    })(),
   } satisfies ServicioInput);
 
   await assertModoEditable();
@@ -72,6 +84,8 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     precio_promocional: servicio.precioPromocional,
     sena_requerida: servicio.senaRequerida,
     sena_porcentaje: servicio.senaPorcentaje,
+    remarketing: servicio.remarketingActivo,
+    remarketing_dias: servicio.remarketingDias,
   };
 
   const { error } = servicioId === null

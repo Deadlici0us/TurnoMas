@@ -14,8 +14,9 @@
 import { NextResponse } from "next/server";
 
 import { shouldSendReminder } from "@/lib/automations/recordatorios";
+import { resolverRecordatorioHs } from "@/lib/automations/recordatorios";
 import { readEnv } from "@/lib/env/env";
-import { plantillaRecordatorio } from "@/lib/notifications/templates";
+import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
@@ -28,7 +29,11 @@ interface TurnoCandidato
   readonly id: string;
   readonly inicio: string;
   readonly notificacion_enviada: boolean;
-  readonly negocio: { nombre: string; timezone?: unknown; pais?: unknown } | null;
+  readonly negocio: {
+    nombre: string; timezone?: unknown; pais?: unknown;
+    recordatorio_activo?: boolean | null; recordatorio_hs?: number | null;
+    msg_recordatorio_subject?: string | null; msg_recordatorio_cuerpo?: string | null;
+  } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
   readonly cliente: { email: string | null } | null;
@@ -68,17 +73,21 @@ export async function POST(request: Request)
   }
 
   const ahora = new Date();
-  const ventana = new Date(ahora.getTime() + 24 * 3_600_000).toISOString();
+  const ventanaMax = new Date(ahora.getTime() + 72 * 3_600_000).toISOString();
   const { data } = await admin.from("turnos")
-    .select("id, inicio, notificacion_enviada, negocio:negocios(nombre, timezone, pais)," +
+    .select("id, inicio, notificacion_enviada," +
+      " negocio:negocios(nombre, timezone, pais, recordatorio_activo, recordatorio_hs," +
+      " msg_recordatorio_subject, msg_recordatorio_cuerpo)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
     .in("estado", ["pagado", "confirmado"]).eq("notificacion_enviada", false)
-    .gte("inicio", ahora.toISOString()).lte("inicio", ventana)
+    .gte("inicio", ahora.toISOString()).lte("inicio", ventanaMax)
     .limit(LIMITE_BARRIDO);
 
   const candidatos = ((data ?? []) as unknown as TurnoCandidato[])
+    .filter((t) => t.negocio?.recordatorio_activo !== false)
     .filter((t) => shouldSendReminder(
-      { inicio: new Date(t.inicio), notificacionEnviada: t.notificacion_enviada }, ahora))
+      { inicio: new Date(t.inicio), notificacionEnviada: t.notificacion_enviada },
+      ahora, resolverRecordatorioHs(t.negocio?.recordatorio_hs)))
     .filter((t) => typeof t.cliente?.email === "string" && t.cliente.email.length > 0);
 
   const email = new ResendAdapter();
@@ -89,12 +98,16 @@ export async function POST(request: Request)
     try
     {
       const timeZone = resolverTimezoneNegocio({ timezone: turno.negocio?.timezone, pais: turno.negocio?.pais });
-      const plantilla = plantillaRecordatorio({
+      const datos = {
         negocio: turno.negocio?.nombre ?? "tu negocio",
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
-      });
+      };
+      const plantilla = resolverPlantilla("recordatorio", {
+        subject: turno.negocio?.msg_recordatorio_subject ?? null,
+        cuerpo: turno.negocio?.msg_recordatorio_cuerpo ?? null,
+      }, datos);
 
       await email.send({
         to: turno.cliente?.email as string,
