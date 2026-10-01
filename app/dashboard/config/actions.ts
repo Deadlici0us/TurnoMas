@@ -21,6 +21,7 @@ import { ResendAdapter } from "@/lib/ports/email";
 import { readEnv } from "@/lib/env/env";
 import { validarHorariosStaff } from "@/lib/staff/validation";
 import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
+import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -54,6 +55,36 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
   const admin = getSupabaseAdmin();
   const { error } = await admin.from("negocios")
     .update({ blacklist_umbral: umbral, blacklist_penalidad: penalidad }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/** Actualiza la ventana de retención de seña del negocio (default 72hs). */
+export async function actualizarPoliticaSena(retencionHs: number): Promise<void>
+{
+  if (!Number.isInteger(retencionHs) || retencionHs < RETENCION_MIN_HS || retencionHs > RETENCION_MAX_HS)
+  {
+    throw new RangeError(`La retención debe ser un entero entre ${RETENCION_MIN_HS} y ${RETENCION_MAX_HS} horas.`);
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ sena_retencion_hs: retencionHs }).eq("duenio_id", user.id);
 
   if (error !== null)
   {

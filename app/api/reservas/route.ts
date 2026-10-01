@@ -273,20 +273,45 @@ export async function POST(request: Request)
       senaForzadaPorListaNegra: decision === "fullDeposit",
     });
 
-    const { data: turnosExistentes } = await admin.from("turnos").select("inicio, servicio_id")
-      .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date().toISOString());
+    const GRACIA_MS = 15 * 60_000;
+    const ahoraMs = Date.now();
+    const { data: turnosExistentes } = await admin.from("turnos")
+      .select("inicio, servicio_id, estado, created_at")
+      .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date(ahoraMs).toISOString());
     const { data: serviciosTodos } = await admin.from("servicios")
       .select("id, duracion_min").eq("negocio_id", negocioId);
     const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
       id: string; duracion_min: number;
     }) => [s.id, s]));
-    const bloqueos = ((turnosExistentes ?? []) as Array<{ inicio: string; servicio_id: string }>).map((t) =>
-    {
-      const ref = duracionPorServicio.get(t.servicio_id);
+    // Solo confirmado/pagado bloquea agenda. El pendiente solo retiene el slot
+    // durante la gracia de pago (15min); vencido se libera y el antifantasma
+    // lo cancela (opción A: cancelación dura, sin lista "por cobrar").
+    const bloqueos = ((turnosExistentes ?? []) as Array<{
+      inicio: string; servicio_id: string; estado: string; created_at: string;
+    }>)
+      .filter((t) =>
+      {
+        if (t.estado === "confirmado" || t.estado === "pagado")
+        {
+          return true;
+        }
 
-      return getBlockedInterval(new Date(t.inicio),
-        ref?.duracion_min ?? servicioRow.duracion_min);
-    });
+        if (t.estado !== "pendiente")
+        {
+          return false;
+        }
+
+        const creado = new Date(t.created_at).getTime();
+
+        return !Number.isNaN(creado) && ahoraMs - creado < GRACIA_MS;
+      })
+      .map((t) =>
+      {
+        const ref = duracionPorServicio.get(t.servicio_id);
+
+        return getBlockedInterval(new Date(t.inicio),
+          ref?.duracion_min ?? servicioRow.duracion_min);
+      });
 
     const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
       negocioId, inicioDelDia(inicio), finDelDia(inicio));
@@ -345,30 +370,35 @@ export async function POST(request: Request)
     const turnoId = turno.id as string;
     const servicioNombre = servicioRow.nombre ?? "tu servicio";
     const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
-    // Sync App → GCal (best-effort): si el dueño conectó Google, inyecta el turno.
-    try
+    // Sync App → GCal (best-effort) solo para turnos confirmados sin seña.
+    // El pendiente con seña NO impacta calendario: el evento se crea al
+    // acreditarse el pago (webhook o marca manual cash).
+    if (!conSena)
     {
-      const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
-        ...buildTurnoEvent({
-          negocio: negocio.nombre as string,
-          servicio: servicioNombre,
-          profesional: staffNombre,
-          cliente: nombre,
-          whatsapp,
-          inicio,
-          fin,
-        }),
-        timeZone,
-      });
-
-      if (gcalEventId !== null)
+      try
       {
-        await admin.from("turnos").update({ google_calendar_event_id: gcalEventId }).eq("id", turnoId);
+        const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
+          ...buildTurnoEvent({
+            negocio: negocio.nombre as string,
+            servicio: servicioNombre,
+            profesional: staffNombre,
+            cliente: nombre,
+            whatsapp,
+            inicio,
+            fin,
+          }),
+          timeZone,
+        });
+
+        if (gcalEventId !== null)
+        {
+          await admin.from("turnos").update({ google_calendar_event_id: gcalEventId }).eq("id", turnoId);
+        }
       }
-    }
-    catch
-    {
-      // Best-effort: la reserva ya existe aunque falle Google.
+      catch
+      {
+        // Best-effort: la reserva ya existe aunque falle Google.
+      }
     }
 
     if (email !== null)

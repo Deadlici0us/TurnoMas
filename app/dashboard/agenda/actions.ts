@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { validarTransicionTurno } from "@/lib/dashboard/estados";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
-import { shouldAutoRefund } from "@/lib/payments/refund-policy";
+import { horasRestantesPara, resolverRetencionHs, shouldAutoRefund } from "@/lib/payments/refund-policy";
 import type { RefundableEstado } from "@/lib/payments/refund-policy";
 import { paymentService } from "@/lib/services/payment";
 import { calendarService } from "@/lib/services/calendar";
@@ -47,7 +47,7 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
 
   const negocioId = negocio.id as string;
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, cliente_id, servicio_id, mp_payment_id, google_calendar_event_id")
+    .select("id, estado, inicio, cliente_id, servicio_id, mp_payment_id, google_calendar_event_id")
     .eq("id", turnoId).eq("negocio_id", negocioId).single();
 
   if (turno === null)
@@ -59,15 +59,30 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
 
   if (nuevo === "cancelado")
   {
-    const turnoRow = turno as { estado?: unknown; servicio_id?: unknown; mp_payment_id?: unknown };
+    const turnoRow = turno as {
+      estado?: unknown; inicio?: unknown; servicio_id?: unknown; mp_payment_id?: unknown;
+    };
     const { data: servicio } = typeof turnoRow.servicio_id === "string"
       ? await admin.from("servicios").select("reembolso_auto")
         .eq("id", turnoRow.servicio_id).single()
       : { data: null };
+    const { data: negocioRow } = await admin.from("negocios").select("sena_retencion_hs")
+      .eq("id", negocioId).single();
     const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
     const mpPaymentId = typeof turnoRow.mp_payment_id === "string" ? turnoRow.mp_payment_id : null;
+    const inicio = typeof turnoRow.inicio === "string" ? new Date(turnoRow.inicio) : null;
+    const horasRestantes = inicio !== null && !Number.isNaN(inicio.getTime())
+      ? horasRestantesPara(inicio, new Date())
+      : null;
 
-    if (shouldAutoRefund({ reembolsoAuto, estado: turno.estado as RefundableEstado, mpPaymentId }))
+    if (shouldAutoRefund({
+      reembolsoAuto,
+      estado: turno.estado as RefundableEstado,
+      mpPaymentId,
+      horasRestantes,
+      retencionHs: resolverRetencionHs(
+        (negocioRow as { sena_retencion_hs?: unknown } | null)?.sena_retencion_hs),
+    }))
     {
       try
       {
@@ -86,6 +101,14 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   if (error !== null)
   {
     throw new Error("No pudimos actualizar el turno. Probá de nuevo.");
+  }
+
+  if (nuevo === "pagado")
+  {
+    // Marca manual cash: el pago acredita la cita y la inyecta en GCal.
+    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
+
+    await crearEventoGoogleParaTurno(turnoId);
   }
 
   if (nuevo === "cancelado")

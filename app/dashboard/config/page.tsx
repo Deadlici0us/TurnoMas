@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarHorariosNegocio, actualizarNombreNegocio, actualizarPoliticaListaNegra,
-  actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
+  actualizarPoliticaSena, actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -41,6 +41,13 @@ async function guardarPolitica(formData: FormData): Promise<void>
   const penalidad = String(formData.get("penalidad") ?? "fullDeposit") as PenalidadListaNegra;
 
   await actualizarPoliticaListaNegra(umbral, penalidad);
+}
+
+async function guardarSena(formData: FormData): Promise<void>
+{
+  "use server";
+
+  await actualizarPoliticaSena(Number(formData.get("retencionHs")));
 }
 
 async function guardarTokenMp(formData: FormData): Promise<void>
@@ -97,10 +104,11 @@ export default async function ConfigPage()
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as {
     nombre?: string; pais?: string; slug?: string; horarios?: unknown; timezone?: unknown;
-    blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra;
+    blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra; sena_retencion_hs?: number;
   };
   const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
   const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
+  const retencionHs = typeof negocio.sena_retencion_hs === "number" ? negocio.sena_retencion_hs : 72;
   const timezoneActual = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
 
   let mpToken: string | null = null;
@@ -260,6 +268,34 @@ export default async function ConfigPage()
               </select>
             </label>
           </div>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar
+          </button>
+        </form>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold text-slate-900">Política de seña</h2>
+        <p className="text-xs text-slate-500">
+          Si se cancela con más anticipación que este umbral, se devuelve la seña.
+          Dentro del umbral, el cliente la pierde.
+        </p>
+        <form action={guardarSena} className="space-y-3">
+          <label className="block text-sm text-slate-600">
+            Horas de retención antes del turno
+            <input
+              type="number"
+              name="retencionHs"
+              min={1}
+              max={720}
+              defaultValue={retencionHs}
+              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
           <button
             type="submit"
             className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg

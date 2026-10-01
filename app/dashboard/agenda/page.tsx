@@ -67,7 +67,9 @@ export default async function AgendaPage()
     })))
     .catch(() => []);
 
-  const turnosGrilla = turnos.map((t) =>
+  // Solo confirmado/pagado impactan el calendario semanal.
+  // El pendiente con seña no va a grilla ni a GCal hasta acreditarse.
+  const turnosGrilla = turnos.filter((t) => t.estado !== "pendiente").map((t) =>
   {
     const inicio = new Date(t.inicio);
     const finReal = t.fin !== null && !Number.isNaN(new Date(t.fin).getTime())

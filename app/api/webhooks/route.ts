@@ -90,6 +90,10 @@ export async function POST(request: Request)
     if (paymentStatus.status === "approved")
     {
       await bookingService.confirmBooking(bookingId, paymentId);
+
+      const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
+
+      await crearEventoGoogleParaTurno(bookingId);
     }
     else if (paymentStatus.status === "rejected" || paymentStatus.status === "cancelled")
     {
