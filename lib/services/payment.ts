@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export class PaymentService
 {
-  private adapter: MercadoPagoAdapter;
+  private readonly adapter: MercadoPagoAdapter;
 
   constructor()
   {

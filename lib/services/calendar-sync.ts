@@ -11,6 +11,27 @@ import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
+/**
+ * Resuelve el fin del turno: usa `finRaw` cuando es válido; si no, suma la
+ * duración del servicio (o 30 minutos por defecto) al inicio.
+ *
+ * @param finRaw Fin persistido o null cuando es inválido.
+ * @param inicio Inicio válido del turno.
+ * @param duracion `duracion_min` del servicio (puede venir sin tipar de Supabase).
+ * @return Fin efectivo del turno.
+ */
+export function resolverFinTurno(finRaw: Date | null, inicio: Date, duracion: unknown): Date
+{
+  if (finRaw !== null && !Number.isNaN(finRaw.getTime()))
+  {
+    return finRaw;
+  }
+
+  const minutos = typeof duracion === "number" ? duracion : 30;
+
+  return new Date(inicio.getTime() + minutos * 60_000);
+}
+
 /** Crea el evento GCal del turno si aún no tiene uno. Nunca lanza. */
 export async function crearEventoGoogleParaTurno(turnoId: string): Promise<void>
 {
@@ -64,9 +85,7 @@ export async function crearEventoGoogleParaTurno(turnoId: string): Promise<void>
 
     const finRaw = typeof row.fin === "string" ? new Date(row.fin) : null;
     const duracion = (servicio as { duracion_min?: unknown } | null)?.duracion_min;
-    const fin = finRaw !== null && !Number.isNaN(finRaw.getTime())
-      ? finRaw
-      : new Date(inicio.getTime() + (typeof duracion === "number" ? duracion : 30) * 60_000);
+    const fin = resolverFinTurno(finRaw, inicio, duracion);
 
     const timeZone = resolverTimezoneNegocio({
       timezone: (negocio as { timezone?: unknown } | null)?.timezone,

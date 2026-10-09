@@ -59,8 +59,8 @@ function resolveFromName(data: Record<string, unknown>): string | undefined
 
 export class NotificationService
 {
-  private emailProvider: ResendAdapter;
-  private jobProvider: QStashAdapter;
+  private readonly emailProvider: ResendAdapter;
+  private readonly jobProvider: QStashAdapter;
 
   constructor()
   {

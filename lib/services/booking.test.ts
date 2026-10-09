@@ -241,6 +241,19 @@ describe("BookingService.getPendingDeposits",
     expect(lt).toHaveBeenCalledWith("created_at", expect.any(String));
   });
 
+  it("debería devolver vacío sin señas pendientes",
+  async () =>
+  {
+    const lt = vi.fn(async () => ({ data: null, error: null }));
+    const secondEq = vi.fn(() => ({ lt }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    mockGetSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => ({ select: vi.fn(() => ({ eq: firstEq })) })),
+    } as never);
+
+    await expect(new BookingService().getPendingDeposits("neg-1")).resolves.toEqual([]);
+  });
+
   it("debería lanzar cuando la consulta de señas falla",
   async () =>
   {
