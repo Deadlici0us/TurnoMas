@@ -12,8 +12,8 @@ import { calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-const ESTADOS_VALIDOS: readonly EstadoTurno[] = ["pendiente", "confirmado", "pagado", "completado",
-  "cancelado", "ausente"];
+const ESTADOS_VALIDOS: ReadonlySet<EstadoTurno> = new Set(["pendiente", "confirmado", "pagado",
+  "completado", "cancelado", "ausente"]);
 
 interface TurnoEditable
 {
@@ -34,7 +34,7 @@ interface TurnoEditable
  */
 async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise<TurnoEditable>
 {
-  if (!ESTADOS_VALIDOS.includes(nuevo))
+  if (!ESTADOS_VALIDOS.has(nuevo))
   {
     throw new RangeError("Ese estado de turno no existe.");
   }
