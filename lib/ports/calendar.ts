@@ -78,31 +78,21 @@ export class FakeCalendarProvider implements ICalendarProvider
 
   async updateEvent(eventId: string, input: CalendarEventInput, _accessToken: string): Promise<void>
   {
-    void _accessToken;
     this.updated.push({ eventId, input });
   }
 
   async deleteEvent(eventId: string, _accessToken: string): Promise<void>
   {
-    void _accessToken;
     this.deleted.push(eventId);
   }
 
   async queryFreeBusy(_desde: Date, _hasta: Date, _accessToken: string): Promise<CalendarBusyInterval[]>
   {
-    void _desde;
-    void _hasta;
-    void _accessToken;
-
     return [...this.busy];
   }
 
   async listEvents(_desde: Date, _hasta: Date, _accessToken: string): Promise<CalendarExternalEvent[]>
   {
-    void _desde;
-    void _hasta;
-    void _accessToken;
-
     return [...this.external];
   }
 }

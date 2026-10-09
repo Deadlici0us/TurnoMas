@@ -308,25 +308,25 @@ export default async function ClientesPage({
                           ) : null;
                         })()}
                         <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50" title="Sumar ausencia">
                             + Falta
                           </button>
                         </form>
                         <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50" title="Quitar ausencia">
                             − Falta
                           </button>
                         </form>
                         <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50">
                             {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
                           </button>
                         </form>
                         <form action={eliminarCliente.bind(null, cliente.id)}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
                             text-red-600 hover:bg-red-50">
                             Eliminar
                           </button>
@@ -401,25 +401,25 @@ export default async function ClientesPage({
                         ) : null;
                       })()}
                       <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
-                        <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                           border-slate-300 hover:bg-slate-50">
                           + Falta
                         </button>
                       </form>
                       <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
-                        <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                           border-slate-300 hover:bg-slate-50">
                           − Falta
                         </button>
                       </form>
                       <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
-                        <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                           border-slate-300 hover:bg-slate-50">
                           {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
                         </button>
                       </form>
                       <form action={eliminarCliente.bind(null, cliente.id)}>
-                        <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
+                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
                           text-red-600 hover:bg-red-50">
                           Eliminar
                         </button>

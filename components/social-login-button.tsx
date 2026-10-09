@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export interface SocialLoginButtonProps
 {
@@ -29,7 +30,7 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
 
     try
     {
-      const origin = window.location.origin.replace(/\/+$/, "");
+      const origin = stripTrailingSlashes(window.location.origin);
       const callback = `${origin}/auth/callback`;
       const redirectTo = props.next === undefined || props.next.trim().length === 0
         ? callback

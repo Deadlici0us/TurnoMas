@@ -53,7 +53,6 @@ export class PaymentService
 
   async refundPayment(paymentId: string, _amountCents: number): Promise<void>
   {
-    void _amountCents;
     await this.adapter.refundPayment(paymentId);
   }
 

@@ -11,12 +11,12 @@
 
 import { NextResponse } from "next/server";
 
-import { shouldAskReview } from "@/lib/automations/resenas";
-import { resolverResenaHs } from "@/lib/automations/resenas";
-import { readEnv } from "@/lib/env/env";
+import { resolverResenaHs, shouldAskReview } from "@/lib/automations/resenas";
+import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
 
 const LIMITE_BARRIDO = 100;
@@ -44,20 +44,28 @@ export function resolverBaseResena(): string | null
 
   if (publica !== null)
   {
-    return publica.replace(/\/+$/, "");
+    return stripTrailingSlashes(publica);
   }
 
   const vercel = readEnv("VERCEL_URL");
 
-  return vercel !== null ? `https://${vercel.replace(/\/+$/, "")}` : null;
+  return vercel !== null ? `https://${stripTrailingSlashes(vercel)}` : null;
 }
 
 export async function POST(request: Request)
 {
+  const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
+  const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
+
+  if (claveActual === null && claveSiguiente === null && exigeFirmas())
+  {
+    return NextResponse.json({ error: "Cron no configurado en producción." }, { status: 503 });
+  }
+
   const firmaOk = await verificarFirmaQStash({
     firma: request.headers.get("upstash-signature"),
-    claveActual: readEnv("QSTASH_CURRENT_SIGNING_KEY"),
-    claveSiguiente: readEnv("QSTASH_NEXT_SIGNING_KEY"),
+    claveActual,
+    claveSiguiente,
   });
 
   if (!firmaOk)

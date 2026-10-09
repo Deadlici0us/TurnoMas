@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
-import { readEnv } from "@/lib/env/env";
+import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { esNotificacionPago, extraerPagoId, verificarFirmaMp } from "@/lib/webhooks/mercadopago";
 
 function extraerFirma(request: Request): { firma: string | null; ts: string }
@@ -15,8 +15,96 @@ function extraerFirma(request: Request): { firma: string | null; ts: string }
   return { firma, ts };
 }
 
+/**
+ * Resuelve el estado del pago con fallback al token del negocio.
+ *
+ * El ID de reserva viaja en external_reference del pago (fuente real),
+ * no en el body del webhook que varía según tópico de MP.
+ * Con señas delegadas el pago vive en la cuenta del negocio: si la
+ * plataforma no lo ve, se reintenta con el token del negocio dueño
+ * del turno que ya registró ese `mp_payment_id`.
+ *
+ * @param paymentId ID del pago de MercadoPago.
+ * @return Estado del pago o null cuando no se pudo consultar.
+ */
+async function resolverPaymentStatus(paymentId: string): Promise<{
+  readonly status: string;
+  readonly externalReference: string | null;
+} | null>
+{
+  const directo = await paymentService.getPaymentStatus(paymentId).catch(() => null);
+
+  if (directo !== null)
+  {
+    return directo;
+  }
+
+  const turnoPorPago = await bookingService.getBookingByPaymentId(paymentId).catch(() => null);
+  const negocioId = (turnoPorPago as { negocio_id?: unknown } | null)?.negocio_id;
+
+  if (typeof negocioId !== "string")
+  {
+    return null;
+  }
+
+  const businessToken = await paymentService.getBusinessAccessToken(negocioId);
+
+  return paymentService.getPaymentStatus(paymentId, businessToken).catch(() => null);
+}
+
+/**
+ * Aplica el resultado del pago al turno correspondiente.
+ *
+ * @param paymentStatus Estado consultado en MercadoPago.
+ * @param paymentId ID del pago para confirmar la reserva.
+ * @return Respuesta JSON con el resultado.
+ */
+async function aplicarResultadoPago(
+  paymentStatus: { readonly status: string; readonly externalReference: string | null },
+  paymentId: string,
+): Promise<ReturnType<typeof NextResponse.json>>
+{
+  const bookingId = paymentStatus.externalReference;
+
+  if (bookingId === null || bookingId.length === 0)
+  {
+    return NextResponse.json({ success: true, status: paymentStatus.status, sinReserva: true });
+  }
+
+  const existente = await bookingService.getBookingById(bookingId);
+
+  if (existente !== null && (existente as { estado?: string }).estado === "pagado"
+    && paymentStatus.status === "approved")
+  {
+    return NextResponse.json({ success: true, status: paymentStatus.status, idempotente: true });
+  }
+
+  if (paymentStatus.status === "approved")
+  {
+    await bookingService.confirmBooking(bookingId, paymentId);
+
+    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
+
+    await crearEventoGoogleParaTurno(bookingId);
+  }
+  else if (paymentStatus.status === "rejected" || paymentStatus.status === "cancelled")
+  {
+    await bookingService.releaseBooking(bookingId);
+    await borrarEventoGoogle(bookingId);
+  }
+
+  return NextResponse.json({ success: true, status: paymentStatus.status });
+}
+
 export async function POST(request: Request)
 {
+  const secretoMp = readEnv("MP_WEBHOOK_SECRET");
+
+  if (secretoMp === null && exigeFirmas())
+  {
+    return NextResponse.json({ error: "Webhook no configurado en producción." }, { status: 503 });
+  }
+
   try
   {
     const body = await request.json();
@@ -36,7 +124,7 @@ export async function POST(request: Request)
     const { firma, ts } = extraerFirma(request);
     const firmaOk = await verificarFirmaMp({
       firma,
-      secreto: readEnv("MP_WEBHOOK_SECRET"),
+      secreto: secretoMp,
       pagoId: paymentId,
       timestamp: ts,
     });
@@ -46,62 +134,14 @@ export async function POST(request: Request)
       return NextResponse.json({ error: "Firma del webhook inválida." }, { status: 401 });
     }
 
-    // El ID de reserva viaja en external_reference del pago (fuente real),
-    // no en el body del webhook que varía según tópico de MP.
-    // Con señas delegadas el pago vive en la cuenta del negocio: si la
-    // plataforma no lo ve, se reintenta con el token del negocio dueño
-    // del turno que ya registró ese `mp_payment_id`.
-    let paymentStatus = await paymentService.getPaymentStatus(paymentId).catch(() => null);
+    const paymentStatus = await resolverPaymentStatus(paymentId);
 
     if (paymentStatus === null)
     {
-      const turnoPorPago = await bookingService.getBookingByPaymentId(paymentId).catch(() => null);
-      const negocioId = (turnoPorPago as { negocio_id?: unknown } | null)?.negocio_id;
-
-      if (typeof negocioId !== "string")
-      {
-        return NextResponse.json({ error: "No pudimos consultar el pago." }, { status: 502 });
-      }
-
-      const businessToken = await paymentService.getBusinessAccessToken(negocioId);
-      paymentStatus = await paymentService.getPaymentStatus(paymentId, businessToken).catch(() => null);
-
-      if (paymentStatus === null)
-      {
-        return NextResponse.json({ error: "No pudimos consultar el pago." }, { status: 502 });
-      }
+      return NextResponse.json({ error: "No pudimos consultar el pago." }, { status: 502 });
     }
 
-    const bookingId = paymentStatus.externalReference;
-
-    if (bookingId === null || bookingId.length === 0)
-    {
-      return NextResponse.json({ success: true, status: paymentStatus.status, sinReserva: true });
-    }
-
-    const existente = await bookingService.getBookingById(bookingId);
-
-    if (existente !== null && (existente as { estado?: string }).estado === "pagado"
-      && paymentStatus.status === "approved")
-    {
-      return NextResponse.json({ success: true, status: paymentStatus.status, idempotente: true });
-    }
-
-    if (paymentStatus.status === "approved")
-    {
-      await bookingService.confirmBooking(bookingId, paymentId);
-
-      const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
-
-      await crearEventoGoogleParaTurno(bookingId);
-    }
-    else if (paymentStatus.status === "rejected" || paymentStatus.status === "cancelled")
-    {
-      await bookingService.releaseBooking(bookingId);
-      await borrarEventoGoogle(bookingId);
-    }
-
-    return NextResponse.json({ success: true, status: paymentStatus.status });
+    return aplicarResultadoPago(paymentStatus, paymentId);
   }
   catch
   {

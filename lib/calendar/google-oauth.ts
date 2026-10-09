@@ -9,6 +9,7 @@
 
 import type { EnvRecord } from "@/lib/env/env";
 import { readEnv } from "@/lib/env/env";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -40,19 +41,19 @@ export function resolveGoogleBaseUrl(requestOrigin: string | null, env: EnvRecor
 
   if (publicUrl !== null)
   {
-    return publicUrl.replace(/\/+$/, "");
+    return stripTrailingSlashes(publicUrl);
   }
 
   const vercelUrl = readEnv("VERCEL_URL", env);
 
   if (vercelUrl !== null)
   {
-    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+    return `https://${stripTrailingSlashes(vercelUrl)}`;
   }
 
   if (requestOrigin !== null && requestOrigin.trim().length > 0)
   {
-    return requestOrigin.replace(/\/+$/, "");
+    return stripTrailingSlashes(requestOrigin);
   }
 
   return null;

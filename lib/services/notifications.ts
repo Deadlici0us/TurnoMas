@@ -1,6 +1,7 @@
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { readEnv } from "@/lib/env/env";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export enum NotificationType
 {
@@ -22,14 +23,14 @@ function resolveAppBaseUrl(): string
 
   if (publicUrl !== null)
   {
-    return publicUrl.replace(/\/+$/, "");
+    return stripTrailingSlashes(publicUrl);
   }
 
   const vercelUrl = readEnv("VERCEL_URL");
 
   if (vercelUrl !== null)
   {
-    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+    return `https://${stripTrailingSlashes(vercelUrl)}`;
   }
 
   throw new Error("Falta configurar NEXT_PUBLIC_APP_URL o VERCEL_URL para programar recordatorios.");

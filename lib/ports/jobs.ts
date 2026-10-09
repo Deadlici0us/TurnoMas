@@ -4,6 +4,7 @@
  */
 
 import { readEnv } from "@/lib/env/env";
+import { stripSurroundingQuotes, stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export interface ScheduleJobInput
 {
@@ -45,8 +46,8 @@ export class QStashAdapter implements IBackgroundJobs
       throw new Error("Falta configurar QSTASH_URL o QSTASH_TOKEN en el entorno.");
     }
 
-    const cleanBase = baseUrl.replace(/^["']+|["']+$/g, "").replace(/\/+$/, "");
-    const cleanToken = token.replace(/^["']+|["']+$/g, "").trim();
+    const cleanBase = stripTrailingSlashes(stripSurroundingQuotes(baseUrl));
+    const cleanToken = stripSurroundingQuotes(token).trim();
     const endpoint = `${cleanBase}/v2/publish/${input.url}`;
 
     const response = await fetch(endpoint, {

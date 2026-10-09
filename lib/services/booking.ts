@@ -118,7 +118,6 @@ export class BookingService
     _amountCents: number,
   ): Promise<void>
   {
-    void _amountCents;
     // Verifica el estado del pago con MercadoPago.
     const paymentStatus = await paymentService.getPaymentStatus(paymentId);
 

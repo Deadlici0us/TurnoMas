@@ -25,8 +25,7 @@ import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy
 import { REMARKETING_MAX_DIAS, REMARKETING_MIN_DIAS } from "@/lib/automations/remarketing";
 import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/recordatorios";
 import { RESENA_MAX_HS, RESENA_MIN_HS } from "@/lib/automations/resenas";
-import type { TipoPlantilla } from "@/lib/notifications/custom-templates";
-import { normalizarTextoPlantilla, validarGoogleMapsUrl } from "@/lib/notifications/custom-templates";
+import { normalizarTextoPlantilla, validarGoogleMapsUrl, type TipoPlantilla } from "@/lib/notifications/custom-templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 

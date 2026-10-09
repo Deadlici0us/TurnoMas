@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { buildTurnoEvent, CalendarService } from "./calendar";
-import type { CalendarExternalEvent } from "@/lib/ports/calendar";
-import { FakeCalendarProvider } from "@/lib/ports/calendar";
+import { FakeCalendarProvider, type CalendarExternalEvent } from "@/lib/ports/calendar";
 
 /** Servicio con refresh token fijo para tests sin red ni Supabase. */
 class TestCalendarService extends CalendarService

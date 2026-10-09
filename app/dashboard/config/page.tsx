@@ -148,59 +148,116 @@ async function guardarHorariosNegocio(formData: FormData): Promise<void>
   await actualizarHorariosNegocio(horarios);
 }
 
+interface NegocioConfigRow
+{
+  readonly blacklist_umbral?: number;
+  readonly blacklist_penalidad?: PenalidadListaNegra;
+  readonly sena_retencion_hs?: number;
+  readonly recordatorio_activo?: boolean;
+  readonly recordatorio_hs?: number;
+  readonly resena_activa?: boolean;
+  readonly resena_hs?: number;
+  readonly remarketing_activo?: boolean;
+  readonly remarketing_dias?: number;
+  readonly timezone?: unknown;
+  readonly pais?: string;
+}
+
+/**
+ * Normaliza la configuración del negocio con valores por defecto.
+ *
+ * @param negocio Fila cruda del dashboard.
+ * @return Configuración normalizada para el formulario.
+ */
+function normalizarConfigNegocio(negocio: NegocioConfigRow): {
+  readonly umbral: number;
+  readonly penalidad: PenalidadListaNegra;
+  readonly retencionHs: number;
+  readonly recordatorioActivo: boolean;
+  readonly recordatorioHs: number;
+  readonly resenaActiva: boolean;
+  readonly resenaHs: number;
+  readonly remarketingActivo: boolean;
+  readonly remarketingDias: number;
+  readonly timezoneActual: string;
+}
+{
+  return {
+    umbral: typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2,
+    penalidad: negocio.blacklist_penalidad ?? "fullDeposit",
+    retencionHs: typeof negocio.sena_retencion_hs === "number" ? negocio.sena_retencion_hs : 72,
+    recordatorioActivo: negocio.recordatorio_activo !== false,
+    recordatorioHs: typeof negocio.recordatorio_hs === "number" ? negocio.recordatorio_hs : 24,
+    resenaActiva: negocio.resena_activa !== false,
+    resenaHs: typeof negocio.resena_hs === "number" ? negocio.resena_hs : 2,
+    remarketingActivo: negocio.remarketing_activo !== false,
+    remarketingDias: typeof negocio.remarketing_dias === "number" ? negocio.remarketing_dias : 30,
+    timezoneActual: resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais }),
+  };
+}
+
+/**
+ * Carga las conexiones externas del negocio (MercadoPago y Google).
+ *
+ * @param negocioId ID crudo del negocio.
+ * @return Tokens de conexión normalizados.
+ */
+async function cargarConexiones(negocioId: unknown): Promise<{
+  readonly mpToken: string | null;
+  readonly gcalConectado: boolean;
+}>
+{
+  if (typeof negocioId !== "string")
+  {
+    return { mpToken: null, gcalConectado: false };
+  }
+
+  try
+  {
+    const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
+      .select("mercadopago_access_token, google_refresh_token").eq("negocio_id", negocioId).single();
+
+    const raw = (secretos as { mercadopago_access_token?: unknown } | null)
+      ?.mercadopago_access_token;
+    const gcalRaw = (secretos as { google_refresh_token?: unknown } | null)?.google_refresh_token;
+
+    return {
+      mpToken: typeof raw === "string" && raw.length > 0 ? raw : null,
+      gcalConectado: typeof gcalRaw === "string" && gcalRaw.length > 0,
+    };
+  }
+  catch
+  {
+    return { mpToken: null, gcalConectado: false };
+  }
+}
+
 export default async function ConfigPage()
 {
   const { data: dashboard } = await getDashboardData();
-  const negocio = dashboard.negocio as {
-    nombre?: string; pais?: string; slug?: string; horarios?: unknown; timezone?: unknown;
-    blacklist_umbral?: number; blacklist_penalidad?: PenalidadListaNegra; sena_retencion_hs?: number;
-    recordatorio_activo?: boolean; recordatorio_hs?: number;
-    resena_activa?: boolean; resena_hs?: number;
-    remarketing_activo?: boolean; remarketing_dias?: number;
+  const negocio = dashboard.negocio as NegocioConfigRow & {
+    nombre?: string; pais?: string; slug?: string; horarios?: unknown;
     msg_confirmacion_subject?: string | null; msg_confirmacion_cuerpo?: string | null;
     msg_recordatorio_subject?: string | null; msg_recordatorio_cuerpo?: string | null;
     msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
     msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
     google_maps_url?: string | null;
   };
-  const umbral = typeof negocio.blacklist_umbral === "number" ? negocio.blacklist_umbral : 2;
-  const penalidad: PenalidadListaNegra = negocio.blacklist_penalidad ?? "fullDeposit";
-  const retencionHs = typeof negocio.sena_retencion_hs === "number" ? negocio.sena_retencion_hs : 72;
-  const recordatorioActivo = negocio.recordatorio_activo !== false;
-  const recordatorioHs = typeof negocio.recordatorio_hs === "number" ? negocio.recordatorio_hs : 24;
-  const resenaActiva = negocio.resena_activa !== false;
-  const resenaHs = typeof negocio.resena_hs === "number" ? negocio.resena_hs : 2;
-  const remarketingActivo = negocio.remarketing_activo !== false;
-  const remarketingDias = typeof negocio.remarketing_dias === "number" ? negocio.remarketing_dias : 30;
-  const timezoneActual = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
+  const {
+    umbral,
+    penalidad,
+    retencionHs,
+    recordatorioActivo,
+    recordatorioHs,
+    resenaActiva,
+    resenaHs,
+    remarketingActivo,
+    remarketingDias,
+    timezoneActual,
+  } = normalizarConfigNegocio(negocio);
 
-  let mpToken: string | null = null;
-  let gcalConectado = false;
-
-  try
-  {
-    const negocioId = (dashboard.negocio as { id?: unknown }).id;
-
-    if (typeof negocioId === "string")
-    {
-      const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
-        .select("mercadopago_access_token, google_refresh_token").eq("negocio_id", negocioId).single();
-
-      const raw = (secretos as { mercadopago_access_token?: unknown } | null)
-        ?.mercadopago_access_token;
-
-      mpToken = typeof raw === "string" && raw.length > 0 ? raw : null;
-
-      const gcalRaw = (secretos as { google_refresh_token?: unknown } | null)?.google_refresh_token;
-
-      gcalConectado = typeof gcalRaw === "string" && gcalRaw.length > 0;
-    }
-  }
-  catch
-  {
-    mpToken = null;
-    gcalConectado = false;
-  }
+  const negocioId = (dashboard.negocio as { id?: unknown }).id;
+  const { mpToken, gcalConectado } = await cargarConexiones(negocioId);
 
   const mpConectado = mpToken !== null;
 
@@ -214,7 +271,7 @@ export default async function ConfigPage()
         <h2 className="font-semibold text-slate-900">Negocio</h2>
         <form action={guardarNombre} className="space-y-3">
           <label className="block text-sm text-slate-600">
-            Nombre del negocio
+            {"Nombre del negocio"}
             <input
               type="text"
               name="nombre"
@@ -237,7 +294,7 @@ export default async function ConfigPage()
         </form>
         <form action={guardarTimezone} className="space-y-3">
           <label className="block text-sm text-slate-600">
-            Zona horaria del negocio
+            {"Zona horaria del negocio"}
             <select
               name="timezone"
               defaultValue={timezoneActual}
@@ -307,7 +364,7 @@ export default async function ConfigPage()
         <form action={guardarPolitica} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             <label className="flex-1 text-sm text-slate-600">
-              Ausencias que disparan la penalidad
+              {"Ausencias que disparan la penalidad"}
               <input
                 type="number"
                 name="umbral"
@@ -319,7 +376,7 @@ export default async function ConfigPage()
               />
             </label>
             <label className="flex-1 text-sm text-slate-600">
-              Penalidad
+              {"Penalidad"}
               <select
                 name="penalidad"
                 defaultValue={penalidad}
@@ -348,7 +405,7 @@ export default async function ConfigPage()
         </p>
         <form action={guardarSena} className="space-y-3">
           <label className="block text-sm text-slate-600">
-            Horas de retención antes del turno
+            {"Horas de retención antes del turno"}
             <input
               type="number"
               name="retencionHs"
@@ -378,10 +435,10 @@ export default async function ConfigPage()
               defaultChecked={recordatorioActivo}
               className="w-4 h-4"
             />
-            Enviar recordatorio antes del turno
+            {"Enviar recordatorio antes del turno"}
           </label>
           <label className="block text-sm text-slate-600">
-            Horas antes del turno
+            {"Horas antes del turno"}
             <input
               type="number"
               name="recordatorioHs"
@@ -412,10 +469,10 @@ export default async function ConfigPage()
               defaultChecked={resenaActiva}
               className="w-4 h-4"
             />
-            Pedir reseña después del turno
+            {"Pedir reseña después del turno"}
           </label>
           <label className="block text-sm text-slate-600">
-            Horas después del fin
+            {"Horas después del fin"}
             <input
               type="number"
               name="resenaHs"
@@ -437,7 +494,7 @@ export default async function ConfigPage()
         {resenaActiva ? (
           <form action={guardarMaps} className="space-y-3">
             <label className="block text-sm text-slate-600">
-              Link de Google Maps (4-5 estrellas derivan acá)
+              {"Link de Google Maps (4-5 estrellas derivan acá)"}
               <input
                 type="url"
                 name="mapsUrl"
@@ -470,10 +527,10 @@ export default async function ConfigPage()
               defaultChecked={remarketingActivo}
               className="w-4 h-4"
             />
-            Invitar a renovar después del turno
+            {"Invitar a renovar después del turno"}
           </label>
           <label className="block text-sm text-slate-600">
-            Días por defecto (cada servicio puede overridear)
+            {"Días por defecto (cada servicio puede overridear)"}
             <input
               type="number"
               name="remarketingDias"
@@ -517,7 +574,7 @@ export default async function ConfigPage()
               p-4 border border-slate-200 rounded-lg">
               <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
               <label className="block text-sm text-slate-600">
-                Asunto
+                {"Asunto"}
                 <input
                   type="text"
                   name="subject"
@@ -529,7 +586,7 @@ export default async function ConfigPage()
                 />
               </label>
               <label className="block text-sm text-slate-600">
-                Cuerpo
+                {"Cuerpo"}
                 <textarea
                   name="cuerpo"
                   rows={4}

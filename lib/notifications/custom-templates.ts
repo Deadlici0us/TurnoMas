@@ -65,13 +65,11 @@ export function envolverCuerpo(titulo: string, cuerpoHtml: string): string
 
 /** Datos con `link` para interpolar según el tipo de plantilla. */
 export function datosConLink(
-  tipo: TipoPlantilla,
+  _tipo: TipoPlantilla,
   datos: DatosTurno,
   link: string,
 ): Record<string, string>
 {
-  void tipo;
-
   return {
     negocio: datos.negocio,
     servicio: datos.servicio,

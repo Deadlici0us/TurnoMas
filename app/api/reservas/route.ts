@@ -26,6 +26,7 @@ import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
@@ -147,6 +148,514 @@ function finDelDia(fecha: Date): Date
   return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 0, 0, 0, 0);
 }
 
+interface ReservaValidada
+{
+  readonly pais: string;
+  readonly slug: string;
+  readonly staffId: string;
+  readonly servicioId: string;
+  readonly nombre: string;
+  readonly whatsapp: string;
+  readonly email: string | null;
+  readonly inicio: Date;
+}
+
+/**
+ * Parsea y valida el cuerpo de la reserva.
+ *
+ * @param body Cuerpo crudo del request.
+ * @return Campos validados.
+ */
+export function parseReservaBody(body: ReservaBody): ReservaValidada
+{
+  return {
+    pais: exigirTexto(body.pais, "Falta el país del negocio.").toLowerCase(),
+    slug: exigirTexto(body.slug, "Falta el negocio.").toLowerCase(),
+    staffId: exigirTexto(body.staffId, "Elegí un profesional para tu reserva."),
+    servicioId: exigirTexto(body.servicioId, "Elegí un servicio para tu reserva."),
+    nombre: exigirNombre(body.nombre),
+    whatsapp: exigirWhatsapp(body.whatsapp),
+    email: exigirEmailOpcional(body.email),
+    inicio: exigirInicio(body.inicio),
+  };
+}
+
+/**
+ * Indica si un turno existente retiene su slot durante la gracia de pago.
+ *
+ * @param estado Estado del turno.
+ * @param createdAt Fecha de creación ISO.
+ * @param ahoraMs Ahora en milisegundos.
+ * @return Verdadero cuando bloquea agenda.
+ */
+export function retieneSlot(estado: string, createdAt: string, ahoraMs: number): boolean
+{
+  if (estado === "confirmado" || estado === "pagado")
+  {
+    return true;
+  }
+
+  if (estado !== "pendiente")
+  {
+    return false;
+  }
+
+  const creado = new Date(createdAt).getTime();
+
+  return !Number.isNaN(creado) && ahoraMs - creado < 15 * 60_000;
+}
+
+/**
+ * Filtra los turnos existentes a intervalos de bloqueo.
+ *
+ * @param turnos Turnos futuros del staff.
+ * @param duracionPorServicio Mapa de duraciones por servicio.
+ * @param duracionDefault Duración del servicio actual.
+ * @param ahoraMs Ahora en milisegundos.
+ * @return Intervalos que bloquean agenda.
+ */
+export function filtrarBloqueos(
+  turnos: ReadonlyArray<{ readonly inicio: string; readonly servicio_id: string;
+    readonly estado: string; readonly created_at: string }>,
+  duracionPorServicio: ReadonlyMap<string, { readonly duracion_min: number }>,
+  duracionDefault: number,
+  ahoraMs: number,
+): Array<{ readonly start: Date; readonly end: Date }>
+{
+  return turnos
+    .filter((t) => retieneSlot(t.estado, t.created_at, ahoraMs))
+    .map((t) =>
+    {
+      const ref = duracionPorServicio.get(t.servicio_id);
+
+      return getBlockedInterval(new Date(t.inicio), ref?.duracion_min ?? duracionDefault);
+    });
+}
+
+/**
+ * Resuelve el cliente existente o crea uno nuevo.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param negocioId ID del negocio.
+ * @param nombre Nombre del cliente.
+ * @param whatsapp WhatsApp del cliente.
+ * @param email Email opcional.
+ * @return ID del cliente.
+ */
+async function resolverCliente(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+  nombre: string,
+  whatsapp: string,
+  email: string | null,
+): Promise<string>
+{
+  const { data: existente } = await admin.from("clientes").select("id, ausencias")
+    .eq("negocio_id", negocioId).eq("whatsapp", whatsapp).single();
+
+  if (existente !== null && typeof (existente as { id?: unknown }).id === "string")
+  {
+    const clienteId = (existente as { id: string }).id;
+    await admin.from("clientes").update({ nombre, ...(email !== null ? { email } : {}) })
+      .eq("id", clienteId);
+
+    return clienteId;
+  }
+
+  const { data: nuevo, error } = await admin.from("clientes")
+    .insert({ negocio_id: negocioId, nombre, whatsapp, email, ausencias: 0 })
+    .select("id").single();
+
+  if (error !== null || nuevo === null)
+  {
+    throw new Error("No pudimos guardar tu reserva. Probá de nuevo.");
+  }
+
+  return (nuevo as { id: string }).id;
+}
+
+/**
+ * Sincroniza Google Calendar y email de confirmación (best-effort).
+ *
+ * @param params Datos del turno confirmado.
+ */
+async function sincronizarConfirmado(params: {
+  readonly admin: ReturnType<typeof getSupabaseAdmin>;
+  readonly negocioId: string;
+  readonly negocioNombre: string;
+  readonly servicioNombre: string;
+  readonly staffNombre: string;
+  readonly clienteNombre: string;
+  readonly whatsapp: string;
+  readonly email: string | null;
+  readonly inicio: Date;
+  readonly fin: Date;
+  readonly turnoId: string;
+  readonly timeZone: string;
+  readonly plantillaSubject: unknown;
+  readonly plantillaCuerpo: unknown;
+}): Promise<void>
+{
+  try
+  {
+    const gcalEventId = await calendarService.createEventForNegocio(params.negocioId, {
+      ...buildTurnoEvent({
+        negocio: params.negocioNombre,
+        servicio: params.servicioNombre,
+        profesional: params.staffNombre,
+        cliente: params.clienteNombre,
+        whatsapp: params.whatsapp,
+        inicio: params.inicio,
+        fin: params.fin,
+      }),
+      timeZone: params.timeZone,
+    });
+
+    if (gcalEventId !== null)
+    {
+      await params.admin.from("turnos").update({ google_calendar_event_id: gcalEventId })
+        .eq("id", params.turnoId);
+    }
+  }
+  catch
+  {
+    // Best-effort: la reserva ya existe aunque falle Google.
+  }
+
+  if (params.email === null)
+  {
+    return;
+  }
+
+  try
+  {
+    const plantilla = resolverPlantilla("confirmacion", {
+      subject: params.plantillaSubject,
+      cuerpo: params.plantillaCuerpo,
+    }, {
+      negocio: params.negocioNombre,
+      servicio: params.servicioNombre,
+      profesional: params.staffNombre,
+      fecha: formatearFechaEnZona(params.inicio, params.timeZone),
+    });
+
+    await new ResendAdapter().send({
+      to: params.email,
+      subject: plantilla.subject,
+      fromName: params.negocioNombre,
+      html: plantilla.html,
+    });
+  }
+  catch
+  {
+    // Best-effort: la reserva ya existe aunque falle el email.
+  }
+}
+
+/**
+ * Resuelve negocio, staff y servicio del portal.
+ *
+ * @param pais País del negocio.
+ * @param slug Slug del negocio.
+ * @param staffId ID del profesional.
+ * @param servicioId ID del servicio.
+ * @return Oferta validada con IDs.
+ */
+async function resolverOferta(
+  pais: string,
+  slug: string,
+  staffId: string,
+  servicioId: string,
+): Promise<{
+  readonly negocio: { readonly id: string; readonly nombre: string };
+  readonly negocioId: string;
+  readonly staff: unknown;
+  readonly servicio: unknown;
+} | ReturnType<typeof NextResponse.json>>
+{
+  const supabase = await getSupabaseServer();
+  const { data: negocio, error: negocioError } = await supabase.from("portal_negocios")
+    .select("id, nombre, pais, slug").eq("pais", pais).eq("slug", slug).single();
+
+  if (negocioError !== null)
+  {
+    console.error("Portal negocio no resuelto:", negocioError.message, { pais, slug });
+  }
+
+  if (negocio === null)
+  {
+    return NextResponse.json({ error: "No encontramos ese negocio." }, { status: 404 });
+  }
+
+  const negocioId = negocio.id as string;
+  const [
+    { data: staff, error: staffError },
+    { data: servicio, error: servicioError },
+  ] = await Promise.all([
+    supabase.from("portal_staff").select("id, nombre, horarios")
+      .eq("negocio_id", negocioId).eq("id", staffId).single(),
+    supabase.from("portal_servicios")
+      .select("id, nombre, duracion_min, precio_base," +
+        " precio_promocional, sena_requerida, sena_porcentaje")
+      .eq("negocio_id", negocioId).eq("id", servicioId).single(),
+  ]);
+
+  if (staffError !== null)
+  {
+    console.error("Portal staff no resuelto:", staffError.message, { negocioId, staffId });
+  }
+
+  if (servicioError !== null)
+  {
+    console.error("Portal servicio no resuelto:", servicioError.message, { negocioId, servicioId });
+  }
+
+  if (staff === null || servicio === null)
+  {
+    return NextResponse.json({ error: "Ese profesional o servicio ya no está disponible." },
+      { status: 404 });
+  }
+
+  return { negocio: negocio as { readonly id: string; readonly nombre: string }, negocioId, staff, servicio };
+}
+
+/**
+ * Carga el contexto del negocio para evaluar riesgo.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param negocioId ID del negocio.
+ * @param whatsapp WhatsApp del cliente.
+ * @param pais País como fallback de timezone.
+ * @return Negocio, zona y ausencias.
+ */
+async function cargarContextoNegocio(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+  whatsapp: string,
+  pais: string,
+): Promise<{
+  readonly negocioFull: unknown;
+  readonly timeZone: string;
+  readonly ausencias: number;
+}>
+{
+  const { data: negocioFull } = await admin.from("negocios")
+    .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais," +
+      " msg_confirmacion_subject, msg_confirmacion_cuerpo").eq("id", negocioId).single();
+  const timeZone = resolverTimezoneNegocio(
+    { timezone: (negocioFull as { timezone?: unknown } | null)?.timezone,
+      pais: (negocioFull as { pais?: unknown } | null)?.pais ?? pais });
+  const { data: clienteExistente } = await admin.from("clientes").select("id, ausencias")
+    .eq("negocio_id", negocioId).eq("whatsapp", whatsapp).single();
+  const ausencias = typeof clienteExistente?.ausencias === "number" ? clienteExistente.ausencias : 0;
+
+  return { negocioFull, timeZone, ausencias };
+}
+
+/**
+ * Indica si una respuesta ya es un NextResponse (error temprano).
+ *
+ * @param valor Valor a inspeccionar.
+ * @return Verdadero cuando es respuesta HTTP.
+ */
+function esRespuesta(valor: unknown): valor is ReturnType<typeof NextResponse.json>
+{
+  return typeof valor === "object" && valor !== null && "status" in valor;
+}
+
+/**
+ * Evalúa lista negra, checkout y montos de la reserva.
+ *
+ * @param negocioFull Fila del negocio.
+ * @param ausencias Ausencias previas del cliente.
+ * @param servicioRow Fila del servicio.
+ * @return Decisión, checkout y montos.
+ */
+export function evaluarRiesgo(
+  negocioFull: unknown,
+  ausencias: number,
+  servicioRow: {
+    readonly sena_requerida: boolean;
+    readonly sena_porcentaje: number;
+    readonly precio_base: number;
+    readonly precio_promocional: number | null;
+  },
+): {
+  readonly decision: ReturnType<typeof evaluateCustomer>;
+  readonly outcome: ReturnType<typeof resolveCheckout>;
+  readonly montos: ReturnType<typeof calcularMontosReserva>;
+  readonly negocioRow: {
+    readonly blacklist_umbral?: unknown;
+    readonly blacklist_penalidad?: unknown;
+    readonly msg_confirmacion_subject?: unknown;
+    readonly msg_confirmacion_cuerpo?: unknown;
+  } | null;
+}
+{
+  const negocioRow = negocioFull as {
+    blacklist_umbral?: unknown; blacklist_penalidad?: unknown;
+    msg_confirmacion_subject?: unknown; msg_confirmacion_cuerpo?: unknown;
+  } | null;
+  const umbral = typeof negocioRow?.blacklist_umbral === "number" ? negocioRow.blacklist_umbral : 2;
+  const penalidad = (negocioRow?.blacklist_penalidad as BlacklistPenalty | undefined)
+    ?? "fullDeposit";
+  const decision = evaluateCustomer(ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
+  const outcome = resolveCheckout({
+    serviceRequiresDeposit: servicioRow.sena_requerida,
+    serviceDepositPercentage: servicioRow.sena_porcentaje,
+    blacklistDecision: decision,
+  });
+  const montos = calcularMontosReserva({
+    precioBase: servicioRow.precio_base,
+    precioPromocional: servicioRow.precio_promocional,
+    senaRequerida: servicioRow.sena_requerida,
+    senaPorcentaje: servicioRow.sena_porcentaje,
+    senaForzadaPorListaNegra: decision === "fullDeposit",
+  });
+
+  return { decision, outcome, montos, negocioRow };
+}
+
+/**
+ * Verifica que el slot siga libre en agenda y Google.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param negocioId ID del negocio.
+ * @param staffId ID del staff.
+ * @param inicio Inicio solicitado.
+ * @param duracionMin Duración del servicio.
+ * @return Verdadero cuando está ocupado.
+ */
+async function estaOcupado(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+  staffId: string,
+  inicio: Date,
+  duracionMin: number,
+): Promise<boolean>
+{
+  const ahoraMs = Date.now();
+  const { data: turnosExistentes } = await admin.from("turnos")
+    .select("inicio, servicio_id, estado, created_at")
+    .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date(ahoraMs).toISOString());
+  const { data: serviciosTodos } = await admin.from("servicios")
+    .select("id, duracion_min").eq("negocio_id", negocioId);
+  const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
+    id: string; duracion_min: number;
+  }) => [s.id, s]));
+  const bloqueos = filtrarBloqueos(
+    ((turnosExistentes ?? []) as Array<{
+      inicio: string; servicio_id: string; estado: string; created_at: string;
+    }>),
+    duracionPorServicio,
+    duracionMin,
+    ahoraMs,
+  );
+  const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
+    negocioId, inicioDelDia(inicio), finDelDia(inicio));
+
+  return !isSlotAvailable(inicio, duracionMin, [...bloqueos, ...ocupadoGoogle]);
+}
+
+/**
+ * Inserta el turno en la base.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param params Datos del turno.
+ * @return ID del turno creado.
+ */
+async function insertarTurno(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  params: {
+    readonly negocioId: string;
+    readonly staffId: string;
+    readonly servicioId: string;
+    readonly clienteId: string;
+    readonly inicio: Date;
+    readonly fin: Date;
+    readonly conSena: boolean;
+    readonly montoTotal: number;
+    readonly senaMonto: number | null;
+    readonly senaPorcentaje: number;
+  },
+): Promise<string>
+{
+  const { data: turno, error } = await admin.from("turnos").insert({
+    negocio_id: params.negocioId,
+    staff_id: params.staffId,
+    servicio_id: params.servicioId,
+    cliente_id: params.clienteId,
+    inicio: params.inicio.toISOString(),
+    fin: params.fin.toISOString(),
+    estado: params.conSena ? "pendiente" : "confirmado",
+    monto_total: params.montoTotal,
+    sena_monto: params.senaMonto,
+    sena_porcentaje: params.senaPorcentaje,
+  }).select("id").single();
+
+  if (error !== null || turno === null)
+  {
+    throw new Error("No pudimos guardar tu reserva. Probá de nuevo.");
+  }
+
+  return (turno as { id: string }).id;
+}
+
+/**
+ * Crea el checkout de seña y programa el antifantasma (best-effort).
+ *
+ * @param negocioId ID del negocio.
+ * @param turnoId ID del turno pendiente.
+ * @param montoTotal Monto total en centavos.
+ * @param senaPorcentaje Porcentaje de seña.
+ * @param negocioNombre Nombre del negocio.
+ * @return URL de checkout y error opcional.
+ */
+async function crearCheckoutConSena(
+  negocioId: string,
+  turnoId: string,
+  montoTotal: number,
+  senaPorcentaje: number,
+  negocioNombre: string,
+): Promise<{ readonly checkoutUrl: string | null; readonly checkoutError: string | null }>
+{
+  let checkoutUrl: string | null = null;
+  let checkoutError: string | null = null;
+
+  try
+  {
+    const preference = await paymentService.createDepositPreferenceForNegocio(negocioId, turnoId,
+      montoTotal, senaPorcentaje, `Seña ${negocioNombre}`);
+
+    checkoutUrl = preference.initPoint;
+  }
+  catch
+  {
+    checkoutError = "No pudimos generar el link de pago. Probá de nuevo en unos segundos.";
+  }
+
+  try
+  {
+    const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
+      ? `https://${readEnv("VERCEL_URL") as string}` : null);
+
+    if (base !== null)
+    {
+      await new QStashAdapter().schedule({
+        url: `${stripTrailingSlashes(base)}/api/cron/antifantasma`,
+        delaySeconds: 900,
+        body: { turnoId },
+      });
+    }
+  }
+  catch
+  {
+    // Best-effort: la reserva ya existe aunque QStash no esté configurado.
+  }
+
+  return { checkoutUrl, checkoutError };
+}
+
 export async function POST(request: Request)
 {
   let body: ReservaBody;
@@ -160,25 +669,11 @@ export async function POST(request: Request)
     return NextResponse.json({ error: "No pudimos leer tu reserva. Probá de nuevo." }, { status: 400 });
   }
 
-  let pais: string;
-  let slug: string;
-  let staffId: string;
-  let servicioId: string;
-  let nombre: string;
-  let whatsapp: string;
-  let email: string | null;
-  let inicio: Date;
+  let validada: ReservaValidada;
 
   try
   {
-    pais = exigirTexto(body.pais, "Falta el país del negocio.").toLowerCase();
-    slug = exigirTexto(body.slug, "Falta el negocio.").toLowerCase();
-    staffId = exigirTexto(body.staffId, "Elegí un profesional para tu reserva.");
-    servicioId = exigirTexto(body.servicioId, "Elegí un servicio para tu reserva.");
-    nombre = exigirNombre(body.nombre);
-    whatsapp = exigirWhatsapp(body.whatsapp);
-    email = exigirEmailOpcional(body.email);
-    inicio = exigirInicio(body.inicio);
+    validada = parseReservaBody(body);
   }
   catch (error)
   {
@@ -188,191 +683,82 @@ export async function POST(request: Request)
     );
   }
 
+  const { pais, slug, staffId, servicioId, nombre, whatsapp, email, inicio } = validada;
+
   try
   {
-    const supabase = await getSupabaseServer();
-    const { data: negocio, error: negocioError } = await supabase.from("portal_negocios")
-      .select("id, nombre, pais, slug").eq("pais", pais).eq("slug", slug).single();
+    const oferta = await resolverOferta(pais, slug, staffId, servicioId);
 
-    if (negocioError !== null)
+    if (esRespuesta(oferta))
     {
-      console.error("Portal negocio no resuelto:", negocioError.message, { pais, slug });
+      return oferta;
     }
 
-    if (negocio === null)
-    {
-      return NextResponse.json({ error: "No encontramos ese negocio." }, { status: 404 });
-    }
-
-    const negocioId = negocio.id as string;
-    const [
-      { data: staff, error: staffError },
-      { data: servicio, error: servicioError },
-    ] = await Promise.all([
-      supabase.from("portal_staff").select("id, nombre, horarios")
-        .eq("negocio_id", negocioId).eq("id", staffId).single(),
-      supabase.from("portal_servicios")
-        .select("id, nombre, duracion_min, precio_base," +
-          " precio_promocional, sena_requerida, sena_porcentaje")
-        .eq("negocio_id", negocioId).eq("id", servicioId).single(),
-    ]);
-
-    if (staffError !== null)
-    {
-      console.error("Portal staff no resuelto:", staffError.message, { negocioId, staffId });
-    }
-
-    if (servicioError !== null)
-    {
-      console.error("Portal servicio no resuelto:", servicioError.message, { negocioId, servicioId });
-    }
-
-    if (staff === null || servicio === null)
-    {
-      return NextResponse.json({ error: "Ese profesional o servicio ya no está disponible." },
-        { status: 404 });
-    }
-
+    const { negocio, negocioId, staff, servicio } = oferta;
     const admin = getSupabaseAdmin();
-    const { data: negocioFull } = await admin.from("negocios")
-      .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais," +
-        " msg_confirmacion_subject, msg_confirmacion_cuerpo").eq("id", negocioId).single();
-
-    const timeZone = resolverTimezoneNegocio(
-      { timezone: (negocioFull as { timezone?: unknown } | null)?.timezone,
-        pais: (negocioFull as { pais?: unknown } | null)?.pais ?? pais });
-
-    const { data: clienteExistente } = await admin.from("clientes").select("id, ausencias")
-      .eq("negocio_id", negocioId).eq("whatsapp", whatsapp).single();
-
-    const ausencias = typeof clienteExistente?.ausencias === "number" ? clienteExistente.ausencias : 0;
-    const negocioRow = negocioFull as {
-      blacklist_umbral?: unknown; blacklist_penalidad?: unknown;
-      msg_confirmacion_subject?: unknown; msg_confirmacion_cuerpo?: unknown;
-    } | null;
-    const umbral = typeof negocioRow?.blacklist_umbral === "number" ? negocioRow.blacklist_umbral : 2;
-    const penalidad = (negocioRow?.blacklist_penalidad as BlacklistPenalty | undefined)
-      ?? "fullDeposit";
-    const decision = evaluateCustomer(ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
+    const { negocioFull, timeZone, ausencias } = await cargarContextoNegocio(
+      admin,
+      negocioId,
+      whatsapp,
+      pais,
+    );
 
     const servicioRow = servicio as unknown as {
       nombre: string; duracion_min: number; precio_base: number;
       precio_promocional: number | null; sena_requerida: boolean; sena_porcentaje: number;
     };
-    const outcome = resolveCheckout({
-      serviceRequiresDeposit: servicioRow.sena_requerida,
-      serviceDepositPercentage: servicioRow.sena_porcentaje,
-      blacklistDecision: decision,
-    });
+    const { outcome, montos, negocioRow } = evaluarRiesgo(negocioFull, ausencias, servicioRow);
 
     if (outcome.kind === "rejected")
     {
       return NextResponse.json({ success: false, outcome }, { status: 403 });
     }
 
-    const montos = calcularMontosReserva({
-      precioBase: servicioRow.precio_base,
-      precioPromocional: servicioRow.precio_promocional,
-      senaRequerida: servicioRow.sena_requerida,
-      senaPorcentaje: servicioRow.sena_porcentaje,
-      senaForzadaPorListaNegra: decision === "fullDeposit",
-    });
-
-    const GRACIA_MS = 15 * 60_000;
-    const ahoraMs = Date.now();
-    const { data: turnosExistentes } = await admin.from("turnos")
-      .select("inicio, servicio_id, estado, created_at")
-      .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date(ahoraMs).toISOString());
-    const { data: serviciosTodos } = await admin.from("servicios")
-      .select("id, duracion_min").eq("negocio_id", negocioId);
-    const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
-      id: string; duracion_min: number;
-    }) => [s.id, s]));
     // Solo confirmado/pagado bloquea agenda. El pendiente solo retiene el slot
     // durante la gracia de pago (15min); vencido se libera y el antifantasma
     // lo cancela (opción A: cancelación dura, sin lista "por cobrar").
-    const bloqueos = ((turnosExistentes ?? []) as Array<{
-      inicio: string; servicio_id: string; estado: string; created_at: string;
-    }>)
-      .filter((t) =>
-      {
-        if (t.estado === "confirmado" || t.estado === "pagado")
-        {
-          return true;
-        }
-
-        if (t.estado !== "pendiente")
-        {
-          return false;
-        }
-
-        const creado = new Date(t.created_at).getTime();
-
-        return !Number.isNaN(creado) && ahoraMs - creado < GRACIA_MS;
-      })
-      .map((t) =>
-      {
-        const ref = duracionPorServicio.get(t.servicio_id);
-
-        return getBlockedInterval(new Date(t.inicio),
-          ref?.duracion_min ?? servicioRow.duracion_min);
-      });
-
-    const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
-      negocioId, inicioDelDia(inicio), finDelDia(inicio));
-    const ocupado = !isSlotAvailable(inicio, servicioRow.duracion_min,
-      [...bloqueos, ...ocupadoGoogle]);
-
-    if (ocupado)
+    if (await estaOcupado(admin, negocioId, staffId, inicio, servicioRow.duracion_min))
     {
       return NextResponse.json({ error: "Ese horario se acaba de ocupar. Elegí otro." }, { status: 409 });
     }
 
     let clienteId: string;
 
-    if (clienteExistente !== null && typeof clienteExistente.id === "string")
+    try
     {
-      clienteId = clienteExistente.id;
-      await admin.from("clientes").update({ nombre, ...(email !== null ? { email } : {}) })
-        .eq("id", clienteId);
+      clienteId = await resolverCliente(admin, negocioId, nombre, whatsapp, email);
     }
-    else
-    {
-      const { data: nuevo, error: clienteError } = await admin.from("clientes")
-        .insert({ negocio_id: negocioId, nombre, whatsapp, email, ausencias: 0 })
-        .select("id").single();
-
-      if (clienteError !== null || nuevo === null)
-      {
-        return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." },
-          { status: 500 });
-      }
-
-      clienteId = nuevo.id as string;
-    }
-
-    const fin = new Date(inicio.getTime() + servicioRow.duracion_min * 60_000);
-    const conSena = requierePagoSena(outcome, montos.senaMonto);
-    const { data: turno, error: turnoError } = await admin.from("turnos").insert({
-      negocio_id: negocioId,
-      staff_id: staffId,
-      servicio_id: servicioId,
-      cliente_id: clienteId,
-      inicio: inicio.toISOString(),
-      fin: fin.toISOString(),
-      estado: conSena ? "pendiente" : "confirmado",
-      monto_total: montos.montoTotal,
-      sena_monto: montos.senaMonto,
-      sena_porcentaje: montos.senaPorcentaje,
-    }).select("id").single();
-
-    if (turnoError !== null || turno === null)
+    catch
     {
       return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." },
         { status: 500 });
     }
 
-    const turnoId = turno.id as string;
+    const fin = new Date(inicio.getTime() + servicioRow.duracion_min * 60_000);
+    const conSena = requierePagoSena(outcome, montos.senaMonto);
+
+    let turnoId: string;
+
+    try
+    {
+      turnoId = await insertarTurno(admin, {
+        negocioId,
+        staffId,
+        servicioId,
+        clienteId,
+        inicio,
+        fin,
+        conSena,
+        montoTotal: montos.montoTotal,
+        senaMonto: montos.senaMonto,
+        senaPorcentaje: montos.senaPorcentaje,
+      });
+    }
+    catch
+    {
+      return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." },
+        { status: 500 });
+    }
     const servicioNombre = servicioRow.nombre ?? "tu servicio";
     const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
     // Sync App → GCal (best-effort) solo para turnos confirmados sin seña.
@@ -380,99 +766,33 @@ export async function POST(request: Request)
     // acreditarse el pago (webhook o marca manual cash).
     if (!conSena)
     {
-      try
-      {
-        const gcalEventId = await calendarService.createEventForNegocio(negocioId, {
-          ...buildTurnoEvent({
-            negocio: negocio.nombre as string,
-            servicio: servicioNombre,
-            profesional: staffNombre,
-            cliente: nombre,
-            whatsapp,
-            inicio,
-            fin,
-          }),
-          timeZone,
-        });
+      await sincronizarConfirmado({
+        admin,
+        negocioId,
+        negocioNombre: negocio.nombre as string,
+        servicioNombre,
+        staffNombre,
+        clienteNombre: nombre,
+        whatsapp,
+        email,
+        inicio,
+        fin,
+        turnoId,
+        timeZone,
+        plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,
+        plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
+      });
 
-        if (gcalEventId !== null)
-        {
-          await admin.from("turnos").update({ google_calendar_event_id: gcalEventId }).eq("id", turnoId);
-        }
-      }
-      catch
-      {
-        // Best-effort: la reserva ya existe aunque falle Google.
-      }
-    }
-
-    if (email !== null)
-    {
-      try
-      {
-        const plantilla = resolverPlantilla("confirmacion", {
-          subject: negocioRow?.msg_confirmacion_subject ?? null,
-          cuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
-        }, {
-          negocio: negocio.nombre as string,
-          servicio: servicioNombre,
-          profesional: staffNombre,
-          fecha: formatearFechaEnZona(inicio, timeZone),
-        });
-
-        await new ResendAdapter().send({
-          to: email,
-          subject: plantilla.subject,
-          fromName: negocio.nombre as string,
-          html: plantilla.html,
-        });
-      }
-      catch
-      {
-        // Best-effort: la reserva ya existe aunque falle el email.
-      }
-    }
-
-    if (!conSena)
-    {
       return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal });
     }
 
-    let checkoutUrl: string | null = null;
-    let checkoutError: string | null = null;
-
-    try
-    {
-      const preference = await paymentService.createDepositPreferenceForNegocio(negocioId, turnoId,
-        montos.montoTotal, montos.senaPorcentaje, `Seña ${negocio.nombre as string}`);
-
-      checkoutUrl = preference.initPoint;
-    }
-    catch
-    {
-      // El turno ya existe como pendiente: el cliente reintenta el pago
-      // y el antifantasma lo libera si no se paga en 15 minutos.
-      checkoutError = "No pudimos generar el link de pago. Probá de nuevo en unos segundos.";
-    }
-
-    try
-    {
-      const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
-        ? `https://${readEnv("VERCEL_URL") as string}` : null);
-
-      if (base !== null)
-      {
-        await new QStashAdapter().schedule({
-          url: `${base.replace(/\/+$/, "")}/api/cron/antifantasma`,
-          delaySeconds: 900,
-          body: { turnoId },
-        });
-      }
-    }
-    catch
-    {
-      // Best-effort: la reserva ya existe aunque QStash no esté configurado.
-    }
+    const { checkoutUrl, checkoutError } = await crearCheckoutConSena(
+      negocioId,
+      turnoId,
+      montos.montoTotal,
+      montos.senaPorcentaje,
+      negocio.nombre as string,
+    );
 
     return NextResponse.json({
       success: true,

@@ -15,8 +15,24 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 const ESTADOS_VALIDOS: readonly EstadoTurno[] = ["pendiente", "confirmado", "pagado", "completado",
   "cancelado", "ausente"];
 
-/** Actualiza el estado de un turno del negocio del dueño autenticado. */
-export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno): Promise<void>
+interface TurnoEditable
+{
+  readonly negocioId: string;
+  readonly turno: {
+    readonly estado: unknown;
+    readonly cliente_id?: unknown;
+    readonly google_calendar_event_id?: unknown;
+  } & Record<string, unknown>;
+}
+
+/**
+ * Exige un turno editable del negocio del dueño autenticado.
+ *
+ * @param turnoId ID del turno.
+ * @param nuevo Estado destino.
+ * @return Negocio y turno validados.
+ */
+async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise<TurnoEditable>
 {
   if (!ESTADOS_VALIDOS.includes(nuevo))
   {
@@ -32,9 +48,6 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   {
     throw new Error("Tenés que iniciar sesión para modificar la agenda.");
   }
-
-  // La cuenta demo tiene ownerId = "demo-duenio", siempre permitida en modo editable.
-  // Si quieres que la demo sea readonly, podés optar por dejar que assertDuenoEditable lance acá.
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -57,45 +70,131 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
 
   validarTransicionTurno(turno.estado as EstadoTurno, nuevo);
 
-  if (nuevo === "cancelado")
-  {
-    const turnoRow = turno as {
-      estado?: unknown; inicio?: unknown; servicio_id?: unknown; mp_payment_id?: unknown;
-    };
-    const { data: servicio } = typeof turnoRow.servicio_id === "string"
-      ? await admin.from("servicios").select("reembolso_auto")
-        .eq("id", turnoRow.servicio_id).single()
-      : { data: null };
-    const { data: negocioRow } = await admin.from("negocios").select("sena_retencion_hs")
-      .eq("id", negocioId).single();
-    const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
-    const mpPaymentId = typeof turnoRow.mp_payment_id === "string" ? turnoRow.mp_payment_id : null;
-    const inicio = typeof turnoRow.inicio === "string" ? new Date(turnoRow.inicio) : null;
-    const horasRestantes = inicio !== null && !Number.isNaN(inicio.getTime())
-      ? horasRestantesPara(inicio, new Date())
-      : null;
+  return { negocioId, turno: turno as TurnoEditable["turno"] };
+}
 
-    if (shouldAutoRefund({
-      reembolsoAuto,
-      estado: turno.estado as RefundableEstado,
-      mpPaymentId,
-      horasRestantes,
-      retencionHs: resolverRetencionHs(
-        (negocioRow as { sena_retencion_hs?: unknown } | null)?.sena_retencion_hs),
-    }))
-    {
-      try
-      {
-        await paymentService.refundForNegocio(negocioId, mpPaymentId as string);
-      }
-      catch
-      {
-        // Best-effort: el turno se cancela igual y la seña se devuelve
-        // manual desde el panel de MercadoPago.
-      }
-    }
+/**
+ * Intenta el reembolso automático al cancelar con seña.
+ *
+ * @param negocioId ID del negocio.
+ * @param turno Turno a cancelar.
+ * @return Vacío, best-effort.
+ */
+async function intentarReembolsoAuto(
+  negocioId: string,
+  turno: Record<string, unknown>,
+): Promise<void>
+{
+  const admin = getSupabaseAdmin();
+  const { data: servicio } = typeof turno.servicio_id === "string"
+    ? await admin.from("servicios").select("reembolso_auto")
+      .eq("id", turno.servicio_id).single()
+    : { data: null };
+  const { data: negocioRow } = await admin.from("negocios").select("sena_retencion_hs")
+    .eq("id", negocioId).single();
+  const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
+  const mpPaymentId = typeof turno.mp_payment_id === "string" ? turno.mp_payment_id : null;
+  const inicio = typeof turno.inicio === "string" ? new Date(turno.inicio) : null;
+  const horasRestantes = inicio !== null && !Number.isNaN(inicio.getTime())
+    ? horasRestantesPara(inicio, new Date())
+    : null;
+
+  const debeReembolsar = shouldAutoRefund({
+    reembolsoAuto,
+    estado: turno.estado as RefundableEstado,
+    mpPaymentId,
+    horasRestantes,
+    retencionHs: resolverRetencionHs(
+      (negocioRow as { sena_retencion_hs?: unknown } | null)?.sena_retencion_hs),
+  });
+
+  if (!debeReembolsar)
+  {
+    return;
   }
 
+  try
+  {
+    await paymentService.refundForNegocio(negocioId, mpPaymentId as string);
+  }
+  catch
+  {
+    // Best-effort: el turno se cancela igual y la seña se devuelve
+    // manual desde el panel de MercadoPago.
+  }
+}
+
+/**
+ * Sincroniza Google Calendar según el nuevo estado.
+ *
+ * @param nuevo Estado destino.
+ * @param negocioId ID del negocio.
+ * @param turno Turno actualizado.
+ * @param turnoId ID del turno.
+ */
+async function sincronizarGCal(
+  nuevo: EstadoTurno,
+  negocioId: string,
+  turno: Record<string, unknown>,
+  turnoId: string,
+): Promise<void>
+{
+  if (nuevo === "pagado")
+  {
+    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
+
+    await crearEventoGoogleParaTurno(turnoId);
+
+    return;
+  }
+
+  if (nuevo !== "cancelado")
+  {
+    return;
+  }
+
+  const gcalEventId = turno.google_calendar_event_id;
+
+  if (typeof gcalEventId === "string" && gcalEventId.length > 0)
+  {
+    await calendarService.deleteEventForNegocio(negocioId, gcalEventId);
+  }
+}
+
+/**
+ * Registra la ausencia del cliente.
+ *
+ * @param turno Turno marcado ausente.
+ */
+async function registrarAusencia(turno: Record<string, unknown>): Promise<void>
+{
+  if (typeof turno.cliente_id !== "string")
+  {
+    return;
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: cliente } = await admin.from("clientes").select("ausencias")
+    .eq("id", turno.cliente_id).single();
+
+  if (cliente !== null && typeof cliente.ausencias === "number")
+  {
+    await admin.from("clientes").update({ ausencias: cliente.ausencias + 1 })
+      .eq("id", turno.cliente_id);
+  }
+}
+
+/** Actualiza el estado de un turno del negocio del dueño autenticado. */
+export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno): Promise<void>
+{
+  const { negocioId, turno } = await exigirTurnoEditable(turnoId, nuevo);
+
+  if (nuevo === "cancelado")
+  {
+    await intentarReembolsoAuto(negocioId, turno);
+  }
+
+  const admin = getSupabaseAdmin();
   const { error } = await admin.from("turnos").update({ estado: nuevo }).eq("id", turnoId);
 
   if (error !== null)
@@ -103,35 +202,11 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
     throw new Error("No pudimos actualizar el turno. Probá de nuevo.");
   }
 
-  if (nuevo === "pagado")
+  await sincronizarGCal(nuevo, negocioId, turno, turnoId);
+
+  if (nuevo === "ausente")
   {
-    // Marca manual cash: el pago acredita la cita y la inyecta en GCal.
-    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
-
-    await crearEventoGoogleParaTurno(turnoId);
-  }
-
-  if (nuevo === "cancelado")
-  {
-    // Sync App → GCal (best-effort): borra el evento inyectado al reservar.
-    const gcalEventId = (turno as { google_calendar_event_id?: unknown }).google_calendar_event_id;
-
-    if (typeof gcalEventId === "string" && gcalEventId.length > 0)
-    {
-      await calendarService.deleteEventForNegocio(negocioId, gcalEventId);
-    }
-  }
-
-  if (nuevo === "ausente" && typeof turno.cliente_id === "string")
-  {
-    const { data: cliente } = await admin.from("clientes").select("ausencias")
-      .eq("id", turno.cliente_id).single();
-
-    if (cliente !== null && typeof cliente.ausencias === "number")
-    {
-      await admin.from("clientes").update({ ausencias: cliente.ausencias + 1 })
-        .eq("id", turno.cliente_id);
-    }
+    await registrarAusencia(turno);
   }
 
   revalidatePath("/dashboard/agenda");

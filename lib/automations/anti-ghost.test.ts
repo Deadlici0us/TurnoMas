@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldReleaseBooking } from "./anti-ghost";
-import type { UnpaidBooking } from "./anti-ghost";
+import { shouldReleaseBooking, type UnpaidBooking } from "./anti-ghost";
 
 const NOW = new Date("2026-09-28T13:00:00Z");
 

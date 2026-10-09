@@ -33,7 +33,7 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <label className="block text-sm text-slate-600 sm:col-span-2">
-        Nombre
+        {"Nombre"}
         <input
           type="text"
           name="nombre"
@@ -45,7 +45,7 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
         />
       </label>
       <label className="block text-sm text-slate-600">
-        Duración (min)
+        {"Duración (min)"}
         <input
           type="number"
           name="duracionMin"
@@ -56,7 +56,7 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
         />
       </label>
       <label className="block text-sm text-slate-600">
-        Precio base
+        {"Precio base"}
         <input
           type="number"
           name="precioBase"
@@ -76,7 +76,7 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
             onChange={(event) => setPromoActiva(event.target.checked)}
             className="w-4 h-4"
           />
-          Precio promo
+          {"Precio promo"}
         </label>
         <input
           type="number"
@@ -96,10 +96,10 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
           onChange={(event) => setExigeSena(event.target.checked)}
           className="w-4 h-4"
         />
-        Exige seña
+        {"Exige seña"}
       </label>
       <label className="block text-sm text-slate-600">
-        Seña (%)
+        {"Seña (%)"}
         <input
           type="number"
           name="senaPorcentaje"
@@ -120,10 +120,10 @@ export default function CamposServicio({ servicio }: { servicio?: CamposServicio
           onChange={(event) => setRemarketingActivo(event.target.checked)}
           className="w-4 h-4"
         />
-        Remarketing
+        {"Remarketing"}
       </label>
       <label className="block text-sm text-slate-600">
-        Remarketing (días)
+        {"Remarketing (días)"}
         <input
           type="number"
           name="remarketingDias"

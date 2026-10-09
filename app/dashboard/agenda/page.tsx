@@ -187,13 +187,13 @@ export default async function AgendaPage()
                     {turno.estado === "pendiente" ? (
                       <>
                         <form action={cambiarEstado.bind(null, turno.id, "pagado")}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
                             text-white hover:bg-green-700">
                             Marcar seña pagada
                           </button>
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50">
                             Cancelar
                           </button>
@@ -203,19 +203,19 @@ export default async function AgendaPage()
                     {turno.estado === "pagado" || turno.estado === "confirmado" ? (
                       <>
                         <form action={cambiarEstado.bind(null, turno.id, "completado")}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600
                             text-white hover:bg-blue-700">
                             Completar
                           </button>
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "ausente")}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600
                             text-white hover:bg-red-700">
                             Ausente
                           </button>
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
-                          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg border
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
                             border-slate-300 hover:bg-slate-50">
                             Cancelar
                           </button>

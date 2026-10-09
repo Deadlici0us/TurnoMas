@@ -11,8 +11,7 @@
  */
 
 import { createBrowserClient } from "@supabase/ssr";
-import type { EnvRecord } from "@/lib/env/env";
-import { readEnv } from "@/lib/env/env";
+import { readEnv, type EnvRecord } from "@/lib/env/env";
 
 /** Lee las vars públicas con acceso estático para que el bundler las incruste en el cliente. */
 function readBrowserEnv(): EnvRecord

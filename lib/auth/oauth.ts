@@ -8,6 +8,7 @@
 
 import type { EnvRecord } from "@/lib/env/env";
 import { readEnv } from "@/lib/env/env";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 const OAUTH_CALLBACK_PATH = "/auth/callback";
 
@@ -23,14 +24,14 @@ export function resolveAppBaseUrl(env: EnvRecord = process.env): string | null
 
   if (publicUrl !== null)
   {
-    return publicUrl.replace(/\/+$/, "");
+    return stripTrailingSlashes(publicUrl);
   }
 
   const vercelUrl = readEnv("VERCEL_URL", env);
 
   if (vercelUrl !== null)
   {
-    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+    return `https://${stripTrailingSlashes(vercelUrl)}`;
   }
 
   return null;

@@ -11,9 +11,8 @@
 
 import { NextResponse } from "next/server";
 
-import { shouldSendRemarketing } from "@/lib/automations/remarketing";
-import { resolverRemarketingDias } from "@/lib/automations/remarketing";
-import { readEnv } from "@/lib/env/env";
+import { resolverRemarketingDias, shouldSendRemarketing } from "@/lib/automations/remarketing";
+import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -42,10 +41,18 @@ interface TurnoCandidato
 
 export async function POST(request: Request)
 {
+  const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
+  const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
+
+  if (claveActual === null && claveSiguiente === null && exigeFirmas())
+  {
+    return NextResponse.json({ error: "Cron no configurado en producción." }, { status: 503 });
+  }
+
   const firmaOk = await verificarFirmaQStash({
     firma: request.headers.get("upstash-signature"),
-    claveActual: readEnv("QSTASH_CURRENT_SIGNING_KEY"),
-    claveSiguiente: readEnv("QSTASH_NEXT_SIGNING_KEY"),
+    claveActual,
+    claveSiguiente,
   });
 
   if (!firmaOk)
