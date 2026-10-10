@@ -1,11 +1,100 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET, POST } from "./route";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+vi.mock("@/lib/supabase/admin", () =>
+{
+  return { getSupabaseAdmin: vi.fn() };
+});
+
+const { mockEmailSend } = vi.hoisted(() =>
+{
+  return { mockEmailSend: vi.fn() };
+});
+
+vi.mock("@/lib/ports/email", () =>
+{
+  return {
+    ResendAdapter: function ()
+    {
+      return { send: mockEmailSend };
+    },
+  };
+});
+
+const mockAdmin = vi.mocked(getSupabaseAdmin);
 
 function requestSinFirma(): Request
 {
   return new Request("http://localhost/api/cron/recordatorios", { method: "POST" });
 }
+
+/** Turno candidato con inicio en `horasFuturo` horas. */
+function turnoCandidato(horasFuturo: number, overrides: Record<string, unknown> = {})
+{
+  return {
+    id: "t-1",
+    inicio: new Date(Date.now() + horasFuturo * 3_600_000).toISOString(),
+    notificacion_enviada: false,
+    negocio: {
+      nombre: "Barbería",
+      timezone: "America/Argentina/Buenos_Aires",
+      pais: "ar",
+      recordatorio_activo: true,
+      recordatorio_hs: 24,
+      msg_recordatorio_subject: null,
+      msg_recordatorio_cuerpo: null,
+    },
+    servicio: { nombre: "Corte" },
+    staff: { nombre: "Diego" },
+    cliente: { email: "cli@ejemplo.com" },
+    ...overrides,
+  };
+}
+
+/**
+ * Stub del admin para el barrido de recordatorios.
+ *
+ * @param filas Turnos devueltos por el barrido.
+ * @param updates Flags actualizados capturados.
+ */
+function stubBarrido(filas: unknown[], updates: unknown[] = [])
+{
+  const admin = {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        in: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              lte: vi.fn(() => ({
+                limit: vi.fn(async () => ({ data: filas })),
+              })),
+            })),
+          })),
+        })),
+      })),
+      update: vi.fn((values: unknown) =>
+      {
+        updates.push(values);
+
+        return { eq: vi.fn(async () => ({ error: null })) };
+      }),
+    })),
+  };
+
+  mockAdmin.mockReturnValue(admin as never);
+}
+
+beforeEach(() =>
+{
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+  mockAdmin.mockImplementation(() =>
+  {
+    throw new Error("Falta configurar Supabase en el entorno (URL y clave de servicio).");
+  });
+});
 
 describe("POST /api/cron/recordatorios",
 () =>
@@ -51,6 +140,27 @@ describe("POST /api/cron/recordatorios",
     }
   });
 
+  it("debería fallar cerrado en producción sin claves configuradas",
+  async () =>
+  {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("QSTASH_CURRENT_SIGNING_KEY", "");
+    vi.stubEnv("QSTASH_NEXT_SIGNING_KEY", "");
+
+    try
+    {
+      const response = await POST(requestSinFirma());
+      const body = await response.json() as { error: string };
+
+      expect(response.status).toBe(503);
+      expect(body.error).toBe("Cron no configurado en producción.");
+    }
+    finally
+    {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("debería exponer estado vía GET",
   async () =>
   {
@@ -58,5 +168,73 @@ describe("POST /api/cron/recordatorios",
     const body = await response.json() as { status: string };
 
     expect(body.status).toBe("ok");
+  });
+
+  it("debería enviar recordatorio dentro de la ventana y marcarlo",
+  async () =>
+  {
+    const updates: unknown[] = [];
+    stubBarrido([turnoCandidato(12)], updates);
+    mockEmailSend.mockResolvedValueOnce("email-1");
+
+    const response = await POST(requestSinFirma());
+    const body = await response.json() as { enviados: number };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, enviados: 1 });
+    expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "cli@ejemplo.com" }));
+    expect(updates).toEqual([{ notificacion_enviada: true }]);
+  });
+
+  it("debería omitir turnos fuera de la ventana",
+  async () =>
+  {
+    stubBarrido([turnoCandidato(30)]);
+
+    const response = await POST(requestSinFirma());
+    const body = await response.json() as { enviados: number };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ enviados: 0 });
+    expect(mockEmailSend).not.toHaveBeenCalled();
+  });
+
+  it("debería omitir negocios con recordatorios desactivados",
+  async () =>
+  {
+    stubBarrido([turnoCandidato(12, {
+      negocio: { nombre: "Barbería", recordatorio_activo: false },
+    })]);
+
+    const response = await POST(requestSinFirma());
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+    expect(mockEmailSend).not.toHaveBeenCalled();
+  });
+
+  it("debería omitir clientes sin email",
+  async () =>
+  {
+    stubBarrido([turnoCandidato(12, { cliente: { email: null } })]);
+
+    const response = await POST(requestSinFirma());
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+    expect(mockEmailSend).not.toHaveBeenCalled();
+  });
+
+  it("debería continuar aunque un envío falle (best-effort)",
+  async () =>
+  {
+    stubBarrido([turnoCandidato(12)]);
+    mockEmailSend.mockRejectedValueOnce(new Error("resend caído"));
+
+    const response = await POST(requestSinFirma());
+    const body = await response.json() as { enviados: number };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, enviados: 0 });
   });
 });
