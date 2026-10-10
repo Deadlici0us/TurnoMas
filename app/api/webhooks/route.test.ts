@@ -1,14 +1,75 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
+import { bookingService } from "@/lib/services/booking";
+import { calendarService } from "@/lib/services/calendar";
+import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
+import { paymentService } from "@/lib/services/payment";
 
-function requestWith(body: unknown): Request
+vi.mock("@/lib/services/payment", () =>
+{
+  return {
+    paymentService: {
+      getPaymentStatus: vi.fn(),
+      getBusinessAccessToken: vi.fn(),
+      refundForNegocio: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@/lib/services/booking", () =>
+{
+  return {
+    bookingService: {
+      getBookingByPaymentId: vi.fn(),
+      getBookingById: vi.fn(),
+      confirmBooking: vi.fn(),
+      releaseBooking: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@/lib/services/calendar-sync", () =>
+{
+  return { crearEventoGoogleParaTurno: vi.fn() };
+});
+
+vi.mock("@/lib/services/calendar", () =>
+{
+  return { calendarService: { deleteEventForNegocio: vi.fn() } };
+});
+
+const mockGetStatus = vi.mocked(paymentService.getPaymentStatus);
+const mockBusinessToken = vi.mocked(paymentService.getBusinessAccessToken);
+const mockByPaymentId = vi.mocked(bookingService.getBookingByPaymentId);
+const mockById = vi.mocked(bookingService.getBookingById);
+const mockConfirm = vi.mocked(bookingService.confirmBooking);
+const mockRelease = vi.mocked(bookingService.releaseBooking);
+const mockCrearEvento = vi.mocked(crearEventoGoogleParaTurno);
+const mockDeleteEvent = vi.mocked(calendarService.deleteEventForNegocio);
+
+/**
+ * Request de webhook de pago de MercadoPago.
+ *
+ * @param body Cuerpo del webhook.
+ * @param headers Cabeceras adicionales.
+ */
+function requestWith(body: unknown, headers: Record<string, string> = {}): Request
 {
   return new Request("http://localhost/api/webhooks", {
     method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
+
+const PAGO = { type: "payment", data: { id: "12345" } };
+
+beforeEach(() =>
+{
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+});
 
 describe("POST /api/webhooks",
 () =>
@@ -31,5 +92,225 @@ describe("POST /api/webhooks",
 
     expect(response.status).toBe(400);
     expect(body.error).toBe("Falta el ID del pago.");
+  });
+
+  it("debería fallar cerrado en producción sin secreto configurado",
+  async () =>
+  {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MP_WEBHOOK_SECRET", "");
+
+    try
+    {
+      const response = await POST(requestWith({ type: "payment", data: { id: "12345" } }));
+      const body = await response.json() as { error: string };
+
+      expect(response.status).toBe(503);
+      expect(body.error).toBe("Webhook no configurado en producción.");
+    }
+    finally
+    {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("debería rechazar firma inválida con secreto configurado",
+  async () =>
+  {
+    vi.stubEnv("MP_WEBHOOK_SECRET", "secreto-1");
+    mockGetStatus.mockResolvedValue({ id: "12345", status: "approved", externalReference: "b-1" });
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(401);
+    expect(body.error).toBe("Firma del webhook inválida.");
+    expect(mockGetStatus).not.toHaveBeenCalled();
+  });
+
+  it("debería devolver 502 cuando el pago no se puede consultar",
+  async () =>
+  {
+    mockGetStatus.mockRejectedValueOnce(new Error("mp caído"));
+    mockByPaymentId.mockResolvedValueOnce(null);
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("No pudimos consultar el pago.");
+  });
+
+  it("debería reintentar con el token del negocio (señas delegadas)",
+  async () =>
+  {
+    mockGetStatus.mockRejectedValueOnce(new Error("no visible"));
+    mockByPaymentId.mockResolvedValueOnce({ id: "b-1", negocio_id: "neg-1", estado: "pendiente" });
+    mockBusinessToken.mockResolvedValueOnce("tok-negocio");
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockConfirm.mockResolvedValueOnce(undefined);
+    mockCrearEvento.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { success: boolean; status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "approved" });
+    expect(mockGetStatus).toHaveBeenCalledWith("12345", "tok-negocio");
+    expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
+  });
+
+  it("debería confirmar y crear evento con pago aprobado",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockConfirm.mockResolvedValueOnce(undefined);
+    mockCrearEvento.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(PAGO));
+
+    expect(response.status).toBe(200);
+    expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
+    expect(mockCrearEvento).toHaveBeenCalledWith("b-1");
+  });
+
+  it("debería responder sinReserva sin referencia externa",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: null });
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { sinReserva: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.sinReserva).toBe(true);
+    expect(mockById).not.toHaveBeenCalled();
+  });
+
+  it("debería responder idempotente con turno ya pagado",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pagado" });
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { idempotente: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.idempotente).toBe(true);
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  it("debería liberar y borrar evento con pago rechazado",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "rejected", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockRelease.mockResolvedValueOnce(undefined);
+    mockById.mockResolvedValueOnce({ id: "b-1", negocio_id: "neg-1", google_calendar_event_id: "evt-1" });
+    mockDeleteEvent.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(PAGO));
+
+    expect(response.status).toBe(200);
+    expect(mockRelease).toHaveBeenCalledWith("b-1");
+    expect(mockDeleteEvent).toHaveBeenCalledWith("neg-1", "evt-1");
+  });
+
+  it("debería liberar sin evento Google cuando no hay ids",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "cancelled", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockRelease.mockResolvedValueOnce(undefined);
+    mockById.mockResolvedValueOnce(null);
+
+    const response = await POST(requestWith(PAGO));
+
+    expect(response.status).toBe(200);
+    expect(mockRelease).toHaveBeenCalledWith("b-1");
+    expect(mockDeleteEvent).not.toHaveBeenCalled();
+  });
+
+  it("debería liberar aunque el borrado en Google falle",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "rejected", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockRelease.mockResolvedValueOnce(undefined);
+    mockById.mockRejectedValueOnce(new Error("db caída"));
+
+    const response = await POST(requestWith(PAGO));
+
+    expect(response.status).toBe(200);
+    expect(mockRelease).toHaveBeenCalledWith("b-1");
+    expect(mockDeleteEvent).not.toHaveBeenCalled();
+  });
+
+  it("debería ignorar estados intermedios sin mutar",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "pending", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { status: string };
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("pending");
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockRelease).not.toHaveBeenCalled();
+  });
+
+  it("debería devolver 500 con cuerpo ilegible",
+  async () =>
+  {
+    const request = new Request("http://localhost/api/webhooks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "esto-no-es-json{",
+    });
+    const response = await POST(request);
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(500);
+    expect(body.error).toBe("No se pudo procesar el webhook.");
+  });
+});
+
+describe("GET /api/webhooks",
+() =>
+{
+  it("debería responder salud ok",
+  async () =>
+  {
+    const response = await GET();
+    const body = await response.json() as { status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ status: "ok" });
+  });
+});
+
+describe("POST /api/webhooks integración",
+() =>
+{
+  it("debería procesar un pago aprobado punta a punta",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "999", status: "approved", externalReference: "book-int" });
+    mockById.mockResolvedValueOnce({ id: "book-int", estado: "pendiente" });
+    mockConfirm.mockResolvedValueOnce(undefined);
+    mockCrearEvento.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith({ type: "payment", data: { id: 999 } }));
+    const body = await response.json() as { success: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockConfirm).toHaveBeenCalledWith("book-int", "999");
+    expect(mockCrearEvento).toHaveBeenCalledWith("book-int");
   });
 });
