@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export const config = {
-  matcher: ["/", String.raw`/((?!_next/static|_next/image|favicon.ico|api\/|.*\..*).*)`]
+  matcher: ["/", "/((?!_next/static|_next/image|favicon.ico|api/|.*\\..*).*)"]
 };
 
 /**
@@ -13,8 +13,11 @@ export const config = {
  * Solo propaga el header de locale que `next-intl/server` espera.
  * Restaurar `createMiddleware` cuando se agreguen rutas `[locale]`.
  */
-export default function middleware(request: NextRequest) {
+export function proxy(request: NextRequest)
+{
   const headers = new Headers(request.headers);
   headers.set("X-NEXT-INTL-LOCALE", "es-AR");
   return NextResponse.next({ request: { headers } });
 }
+
+export default proxy;

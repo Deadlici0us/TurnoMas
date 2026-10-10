@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { GET, POST, resolverBaseResena } from "./route";
+import { GET, POST } from "./route";
+import { resolverBaseResena } from "./helpers";
 
 describe("resolverBaseResena",
 () =>

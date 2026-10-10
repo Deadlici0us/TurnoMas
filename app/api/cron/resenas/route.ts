@@ -16,8 +16,9 @@ import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
+
+import { resolverBaseResena } from "./helpers";
 
 const LIMITE_BARRIDO = 100;
 
@@ -35,21 +36,6 @@ interface TurnoCandidato
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
   readonly cliente: { email: string | null } | null;
-}
-
-/** Base pública para construir el link de calificación. */
-export function resolverBaseResena(): string | null
-{
-  const publica = readEnv("NEXT_PUBLIC_APP_URL");
-
-  if (publica !== null)
-  {
-    return stripTrailingSlashes(publica);
-  }
-
-  const vercel = readEnv("VERCEL_URL");
-
-  return vercel !== null ? `https://${stripTrailingSlashes(vercel)}` : null;
 }
 
 export async function POST(request: Request)

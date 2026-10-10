@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluarRiesgo, filtrarBloqueos, parseReservaBody, retieneSlot } from "./route";
+import { evaluarRiesgo, filtrarBloqueos, parseReservaBody, retieneSlot } from "./helpers";
 
 describe("parseReservaBody", () =>
 {
