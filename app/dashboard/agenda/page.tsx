@@ -109,8 +109,10 @@ export default async function AgendaPage()
   }
 
   const hoy = new Date();
+  const negocioIdCrudo = (dashboard.negocio as { id?: unknown }).id;
+  const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
   const externos = await calendarService.getExternalEventsForNegocio(
-    String((dashboard.negocio as { id?: unknown }).id ?? ""),
+    negocioIdTexto,
     new Date(hoy.getTime() - 30 * 86_400_000), new Date(hoy.getTime() + 60 * 86_400_000))
     .then((eventos) => eventos.map((e) => ({
       id: e.id,

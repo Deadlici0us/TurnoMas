@@ -181,7 +181,7 @@ async function buildPortalBusiness(
   };
 }
 
-export default async function PortalPage({ params }: { params: Promise<PortalParams> })
+export default async function PortalPage({ params }: { readonly params: Promise<PortalParams> })
 {
   const { pais, slug } = await params;
 

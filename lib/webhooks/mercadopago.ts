@@ -42,11 +42,13 @@ export function extraerPagoId(body: unknown): string | null
 
   if (typeof resource === "string")
   {
-    const match = resource.match(/(\d+)\/?$/);
+    // Sin regex: el id es el último segmento de la ruta si es todo dígitos.
+    const recortado = resource.endsWith("/") ? resource.slice(0, -1) : resource;
+    const ultimo = recortado.slice(recortado.lastIndexOf("/") + 1);
 
-    if (match !== null)
+    if (ultimo.length > 0 && [...ultimo].every((c) => c >= "0" && c <= "9"))
     {
-      return match[1];
+      return ultimo;
     }
   }
 

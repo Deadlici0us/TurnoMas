@@ -21,7 +21,7 @@ function isErrorParam(value: string | undefined): value is ErrorParam
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  readonly searchParams: Promise<{ error?: string }>;
 })
 {
   const t = await getTranslations("common");

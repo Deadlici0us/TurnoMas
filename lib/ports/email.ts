@@ -51,7 +51,7 @@ export const DEFAULT_FROM_NAME = "TurnoMas";
  */
 export function extractEmailAddress(raw: string): string
 {
-  const match = raw.match(/<([^<>]+)>/);
+  const match = /<([^<>]+)>/.exec(raw);
 
   if (match?.[1])
   {
@@ -88,13 +88,40 @@ export function buildFromHeader(address: string, name?: string): string
   return `${display} <${address}>`;
 }
 
+/**
+ * Quita comillas simples/dobles de los bordes.
+ * S8786: bucle lineal en vez de /^["']+|["']+$/ con alternancia super-lineal.
+ *
+ * @param valor Valor crudo del entorno.
+ * @return Valor sin comillas envolventes.
+ */
+function desentrecomillar(valor: string): string
+{
+  let inicio = 0;
+  let fin = valor.length;
+
+  while (inicio < fin && (valor[inicio] === '"' || valor[inicio] === "'"))
+  {
+    inicio += 1;
+  }
+
+  while (fin > inicio && (valor[fin - 1] === '"' || valor[fin - 1] === "'"))
+  {
+    fin -= 1;
+  }
+
+  return valor.slice(inicio, fin);
+}
+
 /** Adaptador Resend vía REST (sin SDK): usa RESEND_API_KEY y EMAIL_FROM. */
 export class ResendAdapter implements IEmailProvider
 {
   async send(input: SendEmailInput): Promise<string>
   {
-    const apiKey = readEnv("RESEND_API_KEY")?.replace(/^["']+|["']+$/g, "").trim() ?? null;
-    const fromRaw = readEnv("EMAIL_FROM")?.replace(/^["']+|["']+$/g, "").trim() ?? null;
+    const apiKeyCrudo = readEnv("RESEND_API_KEY");
+    const fromCrudo = readEnv("EMAIL_FROM");
+    const apiKey = apiKeyCrudo !== null ? desentrecomillar(apiKeyCrudo).trim() : null;
+    const fromRaw = fromCrudo !== null ? desentrecomillar(fromCrudo).trim() : null;
 
     if (apiKey === null || fromRaw === null)
     {

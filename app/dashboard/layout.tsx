@@ -12,7 +12,7 @@ import DemoEditableBanner from "@/components/demo-editable-banner";
 export default async function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 })
 {
   const { isDemo } = await getDashboardData();

@@ -12,9 +12,8 @@ import { NextResponse } from "next/server";
 
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
-import { isSlotAvailable } from "@/lib/availability/availability";
+import { getBlockedInterval, isSlotAvailable } from "@/lib/availability/availability";
 import { BUFFER_MINUTOS } from "@/lib/booking/slots";
-import { getBlockedInterval } from "@/lib/availability/availability";
 import { requierePagoSena, resolveCheckout } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
@@ -27,6 +26,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
+import { esEmailValido } from "@/lib/validation/email";
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
@@ -42,8 +42,6 @@ interface ReservaBody
   readonly whatsapp: unknown;
   readonly email: unknown;
 }
-
-const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function exigirTexto(valor: unknown, mensaje: string): string
 {
@@ -118,7 +116,7 @@ function exigirEmailOpcional(valor: unknown): string | null
 
   const email = valor.trim().toLowerCase().slice(0, 120);
 
-  if (!EMAIL_PATTERN.test(email))
+  if (!esEmailValido(email))
   {
     throw new RangeError("Revisá tu email para que te lleguen las confirmaciones.");
   }

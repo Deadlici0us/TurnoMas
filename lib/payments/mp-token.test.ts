@@ -62,7 +62,7 @@ describe("resolveEffectiveMpToken",
   it("debería devolver null sin ningún token",
   () =>
   {
-    expect(resolveEffectiveMpToken(null, null)).toBe(null);
+    expect(resolveEffectiveMpToken(null, null)).toBeNull();
   });
 });
 

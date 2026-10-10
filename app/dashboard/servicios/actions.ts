@@ -37,12 +37,12 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     nombre: formData.get("nombre"),
     duracionMin: exigirNumeroCrudo(formData.get("duracionMin")),
     precioBase: exigirNumeroCrudo(formData.get("precioBase")),
-    precioPromocional: promoCruda === null || String(promoCruda).trim().length === 0
+    precioPromocional: typeof promoCruda !== "string" || promoCruda.trim().length === 0
       ? null
       : exigirNumeroCrudo(promoCruda),
     promoActiva: formData.get("promoActiva"),
     senaRequerida: formData.get("senaRequerida"),
-    senaPorcentaje: !senaRequerida || senaCruda === null || String(senaCruda).trim().length === 0
+    senaPorcentaje: !senaRequerida || typeof senaCruda !== "string" || senaCruda.trim().length === 0
       ? 0
       : exigirNumeroCrudo(senaCruda),
     remarketingActivo: formData.get("remarketingActivo"),
@@ -50,7 +50,7 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     {
       const cruda = formData.get("remarketingDias");
 
-      if (cruda === null || String(cruda).trim().length === 0)
+      if (typeof cruda !== "string" || cruda.trim().length === 0)
       {
         return null;
       }

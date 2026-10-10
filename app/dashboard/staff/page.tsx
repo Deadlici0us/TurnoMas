@@ -37,7 +37,9 @@ async function crearStaff(formData: FormData): Promise<void>
 {
   "use server";
 
-  await agregarStaff(String(formData.get("nombre") ?? ""));
+  const nombreCrudo = formData.get("nombre");
+
+  await agregarStaff(typeof nombreCrudo === "string" ? nombreCrudo : "");
 }
 
 async function alternarStaff(staffId: string, activo: boolean): Promise<void>
@@ -62,7 +64,9 @@ async function guardarHorarios(staffId: string, formData: FormData): Promise<voi
 
   for (const day of DAY_ORDER)
   {
-    horarios[day] = String(formData.get(day) ?? "");
+    const valorCrudo = formData.get(day);
+
+    horarios[day] = typeof valorCrudo === "string" ? valorCrudo : "";
   }
 
   await actualizarHorariosStaff(staffId, horarios);

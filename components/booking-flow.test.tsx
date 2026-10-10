@@ -114,4 +114,38 @@ describe("BookingFlow",
     expect(screen.queryByText(/Sin horarios libres los próximos 7 días/)).toBeNull();
     expect(screen.getAllByRole("button", { name: "09:00" }).length).toBeGreaterThan(0);
   });
+
+  it("debería pedir revisión del email inválido en el paso de datos",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const staff = [{ id: "s1", nombre: "Diego",
+      horarios: { lun: "09:00-12:00", mar: "09:00-12:00" }, activo: true }];
+    const servicios = [{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+      precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }];
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={staff}
+        servicios={servicios}
+        turnos={[]}
+        bloqueos={[]}
+        horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: "09:00" })[0]!);
+
+    await user.type(screen.getByPlaceholderText("Ej: Juan Pérez"), "Juan");
+    await user.type(screen.getByPlaceholderText("Ej: +549110000001"), "+549110000001");
+    await user.type(screen.getByPlaceholderText("Ej: juan@ejemplo.com"), "no-es-email");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+
+    expect(screen.getByText(/Revisá tu email/)).toBeDefined();
+  });
 });

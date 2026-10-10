@@ -118,9 +118,10 @@ export function resolverPlantilla(
   const parrafos = cuerpo !== null
     ? interpolarVariables(cuerpo, vars).split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0)
     : [];
+  const detalleDefecto = `${datos.servicio} con ${datos.profesional} · ${datos.fecha}`;
   const cuerpoHtml = parrafos.length > 0
     ? parrafos.map((p) => `<p>${escapeHtml(p)}</p>`).join("")
-    : `<p>${escapeHtml(`${datos.servicio} con ${datos.profesional} · ${datos.fecha}`)}</p>`;
+    : `<p>${escapeHtml(detalleDefecto)}</p>`;
 
   return { subject: titulo, html: envolverCuerpo(titulo, cuerpoHtml) };
 }

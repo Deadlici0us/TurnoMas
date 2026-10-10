@@ -13,7 +13,8 @@ export const metadata: Metadata = {
     "Sistema B2B de reservas para profesionales independientes. Eliminá las inasistencias cobrando señas y automatizando notificaciones.",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { readonly children: React.ReactNode })
+{
   const common = (await import("../messages/es-AR/common.json")).default;
   const messages = { common };
   const locale = "es-AR";

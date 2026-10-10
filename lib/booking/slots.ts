@@ -81,20 +81,35 @@ export function filterAvailableSlots(
   return candidates.filter((start) => isSlotAvailable(start, serviceMinutes, existingBlocked));
 }
 
-/** Arma los días disponibles del profesional para los próximos `days` días. */
-export function buildAvailableSlots(
-  horarios: Record<string, unknown>,
-  turnos: readonly TurnoExistente[],
-  serviceMinutes: number,
-  now: Date = new Date(),
-  days = 7,
-  stepMinutes = 30,
-  staffId: string | null = null,
-  businessBlocked: readonly BlockedInterval[] = [],
-  bufferMinutes: number = BUFFER_MINUTOS,
-  horariosNegocio: Record<string, unknown> | null = null,
-): readonly DiaDisponible[]
+/** Parámetros de `buildAvailableSlots` (objeto, máx. 1 parámetro para S107). */
+export interface BuildAvailableSlotsParams
 {
+  readonly horarios: Record<string, unknown>;
+  readonly turnos: readonly TurnoExistente[];
+  readonly serviceMinutes: number;
+  readonly now?: Date;
+  readonly days?: number;
+  readonly stepMinutes?: number;
+  readonly staffId?: string | null;
+  readonly businessBlocked?: readonly BlockedInterval[];
+  readonly bufferMinutes?: number;
+  readonly horariosNegocio?: Record<string, unknown> | null;
+}
+
+/** Arma los días disponibles del profesional para los próximos `days` días. */
+export function buildAvailableSlots(params: BuildAvailableSlotsParams): readonly DiaDisponible[]
+{
+  const horarios = params.horarios;
+  const turnos = params.turnos;
+  const serviceMinutes = params.serviceMinutes;
+  const now = params.now ?? new Date();
+  const days = params.days ?? 7;
+  const stepMinutes = params.stepMinutes ?? 30;
+  const staffId = params.staffId ?? null;
+  const businessBlocked = params.businessBlocked ?? [];
+  const bufferMinutes = params.bufferMinutes ?? BUFFER_MINUTOS;
+  const horariosNegocio = params.horariosNegocio ?? null;
+
   const result: DiaDisponible[] = [];
   const cutoff = now.getTime() + bufferMinutes * MS_PER_MINUTE;
   const negocioRestringe = horariosNegocio !== null && negocioAbreAlgunDia(horariosNegocio);

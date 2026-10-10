@@ -80,7 +80,7 @@ async function firmaValida(token: string, secreto: string): Promise<boolean>
       return hex === firmaNormalizada;
     }
 
-    const binario = Uint8Array.from(base64urlADecodificado(firma)?.split("").map((c) => c.charCodeAt(0))
+    const binario = Uint8Array.from(base64urlADecodificado(firma)?.split("").map((c) => c.codePointAt(0) ?? 0)
       ?? []);
     const esperada = new Uint8Array(firmaBin);
 

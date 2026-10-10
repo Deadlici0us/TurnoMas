@@ -205,7 +205,7 @@ export class CalendarService
     {
       const eventos = await this.provider.listEvents(desde, hasta, accessToken);
 
-      return eventos.filter((e) => e.descripcion === null || !e.descripcion.includes(TURNOMAS_EVENT_MARK));
+      return eventos.filter((e) => !e.descripcion?.includes(TURNOMAS_EVENT_MARK));
     }
     catch
     {

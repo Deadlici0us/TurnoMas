@@ -80,10 +80,11 @@ export class NotificationService
     if (type === NotificationType.PAYMENT_CONFIRMED || type === NotificationType.WELCOME)
     {
       emailId = await this.emailProvider.send({
-        to: data.email as string || "demo@turnomas.com",
-        subject: data.subject as string || "TurnoMas - Reserva confirmada",
+        to: (typeof data.email === "string" ? data.email : "") || "demo@turnomas.com",
+        subject: (typeof data.subject === "string" ? data.subject : "") || "TurnoMas - Reserva confirmada",
         fromName: resolveFromName(data),
-        html: data.html as string || `<p>${data.message || "Tu reserva está confirmada"}</p>`,
+        html: (typeof data.html === "string" ? data.html : "") ||
+          `<p>${(typeof data.message === "string" ? data.message : "") || "Tu reserva está confirmada"}</p>`,
       });
     }
 
@@ -106,10 +107,11 @@ export class NotificationService
   async sendAbandonmentEmail(bookingId: string, data: Record<string, unknown>): Promise<string>
   {
     return this.emailProvider.send({
-      to: data.email as string || "demo@turnomas.com",
-      subject: data.subject as string || "TurnoMas - Recordatorio de pago",
+      to: (typeof data.email === "string" ? data.email : "") || "demo@turnomas.com",
+      subject: (typeof data.subject === "string" ? data.subject : "") || "TurnoMas - Recordatorio de pago",
       fromName: resolveFromName(data),
-      html: data.html as string || `<p>${data.message || "Tu turno está pendiente de pago"}</p>`,
+      html: (typeof data.html === "string" ? data.html : "") ||
+        `<p>${(typeof data.message === "string" ? data.message : "") || "Tu turno está pendiente de pago"}</p>`,
     });
   }
 
@@ -117,10 +119,11 @@ export class NotificationService
   async sendRecoveryEmail(bookingId: string, data: Record<string, unknown>): Promise<string>
   {
     return this.emailProvider.send({
-      to: data.email as string || "demo@turnomas.com",
-      subject: data.subject as string || "TurnoMas - Reseña de tu experiencia",
+      to: (typeof data.email === "string" ? data.email : "") || "demo@turnomas.com",
+      subject: (typeof data.subject === "string" ? data.subject : "") || "TurnoMas - Reseña de tu experiencia",
       fromName: resolveFromName(data),
-      html: data.html as string || `<p>${data.message || "¿Cómo fue tu experiencia?"}</p>`,
+      html: (typeof data.html === "string" ? data.html : "") ||
+        `<p>${(typeof data.message === "string" ? data.message : "") || "¿Cómo fue tu experiencia?"}</p>`,
     });
   }
 }

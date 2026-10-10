@@ -5,8 +5,8 @@
  * `access_token` corto ya refrescado; el refresh vive en el servicio.
  */
 
-import type { CalendarEventInput, CalendarExternalEvent, CreatedCalendarEvent, ICalendarProvider } from "@/lib/ports/calendar";
-import type { CalendarBusyInterval } from "@/lib/ports/calendar";
+import type { CalendarBusyInterval, CalendarEventInput, CalendarExternalEvent, CreatedCalendarEvent,
+  ICalendarProvider } from "@/lib/ports/calendar";
 
 const GCAL_API_BASE = "https://www.googleapis.com/calendar/v3";
 

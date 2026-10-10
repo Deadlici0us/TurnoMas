@@ -17,7 +17,7 @@ const ERROR_KEYS = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  readonly searchParams: Promise<{ error?: string }>;
 })
 {
   const t = await getTranslations("common");

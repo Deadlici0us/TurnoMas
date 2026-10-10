@@ -51,7 +51,7 @@ function coincideBusqueda(cliente: ClienteRow, query: string): boolean
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; filtro?: string }>;
+  readonly searchParams: Promise<{ q?: string; filtro?: string }>;
 })
 {
   const { data: dashboard } = await getDashboardData();

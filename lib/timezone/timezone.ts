@@ -222,10 +222,9 @@ export function minutosEnZona(fecha: Date, timeZone: string): number
  */
 export function claveDiaEnZona(fecha: Date, timeZone: string): string
 {
-  const zona = validarTimezone(timeZone);
+  const partes = obtenerPartesCiviles(fecha, timeZone);
 
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit" })
-    .format(fecha);
+  return claveDeDiaCivil({ anio: partes.anio, mes: partes.mes, dia: partes.dia });
 }
 
 /**

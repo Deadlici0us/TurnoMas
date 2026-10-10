@@ -12,6 +12,7 @@ import type
   PortalTurno,
 } from "@/lib/portal/demo-business";
 import { tieneSenaEfectiva } from "@/lib/reservas/montos";
+import { esEmailValido } from "@/lib/validation/email";
 
 interface BookingFlowProps
 {
@@ -80,10 +81,18 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       .map((b) => ({ start: new Date(b.inicio), end: new Date(b.fin) }))
       .filter((b) => !Number.isNaN(b.start.getTime()) && !Number.isNaN(b.end.getTime()));
 
-    return buildAvailableSlots(
-      profesional.horarios, bloqueosTurnos, servicio.duracionMin,
-      new Date(), 7, 30, profesional.id, bloqueosNegocio, BUFFER_MINUTOS, horariosNegocio,
-    );
+    return buildAvailableSlots({
+      horarios: profesional.horarios,
+      turnos: bloqueosTurnos,
+      serviceMinutes: servicio.duracionMin,
+      now: new Date(),
+      days: 7,
+      stepMinutes: 30,
+      staffId: profesional.id,
+      businessBlocked: bloqueosNegocio,
+      bufferMinutes: BUFFER_MINUTOS,
+      horariosNegocio,
+    });
   }, [profesional, servicio, turnos, servicios, bloqueos, horariosNegocio]);
 
   function elegirProfesional(id: string): void
@@ -117,7 +126,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       return;
     }
 
-    if (email.trim().length > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()))
+    if (email.trim().length > 0 && !esEmailValido(email.trim()))
     {
       setError("Revisá tu email para que te lleguen las confirmaciones.");
       return;
@@ -305,8 +314,11 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
           <h2 className="font-semibold text-slate-900">4. Tus datos</h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+              <label htmlFor="booking-nombre" className="block text-sm font-medium text-slate-700 mb-1">
+                Nombre
+              </label>
               <input
+                id="booking-nombre"
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
                 placeholder="Ej: Juan Pérez"
@@ -315,8 +327,11 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp</label>
+              <label htmlFor="booking-whatsapp" className="block text-sm font-medium text-slate-700 mb-1">
+                WhatsApp
+              </label>
               <input
+                id="booking-whatsapp"
                 value={whatsapp}
                 onChange={(event) => setWhatsapp(event.target.value)}
                 placeholder="Ej: +549110000001"
@@ -326,10 +341,11 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="booking-email" className="block text-sm font-medium text-slate-700 mb-1">
                 Email <span className="font-normal text-slate-400">(opcional, para confirmación)</span>
               </label>
               <input
+                id="booking-email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Ej: juan@ejemplo.com"

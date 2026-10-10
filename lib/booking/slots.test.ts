@@ -74,7 +74,7 @@ describe("buildAvailableSlots",
     };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 7, 30);
+    const week = buildAvailableSlots({ horarios, turnos: [], serviceMinutes: 30, now: monday, days: 7 });
 
     expect(week).toHaveLength(6);
     expect(week.every((d) => d.starts.length === 2)).toBe(true);
@@ -90,7 +90,7 @@ describe("buildAvailableSlots",
       { staffId: "otro", inicio: new Date(2026, 8, 28, 9, 0).toISOString(), duracionMin: 30 },
     ];
 
-    const week = buildAvailableSlots(horarios, turnos, 30, monday, 1, 30, "diego");
+    const week = buildAvailableSlots({ horarios, turnos, serviceMinutes: 30, now: monday, days: 1, staffId: "diego" });
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([30, 0, 30]);
@@ -102,7 +102,7 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-13:00", "15:00-20:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
+    const week = buildAvailableSlots({ horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1 });
 
     expect(week).toHaveLength(1);
 
@@ -119,7 +119,7 @@ describe("buildAvailableSlots",
     const horarios = { "lun-vie": "09:00-10:00" };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
+    const week = buildAvailableSlots({ horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1 });
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts).toHaveLength(2);
@@ -132,7 +132,9 @@ describe("buildAvailableSlots",
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
     const negocio = [{ start: new Date(2026, 8, 28, 9, 30), end: new Date(2026, 8, 28, 10, 30) }];
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, "diego", negocio);
+    const week = buildAvailableSlots(
+      { horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1, staffId: "diego", businessBlocked: negocio },
+    );
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts.map((d) => d.getMinutes())).toEqual([0, 30]);
@@ -145,7 +147,7 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-12:00"] };
     const monday = new Date(2026, 8, 28, 10, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30);
+    const week = buildAvailableSlots({ horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1 });
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts.map((d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`))
@@ -158,7 +160,7 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-10:00"], mar: ["09:00-10:00"] };
     const monday = new Date(2026, 8, 28, 9, 45, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 2, 30);
+    const week = buildAvailableSlots({ horarios, turnos: [], serviceMinutes: 30, now: monday, days: 2 });
 
     expect(week).toHaveLength(1);
     expect(week[0]?.date.getDay()).toBe(2);
@@ -172,7 +174,9 @@ describe("buildAvailableSlots",
     const negocio = { lun: ["09:00-19:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, negocio);
+    const week = buildAvailableSlots(
+      { horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1, businessBlocked: [], horariosNegocio: negocio },
+    );
     const horas = (week[0]?.starts ?? []).map((d) => d.getHours() + d.getMinutes() / 60);
 
     expect(week).toHaveLength(1);
@@ -187,7 +191,9 @@ describe("buildAvailableSlots",
     const negocio = { mar: ["09:00-19:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, negocio);
+    const week = buildAvailableSlots(
+      { horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1, businessBlocked: [], horariosNegocio: negocio },
+    );
 
     expect(week).toHaveLength(0);
   });
@@ -198,7 +204,9 @@ describe("buildAvailableSlots",
     const horarios = { lun: ["09:00-10:00"] };
     const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
 
-    const week = buildAvailableSlots(horarios, [], 30, monday, 1, 30, null, [], 30, {});
+    const week = buildAvailableSlots(
+      { horarios, turnos: [], serviceMinutes: 30, now: monday, days: 1, businessBlocked: [], horariosNegocio: {} },
+    );
 
     expect(week).toHaveLength(1);
     expect(week[0]?.starts).toHaveLength(2);

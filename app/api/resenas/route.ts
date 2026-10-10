@@ -92,7 +92,8 @@ export async function POST(request: Request)
     const { data: cliente } = await admin.from("clientes").select("notas")
       .eq("id", turnoRow.cliente_id).single();
     const previas = (cliente as { notas?: unknown } | null)?.notas;
-    const linea = `[Reseña ${body.estrellas}/5]${comentario.length > 0 ? ` ${comentario}` : ""}`;
+    const sufijoComentario = comentario.length > 0 ? ` ${comentario}` : "";
+    const linea = `[Reseña ${body.estrellas}/5]${sufijoComentario}`;
     const notas = typeof previas === "string" && previas.length > 0 ? `${previas}\n${linea}` : linea;
 
     await admin.from("clientes").update({ notas }).eq("id", turnoRow.cliente_id);

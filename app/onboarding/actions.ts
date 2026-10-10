@@ -13,9 +13,15 @@ import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
  */
 export async function createBusiness(formData: FormData): Promise<void>
 {
-  const nombre = String(formData.get("nombre") ?? "").trim();
-  const pais = String(formData.get("pais") ?? "").trim();
-  const timezone = resolverTimezoneNegocio({ timezone: String(formData.get("timezone") ?? ""), pais });
+  const nombreCrudo = formData.get("nombre");
+  const nombre = (typeof nombreCrudo === "string" ? nombreCrudo : "").trim();
+  const paisCrudo = formData.get("pais");
+  const pais = (typeof paisCrudo === "string" ? paisCrudo : "").trim();
+  const timezoneCruda = formData.get("timezone");
+  const timezone = resolverTimezoneNegocio({
+    timezone: typeof timezoneCruda === "string" ? timezoneCruda : "",
+    pais,
+  });
 
   let url = "";
 

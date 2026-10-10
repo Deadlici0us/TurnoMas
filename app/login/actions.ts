@@ -9,8 +9,10 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 /** Inicia sesión: Supabase Auth en Vercel, sesión demo local sin secrets. */
 export async function login(formData: FormData): Promise<void>
 {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const emailCrudo = formData.get("email");
+  const email = (typeof emailCrudo === "string" ? emailCrudo : "").trim();
+  const passwordCrudo = formData.get("password");
+  const password = typeof passwordCrudo === "string" ? passwordCrudo : "";
 
   if (email.length === 0 || password.length === 0)
   {

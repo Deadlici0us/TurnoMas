@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 
 import { shouldReleaseBooking } from "@/lib/automations/anti-ghost";
-import { readEnv } from "@/lib/env/env";
+import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
 
@@ -51,10 +51,18 @@ function esPendienteConSena(turno: TurnoPendiente): boolean
 
 export async function POST(request: Request)
 {
+  const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
+  const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
+
+  if (claveActual === null && claveSiguiente === null && exigeFirmas())
+  {
+    return NextResponse.json({ error: "Cron no configurado en producción." }, { status: 503 });
+  }
+
   const firmaOk = await verificarFirmaQStash({
     firma: request.headers.get("upstash-signature"),
-    claveActual: readEnv("QSTASH_CURRENT_SIGNING_KEY"),
-    claveSiguiente: readEnv("QSTASH_NEXT_SIGNING_KEY"),
+    claveActual,
+    claveSiguiente,
   });
 
   if (!firmaOk)

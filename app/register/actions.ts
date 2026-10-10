@@ -9,9 +9,12 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 /** Registra al profesional: Supabase Auth en Vercel, demo local sin secrets. */
 export async function register(formData: FormData): Promise<void>
 {
-  const business = String(formData.get("business") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const businessCrudo = formData.get("business");
+  const business = (typeof businessCrudo === "string" ? businessCrudo : "").trim();
+  const emailCrudo = formData.get("email");
+  const email = (typeof emailCrudo === "string" ? emailCrudo : "").trim();
+  const passwordCrudo = formData.get("password");
+  const password = typeof passwordCrudo === "string" ? passwordCrudo : "";
 
   if (business.length < 2 || email.length === 0 || password.length < 6)
   {

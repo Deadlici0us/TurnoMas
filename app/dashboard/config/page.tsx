@@ -42,7 +42,8 @@ async function guardarPolitica(formData: FormData): Promise<void>
   "use server";
 
   const umbral = Number(formData.get("umbral"));
-  const penalidad = String(formData.get("penalidad") ?? "fullDeposit") as PenalidadListaNegra;
+  const penalidadCruda = formData.get("penalidad");
+  const penalidad = (typeof penalidadCruda === "string" ? penalidadCruda : "fullDeposit") as PenalidadListaNegra;
 
   await actualizarPoliticaListaNegra(umbral, penalidad);
 }
@@ -103,7 +104,9 @@ async function guardarTokenMp(formData: FormData): Promise<void>
 {
   "use server";
 
-  await conectarMercadoPago(String(formData.get("mpToken") ?? ""));
+  const mpTokenCrudo = formData.get("mpToken");
+
+  await conectarMercadoPago(typeof mpTokenCrudo === "string" ? mpTokenCrudo : "");
 }
 
 async function quitarTokenMp(): Promise<void>
@@ -124,14 +127,18 @@ async function guardarNombre(formData: FormData): Promise<void>
 {
   "use server";
 
-  await actualizarNombreNegocio(String(formData.get("nombre") ?? ""));
+  const nombreCrudo = formData.get("nombre");
+
+  await actualizarNombreNegocio(typeof nombreCrudo === "string" ? nombreCrudo : "");
 }
 
 async function guardarTimezone(formData: FormData): Promise<void>
 {
   "use server";
 
-  await actualizarTimezoneNegocio(String(formData.get("timezone") ?? ""));
+  const timezoneCruda = formData.get("timezone");
+
+  await actualizarTimezoneNegocio(typeof timezoneCruda === "string" ? timezoneCruda : "");
 }
 
 async function guardarHorariosNegocio(formData: FormData): Promise<void>
@@ -142,7 +149,9 @@ async function guardarHorariosNegocio(formData: FormData): Promise<void>
 
   for (const day of DAY_ORDER)
   {
-    horarios[day] = String(formData.get(day) ?? "");
+    const valorCrudo = formData.get(day);
+
+    horarios[day] = typeof valorCrudo === "string" ? valorCrudo : "";
   }
 
   await actualizarHorariosNegocio(horarios);

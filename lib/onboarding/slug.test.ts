@@ -27,6 +27,18 @@ describe("slugifyBusinessName",
     expect(slugifyBusinessName("Pelu -- Quer separately")).toBe("pelu-quer-separately");
   });
 
+  it("debería recortar guiones de los bordes",
+  () =>
+  {
+    expect(slugifyBusinessName("---Barbería---")).toBe("barberia");
+  });
+
+  it("debería recortar el guion final tras truncar a 60 caracteres",
+  () =>
+  {
+    expect(slugifyBusinessName(`${"a".repeat(59)}-b`)).toBe("a".repeat(59));
+  });
+
   it("debería rechazar nombres vacíos o sin caracteres válidos",
   () =>
   {

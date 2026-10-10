@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import
 {
+  exigeFirmas,
   isSupabaseConfigured,
   readEnv,
 } from "./env";
@@ -25,6 +26,24 @@ describe("readEnv",
   () =>
   {
     expect(readEnv("RESEND_API_KEY", { RESEND_API_KEY: "   " })).toBeNull();
+  });
+});
+
+describe("exigeFirmas",
+() =>
+{
+  it("debería exigir firmas en producción",
+  () =>
+  {
+    expect(exigeFirmas({ NODE_ENV: "production" })).toBe(true);
+  });
+
+  it("debería permitir modo permisivo fuera de producción",
+  () =>
+  {
+    expect(exigeFirmas({ NODE_ENV: "test" })).toBe(false);
+    expect(exigeFirmas({ NODE_ENV: "development" })).toBe(false);
+    expect(exigeFirmas({})).toBe(false);
   });
 });
 

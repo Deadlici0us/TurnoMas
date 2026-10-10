@@ -10,7 +10,7 @@ interface ResenaParams
 }
 
 /** Página pública de calificación (link del email del recolector). */
-export default async function ResenaPage({ params }: { params: Promise<ResenaParams> })
+export default async function ResenaPage({ params }: { readonly params: Promise<ResenaParams> })
 {
   const { turnoId } = await params;
 

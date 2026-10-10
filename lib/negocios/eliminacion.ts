@@ -102,7 +102,7 @@ export function verificarTokenEliminacion(token: string, secreto: string): Token
 
   if (typeof payload.negocioId !== "string" || typeof payload.codigoHash !== "string")
   {
-    throw new Error("El código de confirmación no es válido. Pedí uno nuevo.");
+    throw new TypeError("El código de confirmación no es válido. Pedí uno nuevo.");
   }
 
   return payload;

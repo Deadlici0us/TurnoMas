@@ -107,6 +107,25 @@ describe("ResendAdapter from dinámico",
     expect(body.from).toBe("Barbería Diego <hola@turnomas.com>");
   });
 
+  it("debería desentrecomillar valores de entorno con comillas",
+  async () =>
+  {
+    process.env.RESEND_API_KEY = '"re_quoted"';
+    process.env.EMAIL_FROM = "'hola@turnomas.com'";
+    const fetchMock = mockFetchOk();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new ResendAdapter().send({
+      to: "cliente@ejemplo.com",
+      subject: "Confirmación",
+      html: "<p>Hola</p>",
+      fromName: "Barbería Diego",
+    });
+
+    const body = lastSentBody(fetchMock);
+    expect(body.from).toBe("Barbería Diego <hola@turnomas.com>");
+  });
+
   it("debería lanzar si falta configuración",
   async () =>
   {

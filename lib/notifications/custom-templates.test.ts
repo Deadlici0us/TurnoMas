@@ -34,8 +34,8 @@ describe("normalizarTextoPlantilla",
   it("debería devolver null ante texto vacío o no texto",
   () =>
   {
-    expect(normalizarTextoPlantilla("   ", 120)).toBe(null);
-    expect(normalizarTextoPlantilla(null, 120)).toBe(null);
+    expect(normalizarTextoPlantilla("   ", 120)).toBeNull();
+    expect(normalizarTextoPlantilla(null, 120)).toBeNull();
   });
 });
 
@@ -62,6 +62,17 @@ describe("resolverPlantilla",
     expect(t.html).toContain("https://app/resena/1");
   });
 
+  it("debería usar el detalle por defecto cuando el cuerpo queda vacío",
+  () =>
+  {
+    const t = resolverPlantilla("confirmacion",
+      { subject: "Tu reserva en {negocio}", cuerpo: "   " },
+      DATOS);
+
+    expect(t.subject).toBe("Tu reserva en Barbería Diego");
+    expect(t.html).toContain("Corte clásico con Diego · 28/09/2026 10:00");
+  });
+
   it("debería exponer las 5 variables documentadas",
   () =>
   {
@@ -84,8 +95,8 @@ describe("validarGoogleMapsUrl",
   it("debería aceptar links de Google Maps y vacío como null",
   () =>
   {
-    expect(validarGoogleMapsUrl(null)).toBe(null);
-    expect(validarGoogleMapsUrl("  ")).toBe(null);
+    expect(validarGoogleMapsUrl(null)).toBeNull();
+    expect(validarGoogleMapsUrl("  ")).toBeNull();
     expect(validarGoogleMapsUrl("https://maps.app.goo.gl/abc123")).toBe("https://maps.app.goo.gl/abc123");
     expect(validarGoogleMapsUrl("https://www.google.com/maps/place/X")).toBe("https://www.google.com/maps/place/X");
   });
@@ -110,7 +121,7 @@ describe("linkWhatsapp",
   it("debería devolver null ante número inválido",
   () =>
   {
-    expect(normalizarWhatsappParaLink("abc")).toBe(null);
-    expect(linkWhatsapp("abc", "Hola")).toBe(null);
+    expect(normalizarWhatsappParaLink("abc")).toBeNull();
+    expect(linkWhatsapp("abc", "Hola")).toBeNull();
   });
 });

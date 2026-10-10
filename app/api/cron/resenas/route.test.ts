@@ -29,7 +29,7 @@ describe("resolverBaseResena",
 
     try
     {
-      expect(resolverBaseResena()).toBe(null);
+      expect(resolverBaseResena()).toBeNull();
     }
     finally
     {
@@ -77,6 +77,28 @@ describe("POST /api/cron/resenas",
 
       expect(response.status).toBe(503);
       expect(body.error).toBe("Cron no disponible sin base configurada.");
+    }
+    finally
+    {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("debería fallar cerrado en producción sin claves configuradas",
+  async () =>
+  {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("QSTASH_CURRENT_SIGNING_KEY", "");
+    vi.stubEnv("QSTASH_NEXT_SIGNING_KEY", "");
+
+    try
+    {
+      const request = new Request("http://localhost/api/cron/resenas", { method: "POST" });
+      const response = await POST(request);
+      const body = await response.json() as { error: string };
+
+      expect(response.status).toBe(503);
+      expect(body.error).toBe("Cron no configurado en producción.");
     }
     finally
     {

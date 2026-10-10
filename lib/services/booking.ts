@@ -131,7 +131,7 @@ export class BookingService
     }
   }
 
-  async getBookingById(bookingId: string): Promise<unknown | null>
+  async getBookingById(bookingId: string): Promise<unknown>
   {
     const { data, error } = await this.admin
       .from("turnos")
@@ -148,7 +148,7 @@ export class BookingService
   }
 
   /** Busca el turno por `mp_payment_id` (webhook con token delegado). */
-  async getBookingByPaymentId(paymentId: string): Promise<unknown | null>
+  async getBookingByPaymentId(paymentId: string): Promise<unknown>
   {
     const { data, error } = await this.admin
       .from("turnos")

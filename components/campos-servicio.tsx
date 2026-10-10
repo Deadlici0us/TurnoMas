@@ -19,7 +19,7 @@ export interface CamposServicioValue
  * Cuando el tilde está apagado, el valor se grisa y deshabilita;
  * el backend ignora el número (seña → 0/confirmado, promo → null).
  */
-export default function CamposServicio({ servicio }: { servicio?: CamposServicioValue })
+export default function CamposServicio({ servicio }: { readonly servicio?: CamposServicioValue })
 {
   const [exigeSena, setExigeSena] = useState(servicio?.sena_requerida ?? true);
   const [promoActiva, setPromoActiva] = useState(servicio?.precio_promocional !== null

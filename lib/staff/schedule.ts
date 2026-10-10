@@ -200,7 +200,17 @@ export function lookupDayRanges(horarios: Record<string, unknown>, weekday: numb
   }
 
   // Compat legacy: claves agrupadas `lun-vie` / `sab` / `dom` con string simple.
-  const legacyKey = weekday === 0 ? "dom" : weekday === 6 ? "sab" : "lun-vie";
+  let legacyKey = "lun-vie";
+
+  if (weekday === 0)
+  {
+    legacyKey = "dom";
+  }
+  else if (weekday === 6)
+  {
+    legacyKey = "sab";
+  }
+
   const legacy = horarios[legacyKey];
 
   if (legacy === undefined)
