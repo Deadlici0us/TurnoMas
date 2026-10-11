@@ -24,6 +24,10 @@ const AUTOMATIZACIONES = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0007_automatizaciones.sql"),
   "utf8",
 );
+const MP_OAUTH = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0008_mp_oauth.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -162,5 +166,20 @@ describe("esquema Supabase",
 
     expect(AUTOMATIZACIONES).toContain("remarketing_dias");
     expect(AUTOMATIZACIONES).toMatch(/alter table servicios add column/i);
+  });
+
+  it("debería guardar el refresh de OAuth de MercadoPago por negocio",
+  () =>
+  {
+    for (const columna of [
+      "mercadopago_refresh_token",
+      "mercadopago_user_id",
+      "mp_conectado_at",
+    ])
+    {
+      expect(MP_OAUTH).toContain(columna);
+    }
+
+    expect(MP_OAUTH).toMatch(/alter table negocio_secretos add column/i);
   });
 });

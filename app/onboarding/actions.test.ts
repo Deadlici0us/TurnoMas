@@ -117,7 +117,7 @@ describe("createBusiness",
       .rejects.toThrow("NEXT_REDIRECT:/onboarding?error=guardado");
   });
 
-  it("debería crear y pedir conectar calendario",
+  it("debería crear y seguir al paso 2 (conectar MercadoPago)",
   async () =>
   {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
@@ -129,7 +129,7 @@ describe("createBusiness",
     } as never);
 
     await expect(createBusiness(formularioValido()))
-      .rejects.toThrow("NEXT_REDIRECT:/dashboard/config?gcal=pending");
+      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=2");
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       duenio_id: "user-1",
       nombre: "Barbería Diego",

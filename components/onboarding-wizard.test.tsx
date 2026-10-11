@@ -3,10 +3,16 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import OnboardingWizard from "./onboarding-wizard";
+import { useSearchParams } from "next/navigation";
 
 vi.mock("next-intl", () =>
 {
   return { useTranslations: () => (key: string) => key };
+});
+
+vi.mock("next/navigation", () =>
+{
+  return { useSearchParams: vi.fn() };
 });
 
 vi.mock("@/app/onboarding/actions", () =>
@@ -14,12 +20,22 @@ vi.mock("@/app/onboarding/actions", () =>
   return { createBusiness: vi.fn(async () => undefined) };
 });
 
+const mockSearchParams = vi.mocked(useSearchParams);
+
+/** Query params del wizard para cada render. */
+function params(query = ""): void
+{
+  mockSearchParams.mockReturnValue(new URLSearchParams(query) as never);
+}
+
 describe("OnboardingWizard",
 () =>
 {
   it("debería mostrar el paso 1 con preview de URL",
   () =>
   {
+    params();
+
     render(<OnboardingWizard />);
 
     expect(screen.getByText("onboarding.step1Title")).toBeDefined();
@@ -30,6 +46,7 @@ describe("OnboardingWizard",
   async () =>
   {
     const user = userEvent.setup();
+    params();
 
     render(<OnboardingWizard />);
     const input = screen.getByDisplayValue("Barbería Diego");
@@ -40,13 +57,25 @@ describe("OnboardingWizard",
     expect(screen.getByText("/ar/peluqueria-ana")).toBeDefined();
   });
 
-  it("debería avanzar y retroceder entre pasos",
+  it("debería crear el negocio en el paso 1",
+  () =>
+  {
+    params();
+
+    render(<OnboardingWizard />);
+
+    expect(screen.getByRole("button", { name: "onboarding.crearNegocio" })).toBeDefined();
+    expect(document.querySelector('input[name="nombre"]')).not.toBeNull();
+    expect(document.querySelector('input[name="timezone"]')).not.toBeNull();
+  });
+
+  it("debería avanzar y retroceder entre pasos 1 y 2",
   async () =>
   {
     const user = userEvent.setup();
+    params("paso=2");
 
     render(<OnboardingWizard />);
-    await user.click(screen.getByRole("button", { name: "onboarding.step2Title" }));
 
     expect(screen.getByText("onboarding.step2Title")).toBeDefined();
 
@@ -55,18 +84,30 @@ describe("OnboardingWizard",
     expect(screen.getByText("onboarding.step1Title")).toBeDefined();
   });
 
-  it("debería tildar MercadoPago y llegar al paso 4",
+  it("debería linkear al OAuth real sin botón de omitir en el paso 2",
+  () =>
+  {
+    params("paso=2");
+
+    render(<OnboardingWizard />);
+
+    expect(screen.getByRole("link", { name: "onboarding.connectMp" }))
+      .toHaveAttribute("href", expect.stringContaining("/api/integrations/mercadopago/authorize"));
+    expect(screen.getByText("onboarding.mpObligatorio")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "onboarding.continuar" })).toBeNull();
+  });
+
+  it("debería continuar al paso 3 con mp=ok",
   async () =>
   {
     const user = userEvent.setup();
+    params("paso=2&mp=ok");
 
     render(<OnboardingWizard />);
-    await user.click(screen.getByRole("button", { name: "onboarding.step2Title" }));
-    await user.click(screen.getByRole("button", { name: "onboarding.connectMp" }));
 
-    expect(screen.getByRole("button", { name: /✓.*onboarding.connectMp/ })).toBeDefined();
+    expect(screen.getByText(/onboarding.mpConectado/)).toBeDefined();
 
-    await user.click(screen.getByRole("button", { name: "onboarding.skipMp" }));
+    await user.click(screen.getByRole("button", { name: "onboarding.continuar" }));
 
     expect(screen.getByText("onboarding.step3Title")).toBeDefined();
 
@@ -77,9 +118,8 @@ describe("OnboardingWizard",
   });
 
   it("debería usar la zona del país sin Intl disponible",
-  async () =>
+  () =>
   {
-    const user = userEvent.setup();
     const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(() =>
     {
       throw new Error("sin intl");
@@ -87,10 +127,9 @@ describe("OnboardingWizard",
 
     try
     {
+      params();
+
       render(<OnboardingWizard />);
-      await user.click(screen.getByRole("button", { name: "onboarding.step2Title" }));
-      await user.click(screen.getByRole("button", { name: "onboarding.skipMp" }));
-      await user.click(screen.getByRole("button", { name: "onboarding.skipWa" }));
 
       expect(screen.getByText(/Zona horaria detectada:/)).toBeDefined();
       expect(screen.getByText(/America\/Argentina\/Buenos_Aires/)).toBeDefined();
@@ -101,17 +140,14 @@ describe("OnboardingWizard",
     }
   });
 
-  it("debería exponer la zona detectada y el submit final",
-  async () =>
+  it("debería terminar en el dashboard desde el paso 4",
+  () =>
   {
-    const user = userEvent.setup();
+    params("paso=4");
 
     render(<OnboardingWizard />);
-    await user.click(screen.getByRole("button", { name: "onboarding.step2Title" }));
-    await user.click(screen.getByRole("button", { name: "onboarding.skipMp" }));
-    await user.click(screen.getByRole("button", { name: "onboarding.skipWa" }));
 
-    expect(screen.getByRole("button", { name: "onboarding.finish" })).toBeDefined();
-    expect(document.querySelector('input[name="timezone"]')).not.toBeNull();
+    expect(screen.getByRole("link", { name: "onboarding.finish" }))
+      .toHaveAttribute("href", "/dashboard");
   });
 });

@@ -4,15 +4,17 @@ import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
-  actualizarTimezoneNegocio, conectarMercadoPago, desconectarGoogleCalendar,
+  actualizarTimezoneNegocio, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
+import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import type { TipoPlantilla } from "@/lib/notifications/custom-templates";
 import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio, TIMEZONES_SOPORTADAS } from "@/lib/timezone/timezone";
 
 function franjasDeDia(horarios: unknown, day: DayKey): string
@@ -98,15 +100,6 @@ async function guardarMaps(formData: FormData): Promise<void>
   const url = formData.get("mapsUrl");
 
   await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
-}
-
-async function guardarTokenMp(formData: FormData): Promise<void>
-{
-  "use server";
-
-  const mpTokenCrudo = formData.get("mpToken");
-
-  await conectarMercadoPago(typeof mpTokenCrudo === "string" ? mpTokenCrudo : "");
 }
 
 async function quitarTokenMp(): Promise<void>
@@ -213,35 +206,95 @@ function normalizarConfigNegocio(negocio: NegocioConfigRow): {
  */
 async function cargarConexiones(negocioId: unknown): Promise<{
   readonly mpToken: string | null;
+  readonly mpConectadoAt: string | null;
   readonly gcalConectado: boolean;
 }>
 {
   if (typeof negocioId !== "string")
   {
-    return { mpToken: null, gcalConectado: false };
+    return { mpToken: null, mpConectadoAt: null, gcalConectado: false };
   }
 
   try
   {
     const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
-      .select("mercadopago_access_token, google_refresh_token").eq("negocio_id", negocioId).single();
+      .select("mercadopago_access_token, mp_conectado_at, google_refresh_token")
+      .eq("negocio_id", negocioId).single();
 
     const raw = (secretos as { mercadopago_access_token?: unknown } | null)
       ?.mercadopago_access_token;
+    const conectadoRaw = (secretos as { mp_conectado_at?: unknown } | null)?.mp_conectado_at;
     const gcalRaw = (secretos as { google_refresh_token?: unknown } | null)?.google_refresh_token;
 
     return {
       mpToken: typeof raw === "string" && raw.length > 0 ? raw : null,
+      mpConectadoAt: typeof conectadoRaw === "string" ? conectadoRaw : null,
       gcalConectado: typeof gcalRaw === "string" && gcalRaw.length > 0,
     };
   }
   catch
   {
-    return { mpToken: null, gcalConectado: false };
+    return { mpToken: null, mpConectadoAt: null, gcalConectado: false };
   }
 }
 
-export default async function ConfigPage()
+/** Indica si el lector es el dueño demo (sin cuentas reales). */
+async function esDuenoDemo(): Promise<boolean>
+{
+  try
+  {
+    const supabase = await getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    return user !== null && isDemoOwner({ userId: user.id, email: user.email ?? null });
+  }
+  catch
+  {
+    return false;
+  }
+}
+
+/** Mensaje del resultado OAuth de MercadoPago (?mp=...). */
+function mensajeMp(mp: string | undefined): { readonly texto: string; readonly clase: string } | null
+{
+  if (mp === "ok")
+  {
+    return {
+      texto: "MercadoPago conectado. Las señas se cobran directo en tu cuenta.",
+      clase: "bg-green-50 text-green-700 border-green-200",
+    };
+  }
+
+  if (mp === "cancelado")
+  {
+    return {
+      texto: "Cancelaste la conexión con MercadoPago. Podés intentarlo de nuevo.",
+      clase: "bg-amber-50 text-amber-700 border-amber-200",
+    };
+  }
+
+  if (mp === "demo")
+  {
+    return {
+      texto: "La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas.",
+      clase: "bg-red-50 text-red-700 border-red-200",
+    };
+  }
+
+  if (mp === "error")
+  {
+    return {
+      texto: "No pudimos conectar MercadoPago. Probá de nuevo.",
+      clase: "bg-red-50 text-red-700 border-red-200",
+    };
+  }
+
+  return null;
+}
+
+export default async function ConfigPage(
+  props?: { readonly searchParams?: Promise<{ mp?: string }> },
+)
 {
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as NegocioConfigRow & {
@@ -266,7 +319,11 @@ export default async function ConfigPage()
   } = normalizarConfigNegocio(negocio);
 
   const negocioId = (dashboard.negocio as { id?: unknown }).id;
-  const { mpToken, gcalConectado } = await cargarConexiones(negocioId);
+  const { mpToken, mpConectadoAt, gcalConectado } = await cargarConexiones(negocioId);
+  const demo = await esDuenoDemo();
+  const avisoMp = mensajeMp(props?.searchParams === undefined
+    ? undefined
+    : (await props.searchParams)?.mp);
 
   const mpConectado = mpToken !== null;
 
@@ -619,6 +676,11 @@ export default async function ConfigPage()
       </section>
       <section className="space-y-3">
         <h2 className="font-semibold text-slate-900">Conexiones</h2>
+        {avisoMp !== null && (
+          <p className={`text-xs font-semibold px-3 py-2 rounded-lg border ${avisoMp.clase}`}>
+            {avisoMp.texto}
+          </p>
+        )}
         <div className="p-3 border border-slate-200 rounded-lg space-y-3">
           <div className="flex items-center justify-between">
             <div>
@@ -631,7 +693,12 @@ export default async function ConfigPage()
               {mpConectado ? `Conectado ${maskMpToken(mpToken)}` : "Sin conectar"}
             </span>
           </div>
-          {mpConectado ? (
+          {demo ? (
+            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+              La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
+              con tu MercadoPago.
+            </p>
+          ) : mpConectado ? (
             <form action={quitarTokenMp}>
               <button
                 type="submit"
@@ -642,29 +709,18 @@ export default async function ConfigPage()
               </button>
             </form>
           ) : (
-            <form action={guardarTokenMp} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="password"
-                name="mpToken"
-                required
-                minLength={8}
-                autoComplete="off"
-                placeholder="Pegá tu access token (APP_USR-...)"
-                className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                  hover:bg-blue-700 transition-colors"
-              >
-                Conectar
-              </button>
-            </form>
+            <Link
+              href="/api/integrations/mercadopago/authorize"
+              className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                hover:bg-blue-700 transition-colors"
+            >
+              Conectar con MercadoPago
+            </Link>
           )}
           <p className="text-xs text-slate-400">
-            Encontralo en tu panel de MercadoPago → Credenciales de producción.
-            Nunca lo compartas: queda guardado solo en tu negocio.
+            {mpConectado && mpConectadoAt !== null
+              ? "Notificaciones automáticas activas: los pagos confirman solos tu agenda."
+              : "Al conectar autorizás a TurnoMas a cobrar señas en tu cuenta. Sin tu conexión, las reservas con seña quedan pendientes sin link de pago."}
           </p>
         </div>
         <div className="space-y-2">

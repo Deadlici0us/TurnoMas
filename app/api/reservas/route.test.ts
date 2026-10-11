@@ -689,6 +689,27 @@ describe("POST /api/reservas",
     expect(body.checkoutError).toBe("No pudimos generar el link de pago. Probá de nuevo en unos segundos.");
   });
 
+  it("debería responder sinMp cuando el negocio no conectó MercadoPago",
+  async () =>
+  {
+    const { NegocioSinMpError } = await import("@/lib/payments/mp-token");
+    flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
+    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
+    const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
+    prefSpy.mockRejectedValue(new NegocioSinMpError());
+
+    const response = await POST(requestWith(BASE));
+    const body = await response.json() as {
+      success: boolean; checkoutUrl: string | null; checkoutError: string | null; sinMp: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.checkoutUrl).toBeNull();
+    expect(body.sinMp).toBe(true);
+    expect(body.checkoutError).toBe("Este negocio aún no activó el cobro online. Tu reserva quedó pendiente.");
+  });
+
   it("debería devolver 503 en modo demo sin Supabase",
   async () =>
   {

@@ -15,12 +15,12 @@ import
   actualizarPoliticaRecordatorios,
   actualizarPoliticaSena,
   actualizarTimezoneNegocio,
-  conectarMercadoPago,
   desconectarGoogleCalendar,
   desconectarMercadoPago,
 } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("./actions", () =>
 {
@@ -35,7 +35,6 @@ vi.mock("./actions", () =>
     actualizarPoliticaRecordatorios: vi.fn(),
     actualizarPoliticaSena: vi.fn(),
     actualizarTimezoneNegocio: vi.fn(),
-    conectarMercadoPago: vi.fn(),
     desconectarGoogleCalendar: vi.fn(),
     desconectarMercadoPago: vi.fn(),
     solicitarEliminacionNegocio: vi.fn(),
@@ -58,8 +57,22 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
+vi.mock("@/lib/supabase/server", () =>
+{
+  return { getSupabaseServer: vi.fn() };
+});
+
 const mockData = vi.mocked(getDashboardData);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
+const mockServer = vi.mocked(getSupabaseServer);
+
+/** Sesión no demo para la detección de lector. */
+function sesionNoDemo(): void
+{
+  mockServer.mockResolvedValue({
+    auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueño@negocio.com" } } }) },
+  } as never);
+}
 
 function negocioBase(overrides: Record<string, unknown> = {})
 {
@@ -87,6 +100,7 @@ function negocioBase(overrides: Record<string, unknown> = {})
 /** Dashboard + secretos mockeados. */
 function stubConfig(negocio: unknown, secretos: unknown = null): void
 {
+  sesionNoDemo();
   mockData.mockResolvedValueOnce({
     data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
@@ -166,9 +180,49 @@ describe("ConfigPage",
     render(await ConfigPage());
 
     expect(screen.getAllByText("Sin conectar").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("button", { name: "Conectar" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Conectar con MercadoPago" }))
+      .toHaveAttribute("href", "/api/integrations/mercadopago/authorize");
     expect(screen.getByRole("link", { name: "Conectar con Google" }))
       .toHaveAttribute("href", "/api/integrations/google/authorize");
+  });
+
+  it("debería avisar conexión ok por ?mp=ok",
+  async () =>
+  {
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
+
+    render(await ConfigPage({ searchParams: Promise.resolve({ mp: "ok" }) }));
+
+    expect(screen.getByText("MercadoPago conectado. Las señas se cobran directo en tu cuenta."))
+      .toBeDefined();
+  });
+
+  it("debería ocultar el OAuth en la demo",
+  async () =>
+  {
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "demo-id", email: "demo@turnomas.com" } } }) },
+    } as never);
+    mockData.mockResolvedValueOnce({
+      data: { negocio: negocioBase(), staff: [], servicios: [], clientes: [], turnos: [] },
+      error: null,
+      isDemo: true,
+    } as never);
+    mockAdmin.mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null }),
+          }),
+        }),
+      }),
+    } as never);
+
+    render(await ConfigPage());
+
+    expect(screen.queryByRole("link", { name: "Conectar con MercadoPago" })).toBeNull();
+    expect(screen.getByText("La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas con tu MercadoPago."))
+      .toBeDefined();
   });
 
   it("debería tolerar negocio sin id y base caída",
@@ -231,20 +285,6 @@ describe("ConfigPage",
     await user.click(screen.getByRole("button", { name: "Desconectar Google" }));
 
     expect(vi.mocked(desconectarGoogleCalendar)).toHaveBeenCalledOnce();
-  });
-
-  it("debería conectar MercadoPago con token",
-  async () =>
-  {
-    const user = userEvent.setup();
-    stubConfig(negocioBase(), null);
-
-    render(await ConfigPage());
-
-    await user.type(screen.getByPlaceholderText("Pegá tu access token (APP_USR-...)"), "APP_USR-12345678");
-    await user.click(screen.getByRole("button", { name: "Conectar" }));
-
-    expect(vi.mocked(conectarMercadoPago)).toHaveBeenCalledWith("APP_USR-12345678");
   });
 
   it("debería mostrar franjas en array",

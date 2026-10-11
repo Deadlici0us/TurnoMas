@@ -6,27 +6,6 @@
  * se cae al `MP_ACCESS_TOKEN` de la plataforma. Nunca loguear valores.
  */
 
-export type FetchLike = (
-  input: string,
-  init?: { method?: string; headers?: Record<string, string> },
-) => Promise<{ ok: boolean; status?: number }>;
-
-const MP_API_BASE = "https://api.mercadopago.com";
-const MIN_TOKEN_LENGTH = 8;
-
-/** Valida formato mínimo (prefijo MP o largo suficiente, sin espacios). */
-export function isValidMpTokenFormat(token: string): boolean
-{
-  const value = token.trim();
-
-  if (value.length < MIN_TOKEN_LENGTH || /\s/.test(value))
-  {
-    return false;
-  }
-
-  return value.startsWith("APP_USR-") || value.startsWith("TEST-") || value.length >= MIN_TOKEN_LENGTH;
-}
-
 /** Enmascara el token para la UI (solo últimos 4 visibles). */
 export function maskMpToken(token: string | null): string
 {
@@ -38,7 +17,40 @@ export function maskMpToken(token: string | null): string
   return `••••${token.slice(-4)}`;
 }
 
-/** Resuelve el token efectivo: negocio primero, plataforma como fallback. */
+/** Error fail-closed: el negocio debe conectar su MP (sin fallback a plataforma). */
+export const SIN_MP_MESSAGE = "Este negocio aún no conectó MercadoPago para cobrar señas.";
+
+export class NegocioSinMpError extends Error
+{
+  constructor(message: string = SIN_MP_MESSAGE)
+  {
+    super(message);
+    this.name = "NegocioSinMpError";
+  }
+}
+
+/**
+ * Exige el token propio del negocio para señas delegadas.
+ *
+ * @param businessToken Token guardado en `negocio_secretos` o null.
+ * @return El token del negocio.
+ */
+export function requireBusinessMpToken(businessToken: string | null): string
+{
+  if (businessToken === null || businessToken.trim().length === 0)
+  {
+    throw new NegocioSinMpError();
+  }
+
+  return businessToken;
+}
+
+/**
+ * Resuelve el token efectivo: negocio primero, plataforma como fallback.
+ *
+ * Reservado para las suscripciones SaaS (cobro de la plataforma al negocio).
+ * Las señas delegadas usan `requireBusinessMpToken` (fail-closed).
+ */
 export function resolveEffectiveMpToken(
   businessToken: string | null,
   platformToken: string | null,
@@ -55,20 +67,4 @@ export function resolveEffectiveMpToken(
   }
 
   return null;
-}
-
-/** Verifica el token contra `GET /users/me` de MercadoPago. */
-export async function verifyMpToken(token: string, fetchFn: FetchLike = fetch): Promise<boolean>
-{
-  try
-  {
-    const response = await fetchFn(`${MP_API_BASE}/users/me`,
-      { method: "GET", headers: { Authorization: `Bearer ${token}` } });
-
-    return response.ok;
-  }
-  catch
-  {
-    return false;
-  }
 }

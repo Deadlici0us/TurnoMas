@@ -9,7 +9,8 @@ import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 /**
  * Crea el perfil del negocio (paso 1 del onboarding).
- * En Vercel persiste en `negocios`; en local redirige al dashboard demo.
+ * En Vercel persiste en `negocios` y sigue al paso 2 (conectar MercadoPago,
+ * obligatorio para cobrar señas); en local redirige al dashboard demo.
  */
 export async function createBusiness(formData: FormData): Promise<void>
 {
@@ -74,5 +75,5 @@ export async function createBusiness(formData: FormData): Promise<void>
     redirect("/onboarding?error=guardado");
   }
 
-  redirect("/dashboard/config?gcal=pending");
+  redirect("/onboarding?paso=2");
 }

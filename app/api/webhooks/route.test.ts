@@ -12,6 +12,7 @@ vi.mock("@/lib/services/payment", () =>
     paymentService: {
       getPaymentStatus: vi.fn(),
       getBusinessAccessToken: vi.fn(),
+      listConnectedBusinessTokens: vi.fn(),
       refundForNegocio: vi.fn(),
     },
   };
@@ -41,6 +42,7 @@ vi.mock("@/lib/services/calendar", () =>
 
 const mockGetStatus = vi.mocked(paymentService.getPaymentStatus);
 const mockBusinessToken = vi.mocked(paymentService.getBusinessAccessToken);
+const mockListConnected = vi.mocked(paymentService.listConnectedBusinessTokens);
 const mockByPaymentId = vi.mocked(bookingService.getBookingByPaymentId);
 const mockById = vi.mocked(bookingService.getBookingById);
 const mockConfirm = vi.mocked(bookingService.confirmBooking);
@@ -69,6 +71,9 @@ beforeEach(() =>
 {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
+  mockByPaymentId.mockResolvedValue(null);
+  mockBusinessToken.mockResolvedValue(null);
+  mockListConnected.mockResolvedValue([]);
 });
 
 describe("POST /api/webhooks",
@@ -141,10 +146,9 @@ describe("POST /api/webhooks",
     expect(body.error).toBe("No pudimos consultar el pago.");
   });
 
-  it("debería reintentar con el token del negocio (señas delegadas)",
+  it("debería consultar primero con el token del negocio dueño (señas delegadas)",
   async () =>
   {
-    mockGetStatus.mockRejectedValueOnce(new Error("no visible"));
     mockByPaymentId.mockResolvedValueOnce({ id: "b-1", negocio_id: "neg-1", estado: "pendiente" });
     mockBusinessToken.mockResolvedValueOnce("tok-negocio");
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
@@ -157,7 +161,28 @@ describe("POST /api/webhooks",
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, status: "approved" });
-    expect(mockGetStatus).toHaveBeenCalledWith("12345", "tok-negocio");
+    expect(mockGetStatus.mock.calls[0]).toEqual(["12345", "tok-negocio"]);
+    expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
+  });
+
+  it("debería iterar negocios conectados con pago delegado nuevo",
+  async () =>
+  {
+    mockByPaymentId.mockResolvedValueOnce(null);
+    mockGetStatus.mockRejectedValueOnce(new Error("no visible en plataforma"));
+    mockListConnected.mockResolvedValueOnce(["tok-a", "tok-b"]);
+    mockGetStatus.mockRejectedValueOnce(new Error("no visible en a"));
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
+    mockConfirm.mockResolvedValueOnce(undefined);
+    mockCrearEvento.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { success: boolean; status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "approved" });
+    expect(mockGetStatus).toHaveBeenCalledWith("12345", "tok-b");
     expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
   });
 

@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability/availability";
 import { requierePagoSena } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
+import { NegocioSinMpError } from "@/lib/payments/mp-token";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
@@ -380,10 +381,15 @@ async function crearCheckoutConSena(
   montoTotal: number,
   senaPorcentaje: number,
   negocioNombre: string,
-): Promise<{ readonly checkoutUrl: string | null; readonly checkoutError: string | null }>
+): Promise<{
+  readonly checkoutUrl: string | null;
+  readonly checkoutError: string | null;
+  readonly sinMp: boolean;
+}>
 {
   let checkoutUrl: string | null = null;
   let checkoutError: string | null = null;
+  let sinMp = false;
 
   try
   {
@@ -392,9 +398,17 @@ async function crearCheckoutConSena(
 
     checkoutUrl = preference.initPoint;
   }
-  catch
+  catch (error)
   {
-    checkoutError = "No pudimos generar el link de pago. Probá de nuevo en unos segundos.";
+    if (error instanceof NegocioSinMpError)
+    {
+      sinMp = true;
+      checkoutError = "Este negocio aún no activó el cobro online. Tu reserva quedó pendiente.";
+    }
+    else
+    {
+      checkoutError = "No pudimos generar el link de pago. Probá de nuevo en unos segundos.";
+    }
   }
 
   try
@@ -416,7 +430,7 @@ async function crearCheckoutConSena(
     // Best-effort: la reserva ya existe aunque QStash no esté configurado.
   }
 
-  return { checkoutUrl, checkoutError };
+  return { checkoutUrl, checkoutError, sinMp };
 }
 
 export async function POST(request: Request)
@@ -549,7 +563,7 @@ export async function POST(request: Request)
       return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal });
     }
 
-    const { checkoutUrl, checkoutError } = await crearCheckoutConSena(
+    const { checkoutUrl, checkoutError, sinMp } = await crearCheckoutConSena(
       negocioId,
       turnoId,
       montos.montoTotal,
@@ -565,6 +579,7 @@ export async function POST(request: Request)
       senaMonto: montos.senaMonto,
       checkoutUrl,
       checkoutError,
+      sinMp,
     });
   }
   catch (error)

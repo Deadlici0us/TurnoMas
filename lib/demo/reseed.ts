@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 /**
  * Re-siembras la cuenta demo: borra hijos del negocio y reinserta el seed.
  *
+ * Además nullifica todos los secretos del negocio demo (MP, Meta/WhatsApp,
+ * Google): la demo es vidriera y jamás debe conservar tokens reales.
+ *
  * @param ownerId UID del dueño demo (auth.users.id).
  * @returns ID del negocio reseteado.
  */
@@ -54,6 +57,24 @@ export async function reseedDemoBusiness(ownerId: string): Promise<string>
     .insert([...seed.turnos.map((t) => ({ ...t, negocio_id: negocioId }))]);
 
   if (turnosError !== null)
+  {
+    throw new Error("No pudimos restablecer la demo. Probá de nuevo.");
+  }
+
+  const { error: secretosError } = await admin.from("negocio_secretos").update({
+    mercadopago_access_token: null,
+    mercadopago_refresh_token: null,
+    mercadopago_user_id: null,
+    mp_conectado_at: null,
+    meta_access_token: null,
+    whatsapp_phone_number_id: null,
+    waba_id: null,
+    google_refresh_token: null,
+    google_email: null,
+    google_conectado_at: null,
+  }).eq("negocio_id", negocioId);
+
+  if (secretosError !== null)
   {
     throw new Error("No pudimos restablecer la demo. Probá de nuevo.");
   }

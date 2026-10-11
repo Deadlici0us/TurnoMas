@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
 import { validarTimezone } from "@/lib/timezone/timezone";
@@ -20,7 +20,7 @@ import
 import { ResendAdapter } from "@/lib/ports/email";
 import { readEnv } from "@/lib/env/env";
 import { validarHorariosStaff } from "@/lib/staff/validation";
-import { isValidMpTokenFormat, verifyMpToken } from "@/lib/payments/mp-token";
+
 import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy";
 import { REMARKETING_MAX_DIAS, REMARKETING_MIN_DIAS } from "@/lib/automations/remarketing";
 import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/recordatorios";
@@ -283,57 +283,12 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
   revalidatePath("/dashboard/config");
 }
 
-/** Guarda el access token de MercadoPago del dueño (cobro de señas delegadas). */
-export async function conectarMercadoPago(token: string): Promise<void>
-{
-  const value = token.trim();
-
-  if (!isValidMpTokenFormat(value))
-  {
-    throw new RangeError("Ese token no parece válido. Revisalo y probá de nuevo.");
-  }
-
-  if (!(await verifyMpToken(value)))
-  {
-    throw new Error("MercadoPago rechazó ese token. Revisalo y probá de nuevo.");
-  }
-
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
-  {
-    throw new Error("Tenés que iniciar sesión para conectar MercadoPago.");
-  }
-
-  // La demo puede guardar su token de MP; si es local, no se almacena persistentemente.
-
-
-  const admin = getSupabaseAdmin();
-  const { data: negocio } = await admin.from("negocios").select("id")
-    .eq("duenio_id", user.id).single();
-
-  if (negocio === null)
-  {
-    throw new Error("No encontramos tu negocio.");
-  }
-
-  const { error } = await admin.from("negocio_secretos").upsert({
-    negocio_id: negocio.id as string,
-    mercadopago_access_token: value,
-  }, { onConflict: "negocio_id" });
-
-  if (error !== null)
-  {
-    throw new Error("No pudimos guardar el token. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/config");
-}
-
-/** Desconecta MercadoPago (las reservas pasan a confirmación manual). */
+/**
+ * Desconecta MercadoPago (OAuth).
+ *
+ * Bloqueado si hay servicios con seña activa: primero se desactivan en
+ * Servicios. La demo nunca toca secretos.
+ */
 export async function desconectarMercadoPago(): Promise<void>
 {
   await assertModoEditable();
@@ -346,8 +301,7 @@ export async function desconectarMercadoPago(): Promise<void>
     throw new Error("Tenés que iniciar sesión para desconectar MercadoPago.");
   }
 
-  // Permitir que la demo modifique su conexión de MP.
-
+  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -358,8 +312,18 @@ export async function desconectarMercadoPago(): Promise<void>
     throw new Error("No encontramos tu negocio.");
   }
 
+  const negocioId = negocio.id as string;
+  const { data: conSena } = await admin.from("servicios")
+    .select("id").eq("negocio_id", negocioId).eq("sena_requerida", true).limit(1);
+
+  if (Array.isArray(conSena) && conSena.length > 0)
+  {
+    throw new Error("Tenés servicios con seña activa. Desactivalas primero en Servicios.");
+  }
+
   const { error } = await admin.from("negocio_secretos")
-    .update({ mercadopago_access_token: null }).eq("negocio_id", negocio.id as string);
+    .update({ mercadopago_access_token: null, mercadopago_refresh_token: null })
+    .eq("negocio_id", negocioId);
 
   if (error !== null)
   {

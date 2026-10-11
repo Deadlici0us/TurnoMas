@@ -76,11 +76,17 @@ function sesionDueno(): void
  *
  * @param error Error de Supabase o null.
  * @param filas Filas capturadas por insert/update.
+ * @param mpToken Token MP del negocio (null = sin conectar).
  */
-function stubServicios(error: { code?: string } | null, filas: unknown[] = [])
+function stubServicios(error: { code?: string } | null, filas: unknown[] = [], mpToken: string | null = "APP_USR-x")
 {
   const admin = {
     from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: async () => ({ data: { mercadopago_access_token: mpToken } }),
+        })),
+      })),
       insert: vi.fn(async (fila: unknown) =>
       {
         filas.push(fila);
@@ -219,6 +225,42 @@ describe("guardarServicio",
 
     await expect(guardarServicio(null, formularioValido()))
       .rejects.toThrow("La cuenta demo es de solo lectura.");
+  });
+
+  it("debería exigir MercadoPago conectado para activar seña",
+  async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubServicios(null, filas, null);
+
+    await expect(guardarServicio(null, formulario({
+      nombre: "Corte",
+      duracionMin: "30",
+      precioBase: "5000",
+      senaRequerida: "on",
+      senaPorcentaje: "50",
+    }))).rejects.toThrow("Conectá tu MercadoPago antes de activar señas");
+    expect(filas).toHaveLength(0);
+  });
+
+  it("debería guardar seña con MercadoPago conectado",
+  async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubServicios(null, filas, "APP_USR-negocio");
+
+    await guardarServicio(null, formulario({
+      nombre: "Corte",
+      duracionMin: "30",
+      precioBase: "5000",
+      senaRequerida: "on",
+      senaPorcentaje: "50",
+    }));
+
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({ sena_requerida: true, sena_porcentaje: 50 });
   });
 
   it("debería exigir sesión iniciada",

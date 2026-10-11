@@ -20,7 +20,7 @@ const mockAdmin = vi.mocked(getSupabaseAdmin);
 function stubReseed(
   negocio: unknown,
   insertError: { message: string } | null = null,
-  auditor: { deletes?: string[]; inserts?: string[] } = {},
+  auditor: { deletes?: string[]; inserts?: string[]; updates?: unknown[] } = {},
   failTables?: string[],
 )
 {
@@ -43,6 +43,12 @@ function stubReseed(
         const error = failTables === undefined ? insertError : (failTables.includes(tabla) ? insertError : null);
 
         return Promise.resolve({ error });
+      }),
+      update: vi.fn((values: unknown) =>
+      {
+        auditor.updates?.push(values);
+
+        return { eq: vi.fn(async () => ({ error: null })) };
       }),
     })),
   };
@@ -105,6 +111,28 @@ describe("reseedDemoBusiness",
 
     await expect(reseedDemoBusiness("duenio-1"))
       .rejects.toThrow("No pudimos restablecer la demo. Probá de nuevo.");
+  });
+
+  it("debería nullificar todos los secretos del negocio demo",
+  async () =>
+  {
+    const auditor: { deletes?: string[]; inserts?: string[]; updates?: unknown[] } =
+      { deletes: [], inserts: [], updates: [] };
+    stubReseed({ id: "neg-demo" }, null, auditor);
+
+    await reseedDemoBusiness("duenio-1");
+
+    expect(auditor.updates).toHaveLength(1);
+    expect(auditor.updates?.[0]).toMatchObject({
+      mercadopago_access_token: null,
+      mercadopago_refresh_token: null,
+      mercadopago_user_id: null,
+      mp_conectado_at: null,
+      meta_access_token: null,
+      whatsapp_phone_number_id: null,
+      waba_id: null,
+      google_refresh_token: null,
+    });
   });
 });
 

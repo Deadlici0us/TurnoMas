@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -9,15 +11,32 @@ import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 const DEFAULT_COUNTRY = "ar";
 
+/** Paso inicial desde la query (?paso=2 al volver de crear el negocio). */
+function pasoInicial(params: URLSearchParams): number
+{
+  const crudo = Number(params.get("paso"));
+
+  if (!Number.isInteger(crudo) || crudo < 1 || crudo > 4)
+  {
+    return 1;
+  }
+
+  return crudo;
+}
+
 export default function OnboardingWizard()
 {
   const t = useTranslations("common");
+  const params = useSearchParams();
   const [nombre, setNombre] = useState("Barbería Diego");
   const [pais, setPais] = useState(DEFAULT_COUNTRY);
-  const [paso, setPaso] = useState(1);
-  const [mpConectado, setMpConectado] = useState(false);
+  const [paso, setPaso] = useState(() => pasoInicial(params));
   const [waConectado, setWaConectado] = useState(false);
   const [gcalConectado, setGcalConectado] = useState(false);
+
+  const mpOk = params.get("mp") === "ok";
+  const mpAuthorizeHref = `/api/integrations/mercadopago/authorize?next=${
+    encodeURIComponent("/onboarding?paso=2&mp=ok")}`;
 
   let preview = "";
 
@@ -51,7 +70,7 @@ export default function OnboardingWizard()
         </div>
 
         {paso === 1 && (
-          <section className="space-y-4">
+          <form action={createBusiness} className="space-y-4">
             <h2 className="font-semibold text-slate-900">{t("onboarding.step1Title")}</h2>
             <p className="text-sm text-slate-600">{t("onboarding.step1Desc")}</p>
             <div>
@@ -59,6 +78,7 @@ export default function OnboardingWizard()
                 {t("auth.businessName")}
               </label>
               <input
+                name="nombre"
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
@@ -70,6 +90,7 @@ export default function OnboardingWizard()
                 {t("onboarding.country")}
               </label>
               <select
+                name="pais"
                 value={pais}
                 onChange={(event) => setPais(event.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
@@ -83,27 +104,50 @@ export default function OnboardingWizard()
               {t("onboarding.urlPreview")}:{" "}
               <span className="font-mono font-semibold text-slate-900">{preview}</span>
             </p>
+            <input type="hidden" name="timezone" value={timezoneDetectada} />
+            <p className="text-xs text-slate-500">Zona horaria detectada: {timezoneDetectada}.</p>
             <button
-              onClick={() => setPaso(2)}
+              type="submit"
               className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
                 hover:bg-blue-700 transition-colors"
             >
-              {t("onboarding.step2Title")}
+              {t("onboarding.crearNegocio")}
             </button>
-          </section>
+          </form>
         )}
 
         {paso === 2 && (
           <section className="space-y-4">
             <h2 className="font-semibold text-slate-900">{t("onboarding.step2Title")}</h2>
             <p className="text-sm text-slate-600">{t("onboarding.step2Desc")}</p>
-            <button
-              onClick={() => setMpConectado(true)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-                hover:bg-blue-700 transition-colors"
-            >
-              {mpConectado ? "✓ " : ""}{t("onboarding.connectMp")}
-            </button>
+            {mpOk ? (
+              <>
+                <p className="text-sm font-semibold text-green-700 bg-green-50 border
+                  border-green-200 rounded-lg p-3">
+                  {"✓ "}{t("onboarding.mpConectado")}
+                </p>
+                <button
+                  onClick={() => setPaso(3)}
+                  className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
+                    hover:bg-blue-700 transition-colors"
+                >
+                  {t("onboarding.continuar")}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={mpAuthorizeHref}
+                  className="block text-center w-full bg-blue-600 text-white font-semibold py-3
+                    rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {t("onboarding.connectMp")}
+                </Link>
+                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  {t("onboarding.mpObligatorio")}
+                </p>
+              </>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setPaso(1)}
@@ -111,13 +155,6 @@ export default function OnboardingWizard()
                   rounded-lg hover:bg-slate-50 transition-colors"
               >
                 ←
-              </button>
-              <button
-                onClick={() => setPaso(3)}
-                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
-                  rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                {t("onboarding.skipMp")}
               </button>
             </div>
           </section>
@@ -167,19 +204,13 @@ export default function OnboardingWizard()
             <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
               {t("onboarding.trialNote")}
             </p>
-            <form action={createBusiness} className="space-y-4">
-              <input type="hidden" name="nombre" value={nombre} />
-              <input type="hidden" name="pais" value={pais} />
-              <input type="hidden" name="timezone" value={timezoneDetectada} />
-              <p className="text-xs text-slate-500">Zona horaria detectada: {timezoneDetectada}.</p>
-              <button
-                type="submit"
-                className="block text-center w-full bg-blue-600 text-white font-semibold py-3
-                  rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t("onboarding.finish")}
-              </button>
-            </form>
+            <Link
+              href="/dashboard"
+              className="block text-center w-full bg-blue-600 text-white font-semibold py-3
+                rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {t("onboarding.finish")}
+            </Link>
             <button
               onClick={() => setPaso(3)}
               className="w-full border border-slate-300 text-slate-700 font-semibold py-3

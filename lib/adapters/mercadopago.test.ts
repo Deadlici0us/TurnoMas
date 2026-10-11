@@ -12,13 +12,19 @@ function respuestaError(status: number)
   return { ok: false, status, json: async () => ({}) };
 }
 
-/** Instala fetch global mockeado y devuelve el mock. */
+/** Instala fetch global mockeado y devuelve el mock + cuerpos enviados. */
 function instalarFetch(respuesta: unknown)
 {
-  const fetchMock = vi.fn(async () => respuesta);
+  const cuerpos: string[] = [];
+  const fetchMock = vi.fn(async (_url: string, init: { body?: unknown } = {}) =>
+  {
+    cuerpos.push(typeof init.body === "string" ? init.body : "");
+
+    return respuesta;
+  });
   vi.stubGlobal("fetch", fetchMock);
 
-  return fetchMock;
+  return { fetchMock, cuerpos };
 }
 
 beforeEach(() =>
@@ -33,7 +39,7 @@ describe("MercadoPagoAdapter.createDepositPreference",
   it("debería crear la preferencia con el token del negocio",
   async () =>
   {
-    const fetchMock = instalarFetch(respuestaOk({ id: "pref-1", init_point: "https://pay/1" }));
+    const { fetchMock } = instalarFetch(respuestaOk({ id: "pref-1", init_point: "https://pay/1" }));
     const adapter = new MercadoPagoAdapter();
 
     const result = await adapter.createDepositPreference({
@@ -54,30 +60,53 @@ describe("MercadoPagoAdapter.createDepositPreference",
     );
   });
 
-  it("debería caer al token de plataforma sin token explícito",
+  it("debería incluir notification_url con base pública",
   async () =>
   {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
-    const fetchMock = instalarFetch(respuestaOk({ id: "pref-2", init_point: "https://pay/2" }));
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com/");
+    const { fetchMock, cuerpos } = instalarFetch(respuestaOk({ id: "pref-2", init_point: "https://pay/2" }));
 
     await new MercadoPagoAdapter().createDepositPreference({
       bookingId: "book-1",
       amountCents: 4000,
       percentage: 25,
       description: "Seña",
+      accessToken: "APP_USR-negocio",
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: "Bearer APP_USR-platform" }),
+        headers: expect.objectContaining({ Authorization: "Bearer APP_USR-negocio" }),
       }),
     );
+    const body = JSON.parse(cuerpos[0]) as { notification_url?: string };
+
+    expect(body.notification_url).toBe("https://turnomas.com/api/webhooks");
   });
 
-  it("debería lanzar sin ningún token",
+  it("debería omitir notification_url sin base pública",
   async () =>
   {
+    const { cuerpos } = instalarFetch(respuestaOk({ id: "pref-3", init_point: "https://pay/3" }));
+
+    await new MercadoPagoAdapter().createDepositPreference({
+      bookingId: "book-1",
+      amountCents: 4000,
+      percentage: 25,
+      description: "Seña",
+      accessToken: "APP_USR-negocio",
+    });
+
+    const body = JSON.parse(cuerpos[0]) as { notification_url?: string };
+
+    expect(body.notification_url).toBeUndefined();
+  });
+
+  it("debería lanzar sin token (fail-closed, sin fallback)",
+  async () =>
+  {
+    const { fetchMock } = instalarFetch(respuestaOk({ id: "pref-x", init_point: "https://pay/x" }));
     const adapter = new MercadoPagoAdapter();
 
     await expect(adapter.createDepositPreference({
@@ -85,13 +114,13 @@ describe("MercadoPagoAdapter.createDepositPreference",
       amountCents: 10000,
       percentage: 50,
       description: "Seña",
-    })).rejects.toThrow("El negocio aún no conectó MercadoPago para cobrar señas.");
+    })).rejects.toThrow("Este negocio aún no conectó MercadoPago");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("debería lanzar cuando MercadoPago responde no-ok",
   async () =>
   {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     instalarFetch(respuestaError(400));
 
     await expect(new MercadoPagoAdapter().createDepositPreference({
@@ -99,13 +128,13 @@ describe("MercadoPagoAdapter.createDepositPreference",
       amountCents: 10000,
       percentage: 50,
       description: "Seña",
+      accessToken: "APP_USR-negocio",
     })).rejects.toThrow("No se pudo crear la preferencia de pago en MercadoPago.");
   });
 
   it("debería lanzar con respuesta inválida",
   async () =>
   {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     instalarFetch(respuestaOk({ sin_id: true }));
 
     await expect(new MercadoPagoAdapter().createDepositPreference({
@@ -113,6 +142,7 @@ describe("MercadoPagoAdapter.createDepositPreference",
       amountCents: 10000,
       percentage: 50,
       description: "Seña",
+      accessToken: "APP_USR-negocio",
     })).rejects.toThrow("Respuesta inválida de MercadoPago al crear la seña.");
   });
 });
@@ -123,7 +153,7 @@ describe("MercadoPagoAdapter.refundPayment",
   it("debería reembolsar con el token explícito",
   async () =>
   {
-    const fetchMock = instalarFetch(respuestaOk({}));
+    const { fetchMock } = instalarFetch(respuestaOk({}));
 
     await new MercadoPagoAdapter().refundPayment("pay-1", "APP_USR-negocio");
 
@@ -140,16 +170,15 @@ describe("MercadoPagoAdapter.refundPayment",
   async () =>
   {
     await expect(new MercadoPagoAdapter().refundPayment("pay-1"))
-      .rejects.toThrow("El negocio aún no conectó MercadoPago para devolver señas.");
+      .rejects.toThrow("Este negocio aún no conectó MercadoPago");
   });
 
   it("debería lanzar cuando el reembolso responde no-ok",
   async () =>
   {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     instalarFetch(respuestaError(404));
 
-    await expect(new MercadoPagoAdapter().refundPayment("pay-1"))
+    await expect(new MercadoPagoAdapter().refundPayment("pay-1", "APP_USR-negocio"))
       .rejects.toThrow("No se pudo devolver la seña en MercadoPago.");
   });
 });
@@ -160,8 +189,7 @@ describe("MercadoPagoAdapter integración",
   it("debería crear y reembolsar punta a punta con red mockeada",
   async () =>
   {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
-    const fetchMock = instalarFetch(respuestaOk({ id: "pref-int", init_point: "https://pay/int" }));
+    const { fetchMock } = instalarFetch(respuestaOk({ id: "pref-int", init_point: "https://pay/int" }));
     const adapter = new MercadoPagoAdapter();
 
     const preference = await adapter.createDepositPreference({
@@ -169,10 +197,11 @@ describe("MercadoPagoAdapter integración",
       amountCents: 6000,
       percentage: 50,
       description: "Seña int",
+      accessToken: "APP_USR-negocio",
     });
 
     instalarFetch(respuestaOk({}));
-    await adapter.refundPayment(preference.id);
+    await adapter.refundPayment(preference.id, "APP_USR-negocio");
 
     expect(preference.checkoutUrl).toBe("https://pay/int");
     expect(fetchMock).toHaveBeenCalledTimes(1);

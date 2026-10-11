@@ -16,13 +16,15 @@ function extraerFirma(request: Request): { firma: string | null; ts: string }
 }
 
 /**
- * Resuelve el estado del pago con fallback al token del negocio.
+ * Resuelve el estado del pago con el token del negocio primero.
  *
  * El ID de reserva viaja en external_reference del pago (fuente real),
  * no en el body del webhook que varía según tópico de MP.
- * Con señas delegadas el pago vive en la cuenta del negocio: si la
- * plataforma no lo ve, se reintenta con el token del negocio dueño
- * del turno que ya registró ese `mp_payment_id`.
+ * Con señas delegadas el pago vive en la cuenta del negocio: el webhook
+ * solo trae el ID del pago, así que se prueba primero con el token del
+ * negocio dueño del turno (re-notificaciones), luego con el de plataforma
+ * (legacy pre fail-closed) y por último iterando los negocios conectados
+ * (pagos delegados nuevos). Nunca loguear tokens.
  *
  * @param paymentId ID del pago de MercadoPago.
  * @return Estado del pago o null cuando no se pudo consultar.
@@ -32,6 +34,24 @@ async function resolverPaymentStatus(paymentId: string): Promise<{
   readonly externalReference: string | null;
 } | null>
 {
+  const turnoPorPago = await bookingService.getBookingByPaymentId(paymentId).catch(() => null);
+  const negocioId = (turnoPorPago as { negocio_id?: unknown } | null)?.negocio_id;
+
+  if (typeof negocioId === "string")
+  {
+    const businessToken = await paymentService.getBusinessAccessToken(negocioId);
+
+    if (businessToken !== null)
+    {
+      const estado = await paymentService.getPaymentStatus(paymentId, businessToken).catch(() => null);
+
+      if (estado !== null)
+      {
+        return estado;
+      }
+    }
+  }
+
   const directo = await paymentService.getPaymentStatus(paymentId).catch(() => null);
 
   if (directo !== null)
@@ -39,17 +59,19 @@ async function resolverPaymentStatus(paymentId: string): Promise<{
     return directo;
   }
 
-  const turnoPorPago = await bookingService.getBookingByPaymentId(paymentId).catch(() => null);
-  const negocioId = (turnoPorPago as { negocio_id?: unknown } | null)?.negocio_id;
+  const conectados = await paymentService.listConnectedBusinessTokens().catch(() => []);
 
-  if (typeof negocioId !== "string")
+  for (const token of conectados)
   {
-    return null;
+    const estado = await paymentService.getPaymentStatus(paymentId, token).catch(() => null);
+
+    if (estado !== null)
+    {
+      return estado;
+    }
   }
 
-  const businessToken = await paymentService.getBusinessAccessToken(negocioId);
-
-  return paymentService.getPaymentStatus(paymentId, businessToken).catch(() => null);
+  return null;
 }
 
 /**

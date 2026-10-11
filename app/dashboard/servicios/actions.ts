@@ -26,6 +26,29 @@ function exigirNumeroCrudo(valor: FormDataEntryValue | null): number
   return numero;
 }
 
+/**
+ * Exige MercadoPago conectado para activar señas (sin fallback a plataforma).
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param negocioId ID del negocio.
+ */
+async function exigirMpConectado(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+): Promise<void>
+{
+  const { data: secretos } = await admin.from("negocio_secretos")
+    .select("mercadopago_access_token").eq("negocio_id", negocioId).single();
+
+  const token = (secretos as { mercadopago_access_token?: unknown } | null)
+    ?.mercadopago_access_token;
+
+  if (typeof token !== "string" || token.trim().length === 0)
+  {
+    throw new Error("Conectá tu MercadoPago antes de activar señas en un servicio.");
+  }
+}
+
 /** Crea o actualiza un servicio del negocio del dueño autenticado. */
 export async function guardarServicio(servicioId: string | null, formData: FormData): Promise<void>
 {
@@ -75,6 +98,11 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
+
+  if (servicio.senaRequerida)
+  {
+    await exigirMpConectado(admin, negocioId);
+  }
 
   const fila = {
     negocio_id: negocioId,

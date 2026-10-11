@@ -1,32 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import
 {
-  isValidMpTokenFormat,
   maskMpToken,
+  NegocioSinMpError,
+  requireBusinessMpToken,
   resolveEffectiveMpToken,
-  verifyMpToken,
+  SIN_MP_MESSAGE,
 } from "./mp-token";
-
-describe("isValidMpTokenFormat",
-() =>
-{
-  it("debería aceptar tokens de prueba y producción",
-  () =>
-  {
-    expect(isValidMpTokenFormat("APP_USR-123456")).toBe(true);
-    expect(isValidMpTokenFormat("TEST-123456")).toBe(true);
-  });
-
-  it("debería rechazar vacío, corto o con espacios",
-  () =>
-  {
-    expect(isValidMpTokenFormat("")).toBe(false);
-    expect(isValidMpTokenFormat("   ")).toBe(false);
-    expect(isValidMpTokenFormat("corto")).toBe(false);
-    expect(isValidMpTokenFormat("APP USR-123")).toBe(false);
-  });
-});
 
 describe("maskMpToken",
 () =>
@@ -66,32 +47,21 @@ describe("resolveEffectiveMpToken",
   });
 });
 
-describe("verifyMpToken",
+describe("requireBusinessMpToken",
 () =>
 {
-  it("debería validar el token contra la API de MercadoPago",
-  async () =>
+  it("debería devolver el token del negocio",
+  () =>
   {
-    const fetchFn = vi.fn().mockResolvedValue({ ok: true });
-
-    await expect(verifyMpToken("APP_USR-123456", fetchFn)).resolves.toBe(true);
-    expect(fetchFn).toHaveBeenCalledWith("https://api.mercadopago.com/users/me",
-      expect.objectContaining({ method: "GET" }));
+    expect(requireBusinessMpToken("APP_USR-negocio")).toBe("APP_USR-negocio");
   });
 
-  it("debería rechazar tokens inválidos (401 de MP)",
-  async () =>
+  it("debería lanzar sin token (fail-closed, sin fallback)",
+  () =>
   {
-    const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-
-    await expect(verifyMpToken("APP_USR-malo123", fetchFn)).resolves.toBe(false);
-  });
-
-  it("debería devolver false ante errores de red",
-  async () =>
-  {
-    const fetchFn = vi.fn().mockRejectedValue(new Error("red caída"));
-
-    await expect(verifyMpToken("APP_USR-123456", fetchFn)).resolves.toBe(false);
+    expect(() => requireBusinessMpToken(null)).toThrow(SIN_MP_MESSAGE);
+    expect(() => requireBusinessMpToken("   ")).toThrow(NegocioSinMpError);
   });
 });
+
+

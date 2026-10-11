@@ -3,12 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import
 {
   confirmarEliminacionNegocio,
-  conectarMercadoPago,
   desconectarGoogleCalendar,
   desconectarMercadoPago,
   solicitarEliminacionNegocio,
 } from "./actions";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
+import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import
 {
@@ -18,7 +17,6 @@ import
 } from "@/lib/negocios/eliminacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 
 vi.mock("next/cache", () =>
 {
@@ -27,7 +25,7 @@ vi.mock("next/cache", () =>
 
 vi.mock("@/lib/auth/demo-guard", () =>
 {
-  return { assertModoEditable: vi.fn() };
+  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -60,8 +58,8 @@ vi.mock("@/lib/ports/email", () =>
   };
 });
 
-const mockRevalidate = vi.mocked(revalidatePath);
 const mockAssert = vi.mocked(assertModoEditable);
+const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockNegocio = vi.mocked(getNegocioIdDelDueno);
@@ -113,6 +111,9 @@ function stubIntegraciones(
     from: vi.fn((tabla: string) => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            limit: async () => ({ data: Array.isArray(tablas[tabla]) ? tablas[tabla] : [] }),
+          })),
           single: async () => ({ data: tablas[tabla] ?? null }),
         })),
       })),
@@ -150,89 +151,10 @@ beforeEach(() =>
   vi.clearAllMocks();
 });
 
-describe("conectarMercadoPago",
-() =>
-{
-  it("debería guardar el token verificado",
-  async () =>
-  {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
-    sesionDueno();
-    const auditor: { upserts?: unknown[] } = { upserts: [] };
-    stubIntegraciones({ negocios: { id: "neg-1" } }, null, auditor);
-
-    await conectarMercadoPago("APP_USR-12345678");
-
-    expect(auditor.upserts).toEqual([{
-      negocio_id: "neg-1",
-      mercadopago_access_token: "APP_USR-12345678",
-    }]);
-    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/config");
-  });
-
-  it("debería rechazar formatos inválidos sin llamar a MercadoPago",
-  async () =>
-  {
-    const fetchMock = vi.fn(async () => ({ ok: true }));
-    vi.stubGlobal("fetch", fetchMock);
-    sesionDueno();
-    stubIntegraciones({ negocios: { id: "neg-1" } });
-
-    await expect(conectarMercadoPago("corto")).rejects.toThrow("Ese token no parece válido.");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("debería rechazar tokens que MercadoPago no acepta",
-  async () =>
-  {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 401 })));
-    sesionDueno();
-    stubIntegraciones({ negocios: { id: "neg-1" } });
-
-    await expect(conectarMercadoPago("APP_USR-12345678"))
-      .rejects.toThrow("MercadoPago rechazó ese token. Revisalo y probá de nuevo.");
-  });
-
-  it("debería exigir sesión iniciada",
-  async () =>
-  {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
-    mockAssert.mockResolvedValue(undefined);
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: null } }) },
-    } as never);
-
-    await expect(conectarMercadoPago("APP_USR-12345678"))
-      .rejects.toThrow("Tenés que iniciar sesión para conectar MercadoPago.");
-  });
-
-  it("debería exigir negocio del dueño",
-  async () =>
-  {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
-    sesionDueno();
-    stubIntegraciones({ negocios: null });
-
-    await expect(conectarMercadoPago("APP_USR-12345678"))
-      .rejects.toThrow("No encontramos tu negocio.");
-  });
-
-  it("debería lanzar cuando el upsert falla",
-  async () =>
-  {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
-    sesionDueno();
-    stubIntegraciones({ negocios: { id: "neg-1" } }, {});
-
-    await expect(conectarMercadoPago("APP_USR-12345678"))
-      .rejects.toThrow("No pudimos guardar el token. Probá de nuevo.");
-  });
-});
-
 describe("desconectarMercadoPago",
 () =>
 {
-  it("debería nular el token del negocio",
+  it("debería nular los tokens del negocio sin señas activas",
   async () =>
   {
     sesionDueno();
@@ -241,7 +163,36 @@ describe("desconectarMercadoPago",
 
     await desconectarMercadoPago();
 
-    expect(auditor.updates).toEqual([{ mercadopago_access_token: null }]);
+    expect(auditor.updates).toEqual([{
+      mercadopago_access_token: null,
+      mercadopago_refresh_token: null,
+    }]);
+  });
+
+  it("debería bloquear con servicios con seña activa",
+  async () =>
+  {
+    sesionDueno();
+    const auditor: { updates?: unknown[] } = { updates: [] };
+    stubIntegraciones({ negocios: { id: "neg-1" }, servicios: [{ id: "serv-1" }] }, null, auditor);
+
+    await expect(desconectarMercadoPago())
+      .rejects.toThrow("Tenés servicios con seña activa. Desactivalas primero en Servicios.");
+    expect(auditor.updates ?? []).toHaveLength(0);
+  });
+
+  it("debería bloquear al dueño demo",
+  async () =>
+  {
+    sesionDueno();
+    mockAssertDueno.mockImplementationOnce(() =>
+    {
+      throw new Error("La cuenta demo es de solo lectura.");
+    });
+    stubIntegraciones({ negocios: { id: "neg-1" } });
+
+    await expect(desconectarMercadoPago())
+      .rejects.toThrow("La cuenta demo es de solo lectura.");
   });
 
   it("debería exigir sesión iniciada",
