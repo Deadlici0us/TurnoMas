@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 
 import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
+import { subscriptionService } from "@/lib/services/subscription";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
-import { esNotificacionPago, extraerPagoId, verificarFirmaMp } from "@/lib/webhooks/mercadopago";
+import {
+  esAltaSuscripcion,
+  esCobroSuscripcion,
+  esNotificacionPago,
+  extraerPagoId,
+  verificarFirmaMp,
+} from "@/lib/webhooks/mercadopago";
 
 function extraerFirma(request: Request): { firma: string | null; ts: string }
 {
@@ -118,6 +125,83 @@ async function aplicarResultadoPago(
   return NextResponse.json({ success: true, status: paymentStatus.status });
 }
 
+/**
+ * Aplica un alta/baja del plan SaaS al negocio (`external_reference`).
+ *
+ * @param preapprovalId ID del preapproval de MercadoPago.
+ * @return Respuesta JSON con el resultado.
+ */
+async function aplicarAltaSuscripcion(
+  preapprovalId: string,
+): Promise<ReturnType<typeof NextResponse.json>>
+{
+  let estado: { status: string; externalReference: string | null };
+
+  try
+  {
+    estado = await subscriptionService.consultarEstado(preapprovalId);
+  }
+  catch
+  {
+    return NextResponse.json({ error: "No pudimos consultar la suscripción." }, { status: 502 });
+  }
+
+  if (estado.externalReference === null || estado.externalReference.length === 0)
+  {
+    return NextResponse.json({ success: true, status: estado.status, sinNegocio: true });
+  }
+
+  if (estado.status === "authorized")
+  {
+    await subscriptionService.activarSuscripcion(estado.externalReference, preapprovalId);
+
+    return NextResponse.json({ success: true, status: estado.status });
+  }
+
+  if (estado.status === "cancelled")
+  {
+    await subscriptionService.cancelarSuscripcionLocal(estado.externalReference);
+
+    return NextResponse.json({ success: true, status: estado.status });
+  }
+
+  return NextResponse.json({ success: true, status: estado.status });
+}
+
+/**
+ * Aplica un cobro mensual del plan SaaS (mora si fue rechazado).
+ *
+ * @param paymentId ID del cobro de MercadoPago.
+ * @return Respuesta JSON con el resultado.
+ */
+async function aplicarCobroSuscripcion(
+  paymentId: string,
+): Promise<ReturnType<typeof NextResponse.json>>
+{
+  const vinculo = await subscriptionService.resolverNegocioDeCobro(paymentId);
+
+  if (vinculo === null)
+  {
+    return NextResponse.json({ error: "No pudimos vincular el cobro." }, { status: 502 });
+  }
+
+  if (vinculo.status === "approved")
+  {
+    await subscriptionService.activarSuscripcion(vinculo.negocioId, vinculo.preapprovalId);
+
+    return NextResponse.json({ success: true, status: vinculo.status });
+  }
+
+  if (vinculo.status === "rejected" || vinculo.status === "cancelled")
+  {
+    await subscriptionService.marcarPastDue(vinculo.negocioId);
+
+    return NextResponse.json({ success: true, status: vinculo.status, mora: true });
+  }
+
+  return NextResponse.json({ success: true, status: vinculo.status });
+}
+
 export async function POST(request: Request)
 {
   const secretoMp = readEnv("MP_WEBHOOK_SECRET");
@@ -131,7 +215,7 @@ export async function POST(request: Request)
   {
     const body = await request.json();
 
-    if (!esNotificacionPago(body))
+    if (!esNotificacionPago(body) && !esAltaSuscripcion(body) && !esCobroSuscripcion(body))
     {
       return NextResponse.json({ error: "Tipo de webhook inválido." }, { status: 400 });
     }
@@ -154,6 +238,16 @@ export async function POST(request: Request)
     if (!firmaOk)
     {
       return NextResponse.json({ error: "Firma del webhook inválida." }, { status: 401 });
+    }
+
+    if (esAltaSuscripcion(body))
+    {
+      return aplicarAltaSuscripcion(paymentId);
+    }
+
+    if (esCobroSuscripcion(body))
+    {
+      return aplicarCobroSuscripcion(paymentId);
     }
 
     const paymentStatus = await resolverPaymentStatus(paymentId);

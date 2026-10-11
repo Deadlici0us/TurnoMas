@@ -1,0 +1,155 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { activarPlan, cancelarPlan } from "./actions";
+import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { subscriptionService } from "@/lib/services/subscription";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseServer } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
+vi.mock("next/navigation", () =>
+{
+  return { redirect: vi.fn() };
+});
+
+vi.mock("next/cache", () =>
+{
+  return { revalidatePath: vi.fn() };
+});
+
+vi.mock("@/lib/auth/demo-guard", () =>
+{
+  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
+});
+
+vi.mock("@/lib/services/subscription", () =>
+{
+  return {
+    subscriptionService: {
+      crearParaNegocio: vi.fn(),
+      cancelarParaNegocio: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@/lib/supabase/server", () =>
+{
+  return { getSupabaseServer: vi.fn() };
+});
+
+vi.mock("@/lib/supabase/admin", () =>
+{
+  return { getSupabaseAdmin: vi.fn() };
+});
+
+const mockRedirect = vi.mocked(redirect);
+const mockAssertModo = vi.mocked(assertModoEditable);
+const mockAssertDueno = vi.mocked(assertDuenoEditable);
+const mockCrear = vi.mocked(subscriptionService.crearParaNegocio);
+const mockCancelar = vi.mocked(subscriptionService.cancelarParaNegocio);
+const mockServer = vi.mocked(getSupabaseServer);
+const mockAdmin = vi.mocked(getSupabaseAdmin);
+
+/** Sesión de dueño no demo con negocio con plan. */
+function sesionDueno(negocio: unknown = { id: "neg-1", suscripcion_mp_id: "pre-1" }): void
+{
+  mockAssertModo.mockResolvedValue(undefined);
+  mockAssertDueno.mockReturnValue(undefined);
+  mockServer.mockResolvedValue({
+    auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueno@negocio.com" } } }) },
+  } as never);
+  mockAdmin.mockReturnValue({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: negocio }),
+        }),
+      }),
+    }),
+  } as never);
+}
+
+beforeEach(() =>
+{
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+  mockRedirect.mockImplementation((url) =>
+  {
+    throw new Error(`NEXT_REDIRECT:${url as string}`);
+  });
+});
+
+describe("activarPlan",
+() =>
+{
+  it("debería redirigir al checkout de MercadoPago",
+  async () =>
+  {
+    sesionDueno({ id: "neg-1" });
+    mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/sus/1" });
+
+    await expect(activarPlan()).rejects.toThrow("NEXT_REDIRECT:https://mp/sus/1");
+    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com");
+  });
+
+  it("debería bloquear al dueño demo",
+  async () =>
+  {
+    sesionDueno();
+    mockAssertDueno.mockImplementationOnce(() =>
+    {
+      throw new Error("La cuenta demo es de solo lectura.");
+    });
+
+    await expect(activarPlan()).rejects.toThrow("La cuenta demo es de solo lectura.");
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it("debería exigir email para el débito",
+  async () =>
+  {
+    mockAssertModo.mockResolvedValue(undefined);
+    mockAssertDueno.mockReturnValue(undefined);
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: null } } }) },
+    } as never);
+
+    await expect(activarPlan()).rejects.toThrow("Necesitamos tu email para el débito mensual.");
+  });
+});
+
+describe("cancelarPlan",
+() =>
+{
+  it("debería cancelar en MP y limpiar el plan local",
+  async () =>
+  {
+    sesionDueno();
+    mockCancelar.mockResolvedValueOnce(undefined);
+
+    await cancelarPlan();
+
+    expect(mockCancelar).toHaveBeenCalledWith("neg-1", "pre-1");
+  });
+
+  it("debería exigir plan activo para cancelar",
+  async () =>
+  {
+    sesionDueno({ id: "neg-1", suscripcion_mp_id: null });
+
+    await expect(cancelarPlan()).rejects.toThrow("No tenés un plan activo para cancelar.");
+    expect(mockCancelar).not.toHaveBeenCalled();
+  });
+
+  it("debería bloquear al dueño demo",
+  async () =>
+  {
+    sesionDueno();
+    mockAssertDueno.mockImplementationOnce(() =>
+    {
+      throw new Error("La cuenta demo es de solo lectura.");
+    });
+
+    await expect(cancelarPlan()).rejects.toThrow("La cuenta demo es de solo lectura.");
+  });
+});

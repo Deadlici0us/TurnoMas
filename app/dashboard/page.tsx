@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
+import { avisoSuscripcion } from "@/lib/onboarding/trial";
 
 function formatARS(centavos: number | null): string
 {
@@ -21,6 +23,7 @@ export default async function DashboardPage()
     created_at?: unknown;
     suscripcion_estado?: unknown;
     suscripcion_mp_id?: unknown;
+    suscripcion_mora_desde?: unknown;
   };
 
   const subscription = getNegocioSubscriptionStatus({
@@ -29,12 +32,17 @@ export default async function DashboardPage()
       typeof negocioRow.suscripcion_estado === "string" ? negocioRow.suscripcion_estado : null,
     suscripcion_mp_id:
       typeof negocioRow.suscripcion_mp_id === "string" ? negocioRow.suscripcion_mp_id : null,
+    suscripcion_mora_desde:
+      typeof negocioRow.suscripcion_mora_desde === "string" ? negocioRow.suscripcion_mora_desde : null,
   });
 
   if (subscription === "blocked")
   {
     redirect("/pricing?blocked=1");
   }
+
+  const aviso = avisoSuscripcion(subscription,
+    typeof negocioRow.created_at === "string" ? negocioRow.created_at : null);
 
   const stats = await getDashboardStats(String(dashboard.negocio.id ?? ""));
 
@@ -47,6 +55,13 @@ export default async function DashboardPage()
 
   return (
     <div>
+      {aviso !== null && (
+        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-6
+          bg-amber-50 text-amber-700 border-amber-200">
+          {aviso}{" "}
+          <Link href="/dashboard/facturacion" className="underline">Ver facturación</Link>
+        </p>
+      )}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
           {String(dashboard.negocio.nombre ?? t("appName"))}

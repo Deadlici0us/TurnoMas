@@ -5,6 +5,7 @@ import { bookingService } from "@/lib/services/booking";
 import { calendarService } from "@/lib/services/calendar";
 import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
 import { paymentService } from "@/lib/services/payment";
+import { subscriptionService } from "@/lib/services/subscription";
 
 vi.mock("@/lib/services/payment", () =>
 {
@@ -30,6 +31,19 @@ vi.mock("@/lib/services/booking", () =>
   };
 });
 
+vi.mock("@/lib/services/subscription", () =>
+{
+  return {
+    subscriptionService: {
+      consultarEstado: vi.fn(),
+      activarSuscripcion: vi.fn(),
+      cancelarSuscripcionLocal: vi.fn(),
+      marcarPastDue: vi.fn(),
+      resolverNegocioDeCobro: vi.fn(),
+    },
+  };
+});
+
 vi.mock("@/lib/services/calendar-sync", () =>
 {
   return { crearEventoGoogleParaTurno: vi.fn() };
@@ -43,6 +57,11 @@ vi.mock("@/lib/services/calendar", () =>
 const mockGetStatus = vi.mocked(paymentService.getPaymentStatus);
 const mockBusinessToken = vi.mocked(paymentService.getBusinessAccessToken);
 const mockListConnected = vi.mocked(paymentService.listConnectedBusinessTokens);
+const mockSubEstado = vi.mocked(subscriptionService.consultarEstado);
+const mockSubActivar = vi.mocked(subscriptionService.activarSuscripcion);
+const mockSubCancelar = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
+const mockSubMora = vi.mocked(subscriptionService.marcarPastDue);
+const mockSubVinculo = vi.mocked(subscriptionService.resolverNegocioDeCobro);
 const mockByPaymentId = vi.mocked(bookingService.getBookingByPaymentId);
 const mockById = vi.mocked(bookingService.getBookingById);
 const mockConfirm = vi.mocked(bookingService.confirmBooking);
@@ -302,6 +321,106 @@ describe("POST /api/webhooks",
 
     expect(response.status).toBe(500);
     expect(body.error).toBe("No se pudo procesar el webhook.");
+  });
+});
+
+describe("POST /api/webhooks suscripciones",
+() =>
+{
+  const ALTA = { type: "subscription_preapproval", data: { id: "pre-1" } };
+  const COBRO = { type: "subscription_authorized_payment", data: { id: "999" } };
+
+  it("debería activar el plan con preapproval autorizado",
+  async () =>
+  {
+    mockSubEstado.mockResolvedValueOnce({ status: "authorized", externalReference: "neg-1" });
+    mockSubActivar.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(ALTA));
+    const body = await response.json() as { success: boolean; status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "authorized" });
+    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+  });
+
+  it("debería limpiar el plan con preapproval cancelado",
+  async () =>
+  {
+    mockSubEstado.mockResolvedValueOnce({ status: "cancelled", externalReference: "neg-1" });
+    mockSubCancelar.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(ALTA));
+    const body = await response.json() as { success: boolean; status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "cancelled" });
+    expect(mockSubCancelar).toHaveBeenCalledWith("neg-1");
+  });
+
+  it("debería responder sinNegocio sin referencia externa",
+  async () =>
+  {
+    mockSubEstado.mockResolvedValueOnce({ status: "authorized", externalReference: null });
+
+    const response = await POST(requestWith(ALTA));
+    const body = await response.json() as { sinNegocio: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.sinNegocio).toBe(true);
+    expect(mockSubActivar).not.toHaveBeenCalled();
+  });
+
+  it("debería devolver 502 cuando el preapproval no se puede consultar",
+  async () =>
+  {
+    mockSubEstado.mockRejectedValueOnce(new Error("mp caído"));
+
+    const response = await POST(requestWith(ALTA));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("No pudimos consultar la suscripción.");
+  });
+
+  it("debería confirmar el plan con cobro aprobado",
+  async () =>
+  {
+    mockSubVinculo.mockResolvedValueOnce({ negocioId: "neg-1", preapprovalId: "pre-1", status: "approved" });
+    mockSubActivar.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(COBRO));
+    const body = await response.json() as { success: boolean; status: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "approved" });
+    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+  });
+
+  it("debería marcar mora con cobro rechazado",
+  async () =>
+  {
+    mockSubVinculo.mockResolvedValueOnce({ negocioId: "neg-1", preapprovalId: "pre-1", status: "rejected" });
+    mockSubMora.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith(COBRO));
+    const body = await response.json() as { success: boolean; mora: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, mora: true });
+    expect(mockSubMora).toHaveBeenCalledWith("neg-1");
+  });
+
+  it("debería devolver 502 cuando el cobro no se puede vincular",
+  async () =>
+  {
+    mockSubVinculo.mockResolvedValueOnce(null);
+
+    const response = await POST(requestWith(COBRO));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("No pudimos vincular el cobro.");
   });
 });
 

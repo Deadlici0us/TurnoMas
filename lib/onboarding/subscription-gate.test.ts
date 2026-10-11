@@ -60,4 +60,36 @@ describe("getNegocioSubscriptionStatus",
       ),
     ).toBe("trial");
   });
+
+  it("debería dar gracia en mora reciente",
+  () =>
+  {
+    expect(
+      getNegocioSubscriptionStatus(
+        {
+          created_at: "2026-01-01T00:00:00Z",
+          suscripcion_estado: "past_due",
+          suscripcion_mp_id: "mp-123",
+          suscripcion_mora_desde: "2026-09-26T00:00:00Z",
+        },
+        new Date("2026-09-28T00:00:00Z"),
+      ),
+    ).toBe("past_due");
+  });
+
+  it("debería bloquear vencida la gracia de mora",
+  () =>
+  {
+    expect(
+      getNegocioSubscriptionStatus(
+        {
+          created_at: "2026-01-01T00:00:00Z",
+          suscripcion_estado: "past_due",
+          suscripcion_mp_id: "mp-123",
+          suscripcion_mora_desde: "2026-09-01T00:00:00Z",
+        },
+        new Date("2026-09-28T00:00:00Z"),
+      ),
+    ).toBe("blocked");
+  });
 });

@@ -28,6 +28,10 @@ const MP_OAUTH = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0008_mp_oauth.sql"),
   "utf8",
 );
+const SUSCRIPCION_MORA = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0009_suscripcion_mora.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -181,5 +185,12 @@ describe("esquema Supabase",
     }
 
     expect(MP_OAUTH).toMatch(/alter table negocio_secretos add column/i);
+  });
+
+  it("debería guardar el inicio de mora de la suscripción",
+  () =>
+  {
+    expect(SUSCRIPCION_MORA).toContain("suscripcion_mora_desde");
+    expect(SUSCRIPCION_MORA).toMatch(/alter table negocios add column/i);
   });
 });

@@ -1,0 +1,122 @@
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+import FacturacionPage from "./page";
+import { getDashboardData } from "@/lib/dashboard/queries";
+import { getSupabaseServer } from "@/lib/supabase/server";
+
+vi.mock("./actions", () =>
+{
+  return { activarPlan: vi.fn(), cancelarPlan: vi.fn() };
+});
+
+vi.mock("@/lib/dashboard/queries", () =>
+{
+  return { getDashboardData: vi.fn() };
+});
+
+vi.mock("@/lib/supabase/server", () =>
+{
+  return { getSupabaseServer: vi.fn() };
+});
+
+const mockData = vi.mocked(getDashboardData);
+const mockServer = vi.mocked(getSupabaseServer);
+
+/** Negocio con estado de suscripción dado. */
+function stubFacturacion(negocio: unknown, demo = false): void
+{
+  mockServer.mockResolvedValue({
+    auth: {
+      getUser: async () => ({
+        data: { user: demo ? { id: "demo-id", email: "demo@turnomas.com" } : { id: "u-1", email: "a@b.com" } },
+      }),
+    },
+  } as never);
+  mockData.mockResolvedValueOnce({
+    data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
+    error: null,
+    isDemo: demo,
+  } as never);
+}
+
+describe("FacturacionPage",
+() =>
+{
+  it("debería mostrar activar con trial vigente",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.getByRole("heading", { name: "Facturación" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Activar plan $ 14.999/mes" })).toBeDefined();
+  });
+
+  it("debería mostrar cancelar con plan activo",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.getByRole("button", { name: "Cancelar plan" })).toBeDefined();
+    expect(screen.getByText("Activo")).toBeDefined();
+  });
+
+  it("debería avisar mora con gracia",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "past_due",
+      suscripcion_mp_id: "pre-1",
+      suscripcion_mora_desde: new Date(Date.now() - 86_400_000).toISOString(),
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Activar plan $ 14.999/mes" })).toBeDefined();
+  });
+
+  it("debería ocultar acciones en la demo",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+    }, true);
+
+    render(await FacturacionPage());
+
+    expect(screen.queryByRole("button", { name: "Cancelar plan" })).toBeNull();
+    expect(screen.getByText("La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo."))
+      .toBeDefined();
+  });
+
+  it("debería avisar retorno de MercadoPago con suscripcion=ok",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+
+    expect(screen.getByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización."))
+      .toBeDefined();
+  });
+});

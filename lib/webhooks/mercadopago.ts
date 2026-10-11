@@ -55,6 +55,48 @@ export function extraerPagoId(body: unknown): string | null
   return null;
 }
 
+/** Extrae el tópico del payload (type/topic/action) en minúsculas. */
+function extraerTopico(body: unknown): string | null
+{
+  if (typeof body !== "object" || body === null)
+  {
+    return null;
+  }
+
+  const payload = body as Payload;
+  const type = payload.type;
+  const topic = payload.topic;
+
+  if (typeof type === "string" && type.length > 0)
+  {
+    return type.toLowerCase();
+  }
+
+  if (typeof topic === "string" && topic.length > 0)
+  {
+    return topic.toLowerCase();
+  }
+
+  if (typeof payload.action === "string" && payload.action.startsWith("payment."))
+  {
+    return "payment";
+  }
+
+  return null;
+}
+
+/** Indica si el payload es alta/baja del plan (suscripción SaaS). */
+export function esAltaSuscripcion(body: unknown): boolean
+{
+  return extraerTopico(body) === "subscription_preapproval";
+}
+
+/** Indica si el payload es un cobro mensual de suscripción SaaS. */
+export function esCobroSuscripcion(body: unknown): boolean
+{
+  return extraerTopico(body) === "subscription_authorized_payment";
+}
+
 /** Indica si el payload parece una notificación de pago (no un ping). */
 export function esNotificacionPago(body: unknown): boolean
 {

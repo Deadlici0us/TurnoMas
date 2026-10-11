@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extraerPagoId, verificarFirmaMp } from "./mercadopago";
+import { esAltaSuscripcion, esCobroSuscripcion, extraerPagoId, verificarFirmaMp } from "./mercadopago";
 
 describe("extraerPagoId",
 () =>
@@ -24,6 +24,44 @@ describe("extraerPagoId",
     expect(extraerPagoId({ type: "payment", data: {} })).toBeNull();
     expect(extraerPagoId({ type: "otro" })).toBeNull();
     expect(extraerPagoId(null)).toBeNull();
+  });
+});
+
+describe("esAltaSuscripcion",
+() =>
+{
+  it("debería detectar el tópico subscription_preapproval",
+  () =>
+  {
+    expect(esAltaSuscripcion({ type: "subscription_preapproval", data: { id: "pre-1" } })).toBe(true);
+    expect(esAltaSuscripcion({ topic: "subscription_preapproval", resource: "x" })).toBe(true);
+  });
+
+  it("debería rechazar otros tópicos",
+  () =>
+  {
+    expect(esAltaSuscripcion({ type: "payment", data: { id: "1" } })).toBe(false);
+    expect(esAltaSuscripcion({ type: "subscription_authorized_payment", data: { id: "1" } })).toBe(false);
+    expect(esAltaSuscripcion(null)).toBe(false);
+  });
+});
+
+describe("esCobroSuscripcion",
+() =>
+{
+  it("debería detectar el tópico subscription_authorized_payment",
+  () =>
+  {
+    expect(esCobroSuscripcion({ type: "subscription_authorized_payment", data: { id: "999" } })).toBe(true);
+    expect(esCobroSuscripcion({ topic: "subscription_authorized_payment", resource: "x" })).toBe(true);
+  });
+
+  it("debería rechazar otros tópicos",
+  () =>
+  {
+    expect(esCobroSuscripcion({ type: "payment", data: { id: "1" } })).toBe(false);
+    expect(esCobroSuscripcion({ type: "subscription_preapproval", data: { id: "1" } })).toBe(false);
+    expect(esCobroSuscripcion(null)).toBe(false);
   });
 });
 

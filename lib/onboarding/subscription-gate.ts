@@ -13,9 +13,10 @@ export interface NegocioSubscriptionRow
   readonly created_at: string | null;
   readonly suscripcion_estado: string | null;
   readonly suscripcion_mp_id: string | null;
+  readonly suscripcion_mora_desde?: string | null;
 }
 
-/** Calcula trial/active/blocked para un negocio (o seed sin fecha). */
+/** Calcula trial/active/past_due/blocked para un negocio (o seed sin fecha). */
 export function getNegocioSubscriptionStatus(
   negocio: NegocioSubscriptionRow,
   now: Date = new Date(),
@@ -33,10 +34,14 @@ export function getNegocioSubscriptionStatus(
     return "trial";
   }
 
+  const moraCruda = negocio.suscripcion_mora_desde ?? null;
+  const moraDesde = moraCruda === null ? null : new Date(moraCruda);
+
   return evaluateSubscription({
     createdAt,
     now,
     suscripcionEstado: negocio.suscripcion_estado,
     suscripcionMpId: negocio.suscripcion_mp_id,
+    suscripcionMoraDesde: moraDesde !== null && !Number.isNaN(moraDesde.getTime()) ? moraDesde : null,
   });
 }

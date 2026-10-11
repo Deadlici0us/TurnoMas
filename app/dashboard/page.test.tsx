@@ -81,6 +81,21 @@ describe("DashboardPage",
     await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT:/pricing?blocked=1");
   });
 
+  it("debería avisar mora con link a facturación",
+  async () =>
+  {
+    const { getNegocioSubscriptionStatus } =
+      await import("@/lib/onboarding/subscription-gate");
+    vi.mocked(getNegocioSubscriptionStatus).mockReturnValueOnce("past_due" as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockStats.mockResolvedValueOnce(STATS);
+
+    render(await DashboardPage());
+
+    expect(screen.getByText("Falló el último cobro del plan. Regularizá tu tarjeta para no perder el acceso.")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Ver facturación" })).toHaveAttribute("href", "/dashboard/facturacion");
+  });
+
   it("debería mostrar nombre, stats y tabla",
   async () =>
   {
