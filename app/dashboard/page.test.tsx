@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import DashboardPage from "./page";
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 vi.mock("next-intl/server", () =>
 {
@@ -29,8 +30,28 @@ vi.mock("@/lib/onboarding/subscription-gate", () =>
   return { getNegocioSubscriptionStatus: vi.fn(() => "active") };
 });
 
+vi.mock("@/lib/supabase/admin", () =>
+{
+  return { getSupabaseAdmin: vi.fn() };
+});
+
 const mockData = vi.mocked(getDashboardData);
 const mockStats = vi.mocked(getDashboardStats);
+const mockAdmin = vi.mocked(getSupabaseAdmin);
+
+/** Secretos sin token de MercadoPago. */
+function stubSinMp(): void
+{
+  mockAdmin.mockReturnValue({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: { mercadopago_access_token: null } }),
+        }),
+      }),
+    }),
+  } as never);
+}
 
 const STATS = {
   turnosHoy: 2,
@@ -94,6 +115,23 @@ describe("DashboardPage",
 
     expect(screen.getByText("Falló el último cobro del plan. Regularizá tu tarjeta para no perder el acceso.")).toBeDefined();
     expect(screen.getByRole("link", { name: "Ver facturación" })).toHaveAttribute("href", "/dashboard/facturacion");
+  });
+
+  it("debería avisar conexión MP con señas sin conectar",
+  async () =>
+  {
+    stubSinMp();
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase({ servicios: [{ id: "serv-1", nombre: "Corte", sena_requerida: true }] }),
+      error: null,
+      isDemo: false,
+    } as never);
+    mockStats.mockResolvedValueOnce(STATS);
+
+    render(await DashboardPage());
+
+    expect(screen.getByText("Tenés servicios con seña pero sin MercadoPago conectado: las reservas quedan pendientes sin link de pago.")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Conectar MercadoPago" })).toHaveAttribute("href", "/dashboard/config");
   });
 
   it("debería mostrar nombre, stats y tabla",

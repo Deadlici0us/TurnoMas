@@ -1,16 +1,28 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 
 // next-intl sin segmento [locale]: el prerender estático no tiene
 // contexto de request y revienta con ENVIRONMENT_FALLBACK. On-demand.
 export const dynamic = "force-dynamic";
 
-export default function PricingPage() {
-  const t = useTranslations("common");
+export default async function PricingPage(
+  props?: { readonly searchParams?: Promise<{ blocked?: string }> },
+) {
+  const t = await getTranslations("common");
+  const params = props?.searchParams === undefined ? undefined : await props.searchParams;
+  const bloqueado = params?.blocked === "1";
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="max-w-4xl w-full px-8 py-12">
         <h1 className="text-3xl font-bold text-slate-900 mb-2 text-center">{t("pricing.title")}</h1>
         <p className="text-lg text-slate-600 text-center mb-8">{t("pricing.subtitle")}</p>
+        {bloqueado && (
+          <p className="text-sm font-semibold px-4 py-3 rounded-lg border mb-6 max-w-lg mx-auto
+            bg-red-50 text-red-700 border-red-200 text-center">
+            Tu acceso está bloqueado por falta de pago. Activá el plan para continuar.
+          </p>
+        )}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-lg mx-auto">
           <div className="text-center mb-6">
             <div className="text-4xl font-bold text-blue-600">{t("pricing.monthly")}</div>
@@ -25,9 +37,13 @@ export default function PricingPage() {
             ))}
           </ul>
           <div className="text-center">
-            <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            <Link
+              href="/dashboard/facturacion"
+              className="block w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
+                hover:bg-blue-700 transition-colors"
+            >
               {t("pricing.cta")}
-            </button>
+            </Link>
           </div>
         </div>
       </div>

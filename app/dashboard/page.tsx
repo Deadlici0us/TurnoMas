@@ -3,9 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { debeAvisarConexionMp } from "@/lib/dashboard/conexion-mp";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { avisoSuscripcion } from "@/lib/onboarding/trial";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 function formatARS(centavos: number | null): string
 {
@@ -44,6 +46,29 @@ export default async function DashboardPage()
   const aviso = avisoSuscripcion(subscription,
     typeof negocioRow.created_at === "string" ? negocioRow.created_at : null);
 
+  let mpToken: string | null = null;
+
+  try
+  {
+    const negocioId = dashboard.negocio.id;
+
+    if (typeof negocioId === "string")
+    {
+      const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
+        .select("mercadopago_access_token").eq("negocio_id", negocioId).single();
+      const raw = (secretos as { mercadopago_access_token?: unknown } | null)
+        ?.mercadopago_access_token;
+      mpToken = typeof raw === "string" && raw.length > 0 ? raw : null;
+    }
+  }
+  catch
+  {
+    mpToken = null;
+  }
+
+  const avisarMp = debeAvisarConexionMp(mpToken,
+    dashboard.servicios as { sena_requerida?: unknown }[]);
+
   const stats = await getDashboardStats(String(dashboard.negocio.id ?? ""));
 
   const nombrePorServicio = new Map<string, string>(
@@ -60,6 +85,14 @@ export default async function DashboardPage()
           bg-amber-50 text-amber-700 border-amber-200">
           {aviso}{" "}
           <Link href="/dashboard/facturacion" className="underline">Ver facturación</Link>
+        </p>
+      )}
+      {avisarMp && (
+        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-6
+          bg-amber-50 text-amber-700 border-amber-200">
+          Tenés servicios con seña pero sin MercadoPago conectado: las reservas quedan
+          pendientes sin link de pago.{" "}
+          <Link href="/dashboard/config" className="underline">Conectar MercadoPago</Link>
         </p>
       )}
       <div className="mb-6">
