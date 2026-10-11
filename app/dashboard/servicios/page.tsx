@@ -1,5 +1,5 @@
 import { cambiarEstadoServicio, eliminarServicio, guardarServicio } from "./actions";
-import CamposServicio from "@/components/campos-servicio";
+import FormularioServicio from "@/components/formulario-servicio";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
 interface ServicioRow
@@ -16,18 +16,40 @@ interface ServicioRow
   readonly activo?: boolean | null;
 }
 
-async function crearServicio(formData: FormData): Promise<void>
+async function crearServicio(_prev: string | null, formData: FormData): Promise<string | null>
 {
   "use server";
 
-  await guardarServicio(null, formData);
+  try
+  {
+    await guardarServicio(null, formData);
+  }
+  catch (error)
+  {
+    return error instanceof Error ? error.message : "No pudimos guardar el servicio. Probá de nuevo.";
+  }
+
+  return null;
 }
 
-async function editarServicio(servicioId: string, formData: FormData): Promise<void>
+async function editarServicio(
+  servicioId: string,
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null>
 {
   "use server";
 
-  await guardarServicio(servicioId, formData);
+  try
+  {
+    await guardarServicio(servicioId, formData);
+  }
+  catch (error)
+  {
+    return error instanceof Error ? error.message : "No pudimos guardar el servicio. Probá de nuevo.";
+  }
+
+  return null;
 }
 
 async function borrarServicio(servicioId: string): Promise<void>
@@ -54,17 +76,7 @@ export default async function ServiciosPage()
         <h1 className="text-2xl font-bold text-slate-900">Servicios</h1>
         <p className="text-slate-600 mt-1 text-sm">Duración, precios y seña por servicio.</p>
       </div>
-      <form action={crearServicio} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 space-y-4">
-        <h2 className="font-semibold text-slate-900">Nuevo servicio</h2>
-        <CamposServicio />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-            hover:bg-blue-700 transition-colors"
-        >
-          Agregar servicio
-        </button>
-      </form>
+      <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
 
         {(dashboard.servicios as ServicioRow[]).map((servicio) => (
           <div key={servicio.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
@@ -117,16 +129,14 @@ export default async function ServiciosPage()
                   <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                     Editar
                   </summary>
-                  <form action={editarServicio.bind(null, servicio.id)} className="p-4 space-y-4 border-t border-slate-200">
-                    <CamposServicio servicio={servicio} />
-                    <button
-                      type="submit"
-                      className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                        hover:bg-blue-700 transition-colors"
-                    >
-                      Guardar cambios
-                    </button>
-                  </form>
+                  <div className="p-4 border-t border-slate-200">
+                    <FormularioServicio
+                      action={editarServicio.bind(null, servicio.id)}
+                      titulo="Editar servicio"
+                      cta="Guardar cambios"
+                      servicio={servicio}
+                    />
+                  </div>
                 </details>
               </div>
           </div>
