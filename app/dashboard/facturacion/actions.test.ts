@@ -89,7 +89,7 @@ describe("activarPlan",
     mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/sus/1" });
 
     await expect(activarPlan()).rejects.toThrow("NEXT_REDIRECT:https://mp/sus/1");
-    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com");
+    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com", null);
   });
 
   it("debería bloquear al dueño demo",

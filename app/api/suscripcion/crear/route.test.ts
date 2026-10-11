@@ -160,7 +160,7 @@ describe("POST /api/suscripcion/crear",
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ success: true, preapprovalId: "pre-1", initPoint: "https://mp/sus/1" });
-    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com");
+    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com", null);
   });
 
   it("debería devolver 502 cuando MP falla",

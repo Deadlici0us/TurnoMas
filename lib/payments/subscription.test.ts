@@ -8,6 +8,7 @@ import {
   crearPreapproval,
   MONTO_PLAN_PESOS,
   resolverMontoPlan,
+  resolverPlanPais,
 } from "./subscription";
 
 function respuestaOk(json: unknown)
@@ -72,6 +73,29 @@ describe("resolverMontoPlan",
   });
 });
 
+describe("resolverPlanPais",
+() =>
+{
+  it("debería dar ARS solo a Argentina y USD al resto",
+  () =>
+  {
+    expect(resolverPlanPais("ar", {})).toEqual(
+      { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes" });
+    expect(resolverPlanPais("mx", {}).currency).toBe("USD");
+    expect(resolverPlanPais("mx", {}).monto).toBe(15);
+    expect(resolverPlanPais(null, {}).currency).toBe("USD");
+    expect(resolverPlanPais("AR", {}).currency).toBe("ARS");
+  });
+
+  it("debería aceptar overrides por env",
+  () =>
+  {
+    expect(resolverPlanPais("ar", { MP_PLAN_ARS: "12999" }).monto).toBe(12999);
+    expect(resolverPlanPais("mx", { MP_PLAN_USD: "20" }).monto).toBe(20);
+    expect(() => resolverPlanPais("ar", { MP_PLAN_ARS: "cero" })).toThrow("MP_PLAN_ARS");
+  });
+});
+
 describe("crearPreapproval",
 () =>
 {
@@ -85,7 +109,8 @@ describe("crearPreapproval",
         negocioId: "neg-1",
         payerEmail: "dueno@negocio.com",
         backUrl: "https://turnomas.com/dashboard/facturacion",
-        montoPesos: 14999,
+        monto: 14999,
+        currency: "ARS",
         platformToken: "APP_USR-platform",
       },
       fetchMock,
@@ -115,7 +140,8 @@ describe("crearPreapproval",
         negocioId: "neg-1",
         payerEmail: "dueno@negocio.com",
         backUrl: "https://turnomas.com/dashboard/facturacion",
-        montoPesos: 14999,
+        monto: 14999,
+        currency: "ARS",
         platformToken: "APP_USR-platform",
       },
       fetchMock,

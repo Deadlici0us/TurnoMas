@@ -9,7 +9,9 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Negocio del dueño con datos del plan. */
-async function negocioDelDueno(): Promise<{ id: string; email: string; mpId: string | null }>
+async function negocioDelDueno(): Promise<{
+  id: string; email: string; pais: string | null; mpId: string | null;
+}>
 {
   await assertModoEditable();
 
@@ -30,18 +32,19 @@ async function negocioDelDueno(): Promise<{ id: string; email: string; mpId: str
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios")
-    .select("id, suscripcion_mp_id").eq("duenio_id", user.id).single();
+    .select("id, pais, suscripcion_mp_id").eq("duenio_id", user.id).single();
 
   if (negocio === null)
   {
     throw new Error("No encontramos tu negocio.");
   }
 
-  const row = negocio as { id: string; suscripcion_mp_id?: unknown };
+  const row = negocio as { id: string; pais?: unknown; suscripcion_mp_id?: unknown };
 
   return {
     id: row.id,
     email: user.email,
+    pais: typeof row.pais === "string" ? row.pais : null,
     mpId: typeof row.suscripcion_mp_id === "string" && row.suscripcion_mp_id.length > 0
       ? row.suscripcion_mp_id
       : null,
@@ -51,8 +54,8 @@ async function negocioDelDueno(): Promise<{ id: string; email: string; mpId: str
 /** Crea el preapproval y redirige al checkout de MercadoPago. */
 export async function activarPlan(): Promise<void>
 {
-  const { id, email } = await negocioDelDueno();
-  const preapproval = await subscriptionService.crearParaNegocio(id, email);
+  const { id, email, pais } = await negocioDelDueno();
+  const preapproval = await subscriptionService.crearParaNegocio(id, email, pais);
 
   redirect(preapproval.initPoint);
 }

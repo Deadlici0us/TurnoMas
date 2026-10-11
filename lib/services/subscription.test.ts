@@ -31,6 +31,33 @@ beforeEach(() =>
   vi.clearAllMocks();
 });
 
+describe("subscriptionService.crearParaNegocio",
+() =>
+{
+  it("debería crear en ARS para Argentina y USD para el resto",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
+    const cuerpos: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body?: unknown } = {}) =>
+    {
+      cuerpos.push(typeof init.body === "string" ? init.body : "");
+
+      return { ok: true, json: async () => ({ id: "pre-1", init_point: "https://mp/1" }) };
+    }));
+
+    await subscriptionService.crearParaNegocio("neg-ar", "a@b.com", "ar");
+    await subscriptionService.crearParaNegocio("neg-mx", "c@d.com", "mx");
+
+    const ar = JSON.parse(cuerpos[0]) as { auto_recurring: { transaction_amount: number; currency_id: string } };
+    const mx = JSON.parse(cuerpos[1]) as { auto_recurring: { transaction_amount: number; currency_id: string } };
+
+    expect(ar.auto_recurring).toMatchObject({ transaction_amount: 14999, currency_id: "ARS" });
+    expect(mx.auto_recurring).toMatchObject({ transaction_amount: 15, currency_id: "USD" });
+  });
+});
+
 describe("subscriptionService.activarSuscripcion",
 () =>
 {

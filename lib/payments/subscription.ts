@@ -12,27 +12,69 @@ import { readEnv } from "@/lib/env/env";
 
 const MP_API_BASE = "https://api.mercadopago.com";
 
-/** Precio mensual del plan en pesos argentinos. */
-export const MONTO_PLAN_PESOS = 14999;
-
-/** Resuelve el monto del plan desde `MP_PLAN_MONTO` (default 14999). */
-export function resolverMontoPlan(env: EnvRecord = process.env): number
+/** Precio mensual del plan por país (solo AR en ARS, resto en USD). */
+export interface PlanPais
 {
-  const crudo = readEnv("MP_PLAN_MONTO", env);
+  readonly monto: number;
+  readonly currency: string;
+  readonly etiqueta: string;
+}
+
+export const PLAN_POR_PAIS: Record<string, PlanPais> = {
+  ar: { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes" },
+  mx: { monto: 15, currency: "USD", etiqueta: "U$S 15 USD/mes" },
+};
+
+export const PLAN_DEFAULT = PLAN_POR_PAIS.mx;
+
+/** Precio mensual legacy en pesos argentinos (compatibilidad). */
+export const MONTO_PLAN_PESOS = PLAN_POR_PAIS.ar.monto;
+
+/** Lee un monto entero positivo de env o null si ausente. */
+function leerMontoEnv(env: EnvRecord, name: string): number | null
+{
+  const crudo = readEnv(name, env);
 
   if (crudo === null)
   {
-    return MONTO_PLAN_PESOS;
+    return null;
   }
 
   const monto = Number(crudo);
 
   if (!Number.isInteger(monto) || monto <= 0)
   {
-    throw new RangeError("MP_PLAN_MONTO debe ser un entero positivo en pesos.");
+    throw new RangeError(`${name} debe ser un entero positivo.`);
   }
 
   return monto;
+}
+
+/** Resuelve el monto del plan desde `MP_PLAN_MONTO` (default 14999). */
+export function resolverMontoPlan(env: EnvRecord = process.env): number
+{
+  return leerMontoEnv(env, "MP_PLAN_MONTO") ?? MONTO_PLAN_PESOS;
+}
+
+/**
+ * Resuelve el plan por país del negocio (AR en ARS, resto en USD).
+ *
+ * Overrides: `MP_PLAN_ARS` y `MP_PLAN_USD`.
+ */
+export function resolverPlanPais(pais: string | null, env: EnvRecord = process.env): PlanPais
+{
+  const codigo = (pais ?? "").trim().toLowerCase();
+
+  if (codigo === "ar")
+  {
+    const monto = leerMontoEnv(env, "MP_PLAN_ARS") ?? PLAN_POR_PAIS.ar.monto;
+
+    return { ...PLAN_POR_PAIS.ar, monto };
+  }
+
+  const monto = leerMontoEnv(env, "MP_PLAN_USD") ?? PLAN_POR_PAIS.mx.monto;
+
+  return { ...PLAN_POR_PAIS.mx, monto };
 }
 
 export interface PreapprovalInput
@@ -40,7 +82,8 @@ export interface PreapprovalInput
   readonly negocioId: string;
   readonly payerEmail: string;
   readonly backUrl: string;
-  readonly montoPesos: number;
+  readonly monto: number;
+  readonly currency: string;
   readonly platformToken: string;
 }
 
@@ -90,8 +133,8 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
       auto_recurring: {
         frequency: 1,
         frequency_type: "months",
-        transaction_amount: input.montoPesos,
-        currency_id: "ARS",
+        transaction_amount: input.monto,
+        currency_id: input.currency,
       },
     }),
   });

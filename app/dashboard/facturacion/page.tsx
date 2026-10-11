@@ -5,6 +5,7 @@ import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
+import { resolverPlanPais } from "@/lib/payments/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Indica si el lector es el dueño demo (sin suscripciones reales). */
@@ -30,10 +31,12 @@ export default async function FacturacionPage(
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as {
     created_at?: unknown;
+    pais?: unknown;
     suscripcion_estado?: unknown;
     suscripcion_mp_id?: unknown;
     suscripcion_mora_desde?: unknown;
   };
+  const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
   const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
   const estado = getNegocioSubscriptionStatus({
     created_at: creado,
@@ -54,7 +57,7 @@ export default async function FacturacionPage(
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Facturación</h1>
-            <p className="text-slate-600 mt-2">Plan mensual de TurnoMas: $ 14.999 ARS/mes.</p>
+            <p className="text-slate-600 mt-2">Plan mensual de TurnoMas: {plan.etiqueta}.</p>
           </div>
           <Link
             href="/dashboard"
@@ -112,7 +115,7 @@ export default async function FacturacionPage(
                 className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
                   hover:bg-blue-700 transition-colors"
               >
-                Activar plan $ 14.999/mes
+                Activar plan {plan.etiqueta}
               </button>
             </form>
           )}

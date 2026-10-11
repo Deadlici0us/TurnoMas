@@ -43,11 +43,12 @@ function stubFacturacion(negocio: unknown, demo = false): void
 describe("FacturacionPage",
 () =>
 {
-  it("debería mostrar activar con trial vigente",
+  it("debería mostrar activar en ARS para Argentina",
   async () =>
   {
     stubFacturacion({
       created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      pais: "ar",
       suscripcion_estado: "trial",
       suscripcion_mp_id: null,
     });
@@ -55,7 +56,22 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByRole("heading", { name: "Facturación" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Activar plan $ 14.999/mes" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Activar plan $ 14.999 ARS/mes" })).toBeDefined();
+  });
+
+  it("debería mostrar activar en USD para México",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      pais: "mx",
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.getByRole("button", { name: "Activar plan U$S 15 USD/mes" })).toBeDefined();
   });
 
   it("debería mostrar cancelar con plan activo",
@@ -86,7 +102,7 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Activar plan $ 14.999/mes" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Activar plan U$S 15 USD/mes" })).toBeDefined();
   });
 
   it("debería ocultar acciones en la demo",

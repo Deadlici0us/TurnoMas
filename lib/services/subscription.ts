@@ -5,7 +5,7 @@ import {
   consultarCobroSuscripcion,
   consultarPreapproval,
   crearPreapproval,
-  resolverMontoPlan,
+  resolverPlanPais,
 } from "@/lib/payments/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
@@ -16,6 +16,7 @@ export class SubscriptionService
   async crearParaNegocio(
     negocioId: string,
     payerEmail: string,
+    pais: string | null,
   ): Promise<{ id: string; initPoint: string }>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
@@ -34,11 +35,14 @@ export class SubscriptionService
       throw new Error("No pudimos resolver la URL pública para la suscripción.");
     }
 
+    const plan = resolverPlanPais(pais);
+
     return crearPreapproval({
       negocioId,
       payerEmail,
       backUrl: `${stripTrailingSlashes(base)}/dashboard/facturacion?suscripcion=ok`,
-      montoPesos: resolverMontoPlan(),
+      monto: plan.monto,
+      currency: plan.currency,
       platformToken,
     });
   }

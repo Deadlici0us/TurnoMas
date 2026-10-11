@@ -59,7 +59,7 @@ export async function POST()
     }
 
     const admin = getSupabaseAdmin();
-    const { data: negocio } = await admin.from("negocios").select("id")
+    const { data: negocio } = await admin.from("negocios").select("id, pais")
       .eq("duenio_id", user.id).single();
 
     if (negocio === null)
@@ -70,9 +70,11 @@ export async function POST()
       );
     }
 
+    const fila = negocio as { id: string; pais?: unknown };
     const preapproval = await subscriptionService.crearParaNegocio(
-      negocio.id as string,
+      fila.id,
       user.email,
+      typeof fila.pais === "string" ? fila.pais : null,
     );
 
     return NextResponse.json(
