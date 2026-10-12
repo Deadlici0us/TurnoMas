@@ -101,11 +101,19 @@ async function aplicarResultadoPago(
   }
 
   const existente = await bookingService.getBookingById(bookingId);
+  const estadoActual = (existente as { estado?: unknown } | null)?.estado;
 
-  if (existente !== null && (existente as { estado?: string }).estado === "pagado"
-    && paymentStatus.status === "approved")
+  if (existente !== null && estadoActual === "pagado" && paymentStatus.status === "approved")
   {
     return NextResponse.json({ success: true, status: paymentStatus.status, idempotente: true });
+  }
+
+  // Anti-carrera con cancelaciones: un webhook aprobado tardío o reintentado
+  // nunca resucita un turno final (ej. cancelado con seña ya devuelta).
+  // Sin este guarda, el turno volvería a `pagado` y alimentaría ingresos fantasma.
+  if (estadoActual === "cancelado" || estadoActual === "completado" || estadoActual === "ausente")
+  {
+    return NextResponse.json({ success: true, status: paymentStatus.status, turnoCerrado: true });
   }
 
   if (paymentStatus.status === "approved")

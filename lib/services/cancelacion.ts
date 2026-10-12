@@ -5,6 +5,13 @@
  * agenda y el cliente desde su link firmado; ambos pasan por acá.
  * Anti doble-pago: claim atómico `reclamar_reembolso` (FOR UPDATE) + tabla
  * `reembolsos(idempotency_key UNIQUE)` + `X-Idempotency-Key` en MP.
+ *
+ * CONTRATO para futuros canales (bot de WhatsApp, email, push): toda
+ * cancelación con posible reembolso DEBE pasar por `cancelarTurno()`.
+ * Los writers directos (`update estado=cancelado`, `releaseBooking`) no
+ * tienen claim atómico y reintroducen el TOCTOU de doble-reembolso.
+ * Excepciones sin dinero (antifantasma sobre `pendiente`, webhook
+ * `rejected`) usan updates condicionales por estado + rowcount.
  */
 
 import { createHash } from "node:crypto";

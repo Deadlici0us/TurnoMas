@@ -49,6 +49,35 @@ function esPendienteConSena(turno: TurnoPendiente): boolean
   return turno.estado === "pendiente" && turno.sena_monto !== null;
 }
 
+/**
+ * Cancela el turno solo si sigue pendiente (update condicional atómico).
+ *
+ * Anti-carrera con el webhook de pago: si la seña se acreditó entre el
+ * SELECT y este UPDATE, el turno ya es `pagado` y no se toca (el cliente
+ * pagó: cancelar sería cobrar sin dar el turno). Devuelve verdadero solo
+ * cuando este llamado liberó la fila.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param turnoId ID del turno a liberar.
+ * @return Verdadero cuando el turno quedó cancelado por este llamado.
+ */
+async function cancelarSiPendiente(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  turnoId: string,
+): Promise<boolean>
+{
+  const { data, error } = await admin.from("turnos")
+    .update({ estado: "cancelado" }).eq("id", turnoId).eq("estado", "pendiente")
+    .select("id");
+
+  if (error !== null)
+  {
+    return false;
+  }
+
+  return Array.isArray(data) && data.length > 0;
+}
+
 export async function POST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
@@ -123,7 +152,11 @@ export async function POST(request: Request)
       return NextResponse.json({ success: true, liberado: false, motivo: "en-gracia" });
     }
 
-    await admin.from("turnos").update({ estado: "cancelado" }).eq("id", turnoId);
+    if (!await cancelarSiPendiente(admin, turnoId))
+    {
+      return NextResponse.json({ success: true, liberado: false, motivo: "ya-procesado" });
+    }
+
     await borrarEventoGoogle(pendiente);
 
     return NextResponse.json({ success: true, liberado: true });
@@ -137,14 +170,18 @@ export async function POST(request: Request)
   const vencidos = ((data ?? []) as unknown as TurnoPendiente[])
     .filter((t) => shouldReleaseBooking({ createdAt: new Date(t.created_at), paymentRegistered: false },
       ahora, GRACIA_MINUTOS));
+  let liberados = 0;
 
   for (const turno of vencidos)
   {
-    await admin.from("turnos").update({ estado: "cancelado" }).eq("id", turno.id);
-    await borrarEventoGoogle(turno);
+    if (await cancelarSiPendiente(admin, turno.id))
+    {
+      liberados += 1;
+      await borrarEventoGoogle(turno);
+    }
   }
 
-  return NextResponse.json({ success: true, liberados: vencidos.length });
+  return NextResponse.json({ success: true, liberados });
 }
 
 export async function GET()

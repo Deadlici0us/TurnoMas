@@ -53,9 +53,18 @@ function turnoVencido(minutosAtras: number, overrides: Record<string, unknown> =
  * @param turno Fila para la búsqueda por id.
  * @param barrido Filas para el barrido global.
  * @param updates Estados actualizados capturados.
+ * @param filasAfectadas Filas que devuelve el update condicional (vacío = otro proceso ganó la carrera).
+ * @param eqArgs Pares [columna, valor] de los eq encadenados capturados.
  */
-function stubAntifantasma(turno: unknown, barrido: unknown[] = [], updates: unknown[] = [])
+function stubAntifantasma(
+  turno: unknown,
+  barrido: unknown[] = [],
+  updates: unknown[] = [],
+  filasAfectadas: unknown[] = [{ id: "t-1" }],
+  eqArgs: Array<[string, unknown]> = [],
+)
 {
+  const final = async () => ({ error: null, data: filasAfectadas });
   const admin = {
     from: vi.fn(() => ({
       select: () => ({
@@ -76,7 +85,14 @@ function stubAntifantasma(turno: unknown, barrido: unknown[] = [], updates: unkn
       {
         updates.push(values);
 
-        return { eq: vi.fn(async () => ({ error: null })) };
+        const encadenar = (columna: string, valor: unknown): unknown =>
+        {
+          eqArgs.push([columna, valor]);
+
+          return { eq: encadenar, select: final };
+        };
+
+        return { eq: encadenar };
       },
     })),
   };
@@ -264,6 +280,46 @@ describe("POST /api/cron/antifantasma",
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, liberados: 1 });
     expect(updates).toEqual([{ estado: "cancelado" }]);
+  });
+
+  it("debería condicionar el update a seguir pendiente (anti-carrera con webhook)",
+  async () =>
+  {
+    const eqArgs: Array<[string, unknown]> = [];
+    stubAntifantasma(turnoVencido(30), [], [], [{ id: "t-1" }], eqArgs);
+
+    const response = await POST(requestWith({ turnoId: "t-1" }));
+
+    expect(response.status).toBe(200);
+    expect(eqArgs).toContainEqual(["id", "t-1"]);
+    expect(eqArgs).toContainEqual(["estado", "pendiente"]);
+  });
+
+  it("debería no liberar si el turno ya cambió de estado (ganó el webhook)",
+  async () =>
+  {
+    stubAntifantasma(turnoVencido(30), [], [], []);
+    mockDeleteEvent.mockResolvedValueOnce(undefined);
+
+    const response = await POST(requestWith({ turnoId: "t-1" }));
+    const body = await response.json() as { liberado: boolean; motivo: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, liberado: false, motivo: "ya-procesado" });
+    expect(mockDeleteEvent).not.toHaveBeenCalled();
+  });
+
+  it("debería contar solo liberados reales en el barrido",
+  async () =>
+  {
+    stubAntifantasma(null, [turnoVencido(30)], [], []);
+
+    const response = await POST(requestWith({}));
+    const body = await response.json() as { liberados: number };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, liberados: 0 });
+    expect(mockDeleteEvent).not.toHaveBeenCalled();
   });
 });
 

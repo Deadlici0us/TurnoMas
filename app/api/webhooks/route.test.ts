@@ -247,6 +247,21 @@ describe("POST /api/webhooks",
     expect(mockConfirm).not.toHaveBeenCalled();
   });
 
+  it("debería no resucitar un turno cancelado con pago aprobado tardío",
+  async () =>
+  {
+    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
+    mockById.mockResolvedValueOnce({ id: "b-1", estado: "cancelado" });
+
+    const response = await POST(requestWith(PAGO));
+    const body = await response.json() as { turnoCerrado: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.turnoCerrado).toBe(true);
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockCrearEvento).not.toHaveBeenCalled();
+  });
+
   it("debería liberar y borrar evento con pago rechazado",
   async () =>
   {
