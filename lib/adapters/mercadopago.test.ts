@@ -145,6 +145,49 @@ describe("MercadoPagoAdapter.createDepositPreference",
       accessToken: "APP_USR-negocio",
     })).rejects.toThrow("Respuesta inválida de MercadoPago al crear la seña.");
   });
+
+  it("debería usar sandbox_init_point con token de prueba (TEST-)",
+  async () =>
+  {
+    const { cuerpos } = instalarFetch(respuestaOk({
+      id: "pref-test",
+      init_point: "https://www.mercadopago.com/checkout/v1/redirect?pref_id=test",
+      sandbox_init_point: "https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=test",
+    }));
+    const adapter = new MercadoPagoAdapter();
+
+    const result = await adapter.createDepositPreference({
+      bookingId: "book-1",
+      amountCents: 10000,
+      percentage: 50,
+      description: "Seña",
+      accessToken: "TEST-negocio-prueba",
+    });
+
+    expect(cuerpos).toHaveLength(1);
+    expect(result.checkoutUrl).toBe("https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=test");
+  });
+
+  it("debería preferir init_point con token productivo (APP_USR-)",
+  async () =>
+  {
+    instalarFetch(respuestaOk({
+      id: "pref-prod",
+      init_point: "https://www.mercadopago.com/checkout/v1/redirect?pref_id=prod",
+      sandbox_init_point: "https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=prod",
+    }));
+    const adapter = new MercadoPagoAdapter();
+
+    const result = await adapter.createDepositPreference({
+      bookingId: "book-1",
+      amountCents: 10000,
+      percentage: 50,
+      description: "Seña",
+      accessToken: "APP_USR-negocio",
+    });
+
+    expect(result.checkoutUrl).toBe("https://www.mercadopago.com/checkout/v1/redirect?pref_id=prod");
+  });
 });
 
 describe("MercadoPagoAdapter.refundPayment",

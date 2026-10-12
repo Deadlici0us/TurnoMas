@@ -19,6 +19,21 @@ import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 const MP_API_BASE = "https://api.mercadopago.com";
 
 /**
+ * Indica si el token es de prueba (prefijo `TEST-`).
+ *
+ * Con token de prueba el checkout productivo rechaza a los pagadores
+ * ("una de las partes es de prueba"): hay que redirigir al
+ * `sandbox_init_point` que devuelve la misma preferencia.
+ *
+ * @param token Access token del negocio ya validado.
+ * @return Verdadero cuando es token de prueba.
+ */
+export function esTokenPrueba(token: string): boolean
+{
+  return token.startsWith("TEST-");
+}
+
+/**
  * URL de webhook propia para `notification_url` por preferencia.
  *
  * Con señas delegadas el pago vive en la cuenta del negocio: esta URL hace
@@ -62,14 +77,27 @@ export class MercadoPagoAdapter implements IPaymentGateway
       throw new Error("No se pudo crear la preferencia de pago en MercadoPago.");
     }
 
-    const data = (await response.json()) as { id?: string; init_point?: string };
+    const data = (await response.json()) as {
+      id?: string; init_point?: string; sandbox_init_point?: string;
+    };
 
-    if (!data.id || !data.init_point)
+    if (typeof data.id !== "string" || data.id.length === 0)
     {
       throw new Error("Respuesta inválida de MercadoPago al crear la seña.");
     }
 
-    return { id: data.id, checkoutUrl: data.init_point, amountCents };
+    const enSandbox = esTokenPrueba(token);
+    const checkoutUrl = enSandbox && typeof data.sandbox_init_point === "string"
+      && data.sandbox_init_point.length > 0
+      ? data.sandbox_init_point
+      : data.init_point;
+
+    if (typeof checkoutUrl !== "string" || checkoutUrl.length === 0)
+    {
+      throw new Error("Respuesta inválida de MercadoPago al crear la seña.");
+    }
+
+    return { id: data.id, checkoutUrl, amountCents };
   }
 
   async refundPayment(paymentId: string, accessToken?: string | null): Promise<void>
