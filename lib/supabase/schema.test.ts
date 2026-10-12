@@ -32,6 +32,10 @@ const SUSCRIPCION_MORA = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0009_suscripcion_mora.sql"),
   "utf8",
 );
+const PORTAL_VIEWS = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0010_portal_views.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -192,5 +196,17 @@ describe("esquema Supabase",
   {
     expect(SUSCRIPCION_MORA).toContain("suscripcion_mora_desde");
     expect(SUSCRIPCION_MORA).toMatch(/alter table negocios add column/i);
+  });
+
+  it("debería consolidar las vistas del portal con horarios y timezone",
+  () =>
+  {
+    expect(PORTAL_VIEWS).toContain("horarios");
+    expect(PORTAL_VIEWS).toContain("timezone");
+    expect(PORTAL_VIEWS).toContain("portal_negocios");
+    expect(PORTAL_VIEWS).toContain("portal_staff");
+    expect(PORTAL_VIEWS).toContain("portal_servicios");
+    expect(PORTAL_VIEWS).toMatch(/security_invoker = true/);
+    expect(PORTAL_VIEWS).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
   });
 });
