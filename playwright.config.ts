@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 const previewUrl = process.env.PREVIEW_URL;
 const baseURL = previewUrl ?? "http://127.0.0.1:3100";
+// Bypass de Vercel Authentication para previews protegidos (System Environment Variable).
+const protectionBypass = process.env.VERCEL_PROTECTION_BYPASS;
 
 export default defineConfig(
 {
@@ -10,6 +12,9 @@ export default defineConfig(
   use:
   {
     baseURL,
+    ...(protectionBypass === undefined || protectionBypass.length === 0
+      ? {}
+      : { extraHTTPHeaders: { "x-vercel-protection-bypass": protectionBypass } }),
   },
   webServer: previewUrl
     ? undefined
