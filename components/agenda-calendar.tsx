@@ -73,7 +73,7 @@ function etiquetaDiaCorta(dia: DiaCivil): { readonly semana: string; readonly nu
   };
 }
 
-function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[]): string
+function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaCivil): string
 {
   if (dias.length === 0)
   {
@@ -85,7 +85,7 @@ function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[]): string
 
   if (vista === "mes")
   {
-    return `${NOMBRES_MES[primero.mes - 1]} ${primero.anio}`;
+    return `${NOMBRES_MES[base.mes - 1]} ${base.anio}`;
   }
 
   if (vista === "dia")
@@ -326,7 +326,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
         <div>
           <p className="text-base font-semibold text-slate-900">Calendario</p>
           <p className="text-xs text-slate-500">
-            {`${etiquetaRango(vista, dias)} · ${props.timeZone}`}
+            {`${etiquetaRango(vista, dias, base)} · ${props.timeZone}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Vista de agenda">

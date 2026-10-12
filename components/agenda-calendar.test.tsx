@@ -101,4 +101,15 @@ describe("AgendaCalendar",
     expect(screen.getByText(new RegExp(ZONA.replace(/\//g, "\\/")))).toBeDefined();
     expect(screen.getByLabelText("Significado de los colores")).toBeDefined();
   });
+
+  it("debería titular el mes con el mes base aunque la grilla arranque antes",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<AgendaCalendar {...propsBase()} />);
+    await user.click(screen.getByRole("button", { name: "Mes" }));
+
+    expect(screen.getByText(/may 2026/)).toBeDefined();
+  });
 });
