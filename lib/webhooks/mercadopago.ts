@@ -11,6 +11,7 @@ export interface FirmaMpInput
   readonly firma: string | null;
   readonly secreto: string | null;
   readonly pagoId: string;
+  readonly requestId?: string | null;
   readonly timestamp: string;
 }
 
@@ -147,7 +148,7 @@ export async function verificarFirmaMp(input: FirmaMpInput): Promise<boolean>
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey("raw", encoder.encode(input.secreto),
       { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const manifest = `id:${input.pagoId};ts:${input.timestamp};`;
+    const manifest = construirManifestMp(input.pagoId, input.requestId ?? null, input.timestamp);
     const firma = await crypto.subtle.sign("HMAC", key, encoder.encode(manifest));
     const hex = Array.from(new Uint8Array(firma)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
@@ -157,4 +158,34 @@ export async function verificarFirmaMp(input: FirmaMpInput): Promise<boolean>
   {
     return false;
   }
+}
+
+/**
+ * Arma el manifest oficial de MP: `id:..;request-id:..;ts:..;`.
+ *
+ * Los pares vacíos se omiten y `data.id` va en minúsculas (docs MP).
+ *
+ * @param pagoId ID del pago (query `data.id` o cuerpo).
+ * @param requestId Header `x-request-id` o null.
+ * @param timestamp `ts` del header `x-signature`.
+ * @return Manifest a firmar con HMAC-SHA256.
+ */
+export function construirManifestMp(pagoId: string, requestId: string | null, timestamp: string): string
+{
+  const partes: string[] = [];
+  const id = pagoId.trim().toLowerCase();
+
+  if (id.length > 0)
+  {
+    partes.push(`id:${id}`);
+  }
+
+  if (typeof requestId === "string" && requestId.trim().length > 0)
+  {
+    partes.push(`request-id:${requestId.trim()}`);
+  }
+
+  partes.push(`ts:${timestamp.trim()}`);
+
+  return `${partes.join(";")};`;
 }
