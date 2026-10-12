@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import
 {
+  plantillaCancelacion,
   plantillaConfirmacion,
   plantillaRecordatorio,
   plantillaRemarketing,
@@ -70,5 +71,33 @@ describe("plantillaResena",
 
     expect(t.subject).toContain("opinión");
     expect(t.html).toContain("https://app/resena/123");
+  });
+});
+
+describe("plantillaCancelacion",
+() =>
+{
+  it("debería confirmar la devolución de la seña",
+  () =>
+  {
+    const t = plantillaCancelacion({
+      ...base, cancelacionUrl: "https://app/cancelar/t-1", seDevuelve: true, retencionHs: 72,
+    });
+
+    expect(t.subject).toContain("Cancelaste");
+    expect(t.html).toContain("Corte clásico");
+    expect(t.html).toContain("vuelve a tu cuenta");
+    expect(t.html).toContain("https://app/cancelar/t-1");
+  });
+
+  it("debería avisar la retención dentro de la ventana",
+  () =>
+  {
+    const t = plantillaCancelacion({
+      ...base, cancelacionUrl: "https://app/cancelar/t-1", seDevuelve: false, retencionHs: 72,
+    });
+
+    expect(t.html).toContain("72hs");
+    expect(t.html).toContain("retenida");
   });
 });

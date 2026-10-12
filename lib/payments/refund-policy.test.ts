@@ -5,12 +5,41 @@ import { horasRestantesPara, resolverRetencionHs, shouldAutoRefund } from "./ref
 describe("shouldAutoRefund",
 () =>
 {
-  it("debería reembolsar turno pagado con pago y reembolso auto activo",
+  it("debería no reembolsar sin horas restantes (fail-closed, revisión manual)",
   () =>
   {
     expect(
       shouldAutoRefund({ reembolsoAuto: true, estado: "pagado", mpPaymentId: "123" }),
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      shouldAutoRefund({
+        reembolsoAuto: true, estado: "pagado", mpPaymentId: "123",
+        horasRestantes: null,
+      }),
+    ).toBe(false);
+    expect(
+      shouldAutoRefund({
+        reembolsoAuto: true, estado: "pagado", mpPaymentId: "123",
+        horasRestantes: undefined,
+      }),
+    ).toBe(false);
+  });
+
+  it("debería no reembolsar con horas no finitas (fail-closed)",
+  () =>
+  {
+    expect(
+      shouldAutoRefund({
+        reembolsoAuto: true, estado: "pagado", mpPaymentId: "123",
+        horasRestantes: Number.NaN,
+      }),
+    ).toBe(false);
+    expect(
+      shouldAutoRefund({
+        reembolsoAuto: true, estado: "pagado", mpPaymentId: "123",
+        horasRestantes: Number.POSITIVE_INFINITY,
+      }),
+    ).toBe(false);
   });
 
   it("debería no reembolsar sin pago de MercadoPago",
@@ -34,7 +63,9 @@ describe("shouldAutoRefund",
   {
     for (const estado of ["pendiente", "confirmado", "completado", "cancelado", "ausente"] as const)
     {
-      expect(shouldAutoRefund({ reembolsoAuto: true, estado, mpPaymentId: "123" })).toBe(false);
+      expect(shouldAutoRefund({
+        reembolsoAuto: true, estado, mpPaymentId: "123", horasRestantes: 100,
+      })).toBe(false);
     }
   });
 

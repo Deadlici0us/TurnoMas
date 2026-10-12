@@ -25,7 +25,8 @@ import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy
 import { REMARKETING_MAX_DIAS, REMARKETING_MIN_DIAS } from "@/lib/automations/remarketing";
 import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/recordatorios";
 import { RESENA_MAX_HS, RESENA_MIN_HS } from "@/lib/automations/resenas";
-import { normalizarTextoPlantilla, validarGoogleMapsUrl, type TipoPlantilla } from "@/lib/notifications/custom-templates";
+import { normalizarTextoPlantilla, validarGoogleMapsUrl } from "@/lib/notifications/custom-templates";
+import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -204,7 +205,7 @@ export async function actualizarPoliticaRemarketing(activo: boolean, dias: numbe
   revalidatePath("/dashboard/config");
 }
 
-const TIPOS_PLANTILLA: Record<TipoPlantilla, { subject: string; cuerpo: string }> = {
+const TIPOS_PLANTILLA: Record<TipoPlantillaConfigurable, { subject: string; cuerpo: string }> = {
   confirmacion: { subject: "msg_confirmacion_subject", cuerpo: "msg_confirmacion_cuerpo" },
   recordatorio: { subject: "msg_recordatorio_subject", cuerpo: "msg_recordatorio_cuerpo" },
   resena: { subject: "msg_resena_subject", cuerpo: "msg_resena_cuerpo" },
@@ -213,7 +214,7 @@ const TIPOS_PLANTILLA: Record<TipoPlantilla, { subject: string; cuerpo: string }
 
 /** Guarda la plantilla personalizada de un tipo de mensaje (null = default). */
 export async function actualizarPlantillaMensaje(
-  tipo: TipoPlantilla,
+  tipo: TipoPlantillaConfigurable,
   subject: string | null,
   cuerpo: string | null,
 ): Promise<void>

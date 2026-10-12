@@ -86,6 +86,8 @@ describe("resolverPlantilla",
       .toBe("Nos vemos 28/09/2026 10:00");
     expect(textoWhatsapp("recordatorio", { subject: null, cuerpo: null }, DATOS))
       .toContain("te esperamos");
+    expect(textoWhatsapp("cancelacion", { subject: null, cuerpo: null }, DATOS, "https://app/cancelar/1"))
+      .toContain("https://app/cancelar/1");
   });
 });
 

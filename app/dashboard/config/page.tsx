@@ -9,7 +9,7 @@ import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNeg
 import type { PenalidadListaNegra } from "./actions";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import type { TipoPlantilla } from "@/lib/notifications/custom-templates";
+import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
@@ -81,7 +81,7 @@ async function guardarRemarketing(formData: FormData): Promise<void>
     formData.get("remarketingActivo") === "on", Number(formData.get("remarketingDias")));
 }
 
-async function guardarPlantilla(tipo: TipoPlantilla, formData: FormData): Promise<void>
+async function guardarPlantilla(tipo: TipoPlantillaConfigurable, formData: FormData): Promise<void>
 {
   "use server";
 
@@ -636,7 +636,7 @@ export default async function ConfigPage(
           const cuerpo = negocio[`${key}_cuerpo` as keyof typeof negocio] as string | null | undefined;
 
           return (
-            <form key={tipo} action={guardarPlantilla.bind(null, tipo as TipoPlantilla)} className="space-y-3
+            <form key={tipo} action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)} className="space-y-3
               p-4 border border-slate-200 rounded-lg">
               <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
               <label className="block text-sm text-slate-600">

@@ -102,6 +102,7 @@ async function sincronizarConfirmado(params: {
   readonly negocioNombre: string;
   readonly servicioNombre: string;
   readonly staffNombre: string;
+  readonly clienteId: string;
   readonly clienteNombre: string;
   readonly whatsapp: string;
   readonly email: string | null;
@@ -146,15 +147,41 @@ async function sincronizarConfirmado(params: {
 
   try
   {
-    const plantilla = resolverPlantilla("confirmacion", {
-      subject: params.plantillaSubject,
-      cuerpo: params.plantillaCuerpo,
-    }, {
+    const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
+      ? `https://${readEnv("VERCEL_URL") as string}` : null);
+    const secreto = readEnv("CANCELACION_SECRET");
+    let cancelacionUrl = "";
+    const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
+
+    if (base !== null && secreto !== null && secreto.trim().length >= 16)
+    {
+      const token = firmarTokenCancelacion({
+        turnoId: params.turnoId,
+        clienteId: params.clienteId,
+        inicio: params.inicio,
+      }, secreto);
+
+      cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), params.turnoId, token);
+    }
+
+    const datos = {
       negocio: params.negocioNombre,
       servicio: params.servicioNombre,
       profesional: params.staffNombre,
       fecha: formatearFechaEnZona(params.inicio, params.timeZone),
-    });
+    };
+    const plantilla = cancelacionUrl.length > 0
+      ? resolverPlantilla("confirmacion", {
+        subject: params.plantillaSubject,
+        cuerpo: typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
+          ? `${params.plantillaCuerpo}\nSi no podés venir, cancelá acá: {link}`
+          : `Hola, tu reserva de {servicio} con {profesional} para el {fecha} ` +
+            `en {negocio} está confirmada.\nSi no podés venir, cancelá acá: {link}`,
+      }, datos, cancelacionUrl)
+      : resolverPlantilla("confirmacion", {
+        subject: params.plantillaSubject,
+        cuerpo: params.plantillaCuerpo,
+      }, datos);
 
     await new ResendAdapter().send({
       to: params.email,
@@ -549,6 +576,7 @@ export async function POST(request: Request)
         negocioNombre: negocio.nombre as string,
         servicioNombre,
         staffNombre,
+        clienteId,
         clienteNombre: nombre,
         whatsapp,
         email,

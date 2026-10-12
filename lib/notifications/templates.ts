@@ -75,3 +75,25 @@ export function plantillaResena(input: DatosTurno & { resenaUrl: string }): Emai
 
   return { subject: `¿Cómo te fue en ${input.negocio}? Dejanos tu opinión`, html };
 }
+
+export interface DatosCancelacion extends DatosTurno
+{
+  readonly cancelacionUrl: string;
+  readonly seDevuelve: boolean;
+  readonly retencionHs: number;
+}
+
+/** Confirmación de cancelación del cliente (devuelta o retenida). */
+export function plantillaCancelacion(input: DatosCancelacion): EmailTemplate
+{
+  const destino = input.seDevuelve
+    ? "Tu seña vuelve a tu cuenta en los próximos días."
+    : `Al cancelar dentro de las ${input.retencionHs}hs previas, la seña queda retenida.`;
+  const html = layout(`Cancelaste tu turno en ${input.negocio}`,
+    `<p>Hola, cancelamos tu <strong>${escapeHtml(input.servicio)}</strong> ` +
+    `con ${escapeHtml(input.profesional)} del ${escapeHtml(input.fecha)}.</p>` +
+    `<p>${escapeHtml(destino)}</p>` +
+    `<p><a href="${escapeHtml(input.cancelacionUrl)}">Ver detalle</a></p>`);
+
+  return { subject: `Cancelaste tu turno en ${input.negocio}`, html };
+}

@@ -5,7 +5,7 @@ import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { calendarService } from "@/lib/services/calendar";
 import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
-import { paymentService } from "@/lib/services/payment";
+import { cancelarTurno, CancelacionError } from "@/lib/services/cancelacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -35,11 +35,31 @@ vi.mock("@/lib/services/calendar-sync", () =>
   return { crearEventoGoogleParaTurno: vi.fn() };
 });
 
+vi.mock("@/lib/services/cancelacion", () =>
+{
+  return {
+    cancelarTurno: vi.fn(),
+    CancelacionError: class extends Error
+    {
+      readonly codigo: string;
+      readonly status: number;
+
+      constructor(codigo: string, message: string, status: number)
+      {
+        super(message);
+        this.codigo = codigo;
+        this.status = status;
+      }
+    },
+  };
+});
+
 const mockRevalidate = vi.mocked(revalidatePath);
 const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockCrearEvento = vi.mocked(crearEventoGoogleParaTurno);
+const mockCancelar = vi.mocked(cancelarTurno);
 
 /** Turno base pagado con seña y evento de Google. */
 function turnoPagado(overrides: Record<string, unknown> = {})
@@ -60,13 +80,11 @@ interface AgendaTablas
 {
   readonly negocio?: unknown;
   readonly turno?: unknown;
-  readonly servicio?: unknown;
-  readonly negocioRow?: unknown;
   readonly cliente?: unknown;
 }
 
 /**
- * Stub del admin con despacho por tabla y columnas del select.
+ * Stub del admin con despacho por tabla.
  *
  * @param tablas Filas por tabla.
  * @param updateError Error del update de turnos o null.
@@ -74,21 +92,16 @@ interface AgendaTablas
  */
 function stubAgenda(tablas: AgendaTablas, updateError: { message: string } | null = null, updates: unknown[] = [])
 {
-  const singleFor = (tabla: string, cols: string): { data: unknown } =>
+  const singleFor = (tabla: string): { data: unknown } =>
   {
     if (tabla === "negocios")
     {
-      return { data: cols.includes("sena_retencion_hs") ? tablas.negocioRow ?? null : tablas.negocio ?? null };
+      return { data: tablas.negocio ?? null };
     }
 
     if (tabla === "turnos")
     {
       return { data: tablas.turno ?? null };
-    }
-
-    if (tabla === "servicios")
-    {
-      return { data: tablas.servicio ?? null };
     }
 
     if (tabla === "clientes")
@@ -101,16 +114,16 @@ function stubAgenda(tablas: AgendaTablas, updateError: { message: string } | nul
 
   const admin = {
     from: vi.fn((tabla: string) => ({
-      select: vi.fn((cols: string) =>
+      select: vi.fn(() =>
       {
         const oneEq = {
           eq: vi.fn(() => ({
-            single: async () => singleFor(tabla, cols),
+            single: async () => singleFor(tabla),
           })),
-          single: async () => singleFor(tabla, cols),
+          single: async () => singleFor(tabla),
         };
 
-        return { eq: vi.fn(() => oneEq), single: async () => singleFor(tabla, cols) };
+        return { eq: vi.fn(() => oneEq), single: async () => singleFor(tabla) };
       }),
       update: vi.fn((values: unknown) =>
       {
@@ -209,19 +222,17 @@ describe("actualizarEstadoTurno guardas",
 describe("actualizarEstadoTurno transiciones",
 () =>
 {
-  it("debería completar sin reembolso ni GCal",
+  it("debería completar sin GCal",
   async () =>
   {
     sesionDueno();
     const updates: unknown[] = [];
     stubAgenda({ negocio: { id: "neg-1" }, turno: turnoPagado() }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
     const deleteSpy = vi.spyOn(calendarService, "deleteEventForNegocio");
 
     await actualizarEstadoTurno("t-1", "completado");
 
     expect(updates).toEqual([{ estado: "completado" }]);
-    expect(refundSpy).not.toHaveBeenCalled();
     expect(deleteSpy).not.toHaveBeenCalled();
     expect(mockCrearEvento).not.toHaveBeenCalled();
     expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/agenda");
@@ -239,137 +250,31 @@ describe("actualizarEstadoTurno transiciones",
     expect(mockCrearEvento).toHaveBeenCalledWith("t-1");
   });
 
-  it("debería reembolsar y borrar el evento al cancelar con seña",
+  it("debería delegar la cancelación al servicio compartido (actor duenio)",
   async () =>
   {
     sesionDueno();
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado(),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
+    stubAgenda({ negocio: { id: "neg-1" }, turno: turnoPagado() });
+    mockCancelar.mockResolvedValueOnce({
+      estado: "cancelado", reembolso: "devuelta", horasRestantes: 100, retencionHs: 24,
     });
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockResolvedValueOnce(undefined);
-    const deleteSpy = vi.spyOn(calendarService, "deleteEventForNegocio");
-    deleteSpy.mockResolvedValueOnce(undefined);
 
     await actualizarEstadoTurno("t-1", "cancelado");
 
-    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1", "turno-t-1");
-    expect(deleteSpy).toHaveBeenCalledWith("neg-1", "evt-1");
+    expect(mockCancelar).toHaveBeenCalledWith({ turnoId: "t-1", actor: "duenio" });
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/agenda");
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("debería cancelar igual cuando el reembolso falla (best-effort)",
+  it("debería propagar el error del servicio de cancelación",
   async () =>
   {
     sesionDueno();
-    const updates: unknown[] = [];
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado(),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockRejectedValueOnce(new Error("mp caído"));
+    stubAgenda({ negocio: { id: "neg-1" }, turno: turnoPagado() });
+    mockCancelar.mockRejectedValueOnce(new CancelacionError("ya_cerrado", "Ese turno ya está cerrado.", 409));
 
-    await expect(actualizarEstadoTurno("t-1", "cancelado")).resolves.toBeUndefined();
-    expect(updates).toEqual([{ estado: "cancelado" }]);
-  });
-
-  it("debería reembolsar con servicio e inicio sin tipar (fallbacks)",
-  async () =>
-  {
-    sesionDueno();
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado({ servicio_id: 123, inicio: "no-fecha" }),
-      servicio: null,
-      negocioRow: { sena_retencion_hs: 24 },
-    });
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockResolvedValueOnce(undefined);
-
-    await actualizarEstadoTurno("t-1", "cancelado");
-
-    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1", "turno-t-1");
-  });
-
-  it("debería cancelar sin reembolso cuando no hay paymentId",
-  async () =>
-  {
-    sesionDueno();
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado({ mp_payment_id: null }),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    });
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-
-    await actualizarEstadoTurno("t-1", "cancelado");
-
-    expect(refundSpy).not.toHaveBeenCalled();
-  });
-
-  it("debería no reembolsar dos veces si la seña ya fue devuelta",
-  async () =>
-  {
-    sesionDueno();
-    const updates: unknown[] = [];
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado({ sena_reembolsada: true }),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-
-    await actualizarEstadoTurno("t-1", "cancelado");
-
-    expect(refundSpy).not.toHaveBeenCalled();
-    expect(updates).toEqual([{ estado: "cancelado" }]);
-  });
-
-  it("debería marcar la seña como reembolsada tras devolverla",
-  async () =>
-  {
-    sesionDueno();
-    const updates: unknown[] = [];
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado({ sena_reembolsada: false }),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockResolvedValueOnce(undefined);
-
-    await actualizarEstadoTurno("t-1", "cancelado");
-
-    expect(refundSpy).toHaveBeenCalledOnce();
-    expect(updates).toContainEqual(
-      expect.objectContaining({ sena_reembolsada: true }),
-    );
-  });
-
-  it("debería no marcar reembolso cuando MP falla (reintentable)",
-  async () =>
-  {
-    sesionDueno();
-    const updates: unknown[] = [];
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado({ sena_reembolsada: false }),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockRejectedValueOnce(new Error("mp caído"));
-
-    await expect(actualizarEstadoTurno("t-1", "cancelado")).resolves.toBeUndefined();
-    expect(updates).toEqual([{ estado: "cancelado" }]);
+    await expect(actualizarEstadoTurno("t-1", "cancelado"))
+      .rejects.toThrow("Ese turno ya está cerrado.");
   });
 
   it("debería registrar la ausencia del cliente",
@@ -399,36 +304,5 @@ describe("actualizarEstadoTurno transiciones",
 
     await expect(actualizarEstadoTurno("t-1", "ausente")).resolves.toBeUndefined();
     expect(admin.from).not.toHaveBeenCalledWith("clientes");
-  });
-});
-
-describe("actualizarEstadoTurno integración",
-() =>
-{
-  it("debería cancelar con reembolso, GCal y revalidación punta a punta",
-  async () =>
-  {
-    sesionDueno();
-    const updates: unknown[] = [];
-    stubAgenda({
-      negocio: { id: "neg-1" },
-      turno: turnoPagado(),
-      servicio: { reembolso_auto: true },
-      negocioRow: { sena_retencion_hs: 24 },
-    }, null, updates);
-    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
-    refundSpy.mockResolvedValueOnce(undefined);
-    const deleteSpy = vi.spyOn(calendarService, "deleteEventForNegocio");
-    deleteSpy.mockResolvedValueOnce(undefined);
-
-    await actualizarEstadoTurno("t-1", "cancelado");
-
-    expect(refundSpy).toHaveBeenCalledOnce();
-    expect(deleteSpy).toHaveBeenCalledOnce();
-    expect(updates).toEqual([
-      expect.objectContaining({ sena_reembolsada: true }),
-      { estado: "cancelado" },
-    ]);
-    expect(mockRevalidate).toHaveBeenCalledTimes(2);
   });
 });

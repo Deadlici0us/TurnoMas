@@ -9,6 +9,7 @@
 
 import
 {
+  plantillaCancelacion,
   plantillaConfirmacion,
   plantillaRecordatorio,
   plantillaRemarketing,
@@ -17,7 +18,10 @@ import
   type EmailTemplate,
 } from "./templates";
 
-export type TipoPlantilla = "confirmacion" | "recordatorio" | "resena" | "remarketing";
+export type TipoPlantilla = "confirmacion" | "recordatorio" | "resena" | "remarketing" | "cancelacion";
+
+/** Tipos con columnas configurables (cancelación usa el default, sin columnas). */
+export type TipoPlantillaConfigurable = Exclude<TipoPlantilla, "cancelacion">;
 
 export interface PlantillaPersonalizada
 {
@@ -110,6 +114,11 @@ export function resolverPlantilla(
       return plantillaResena({ ...datos, resenaUrl: link });
     }
 
+    if (tipo === "cancelacion")
+    {
+      return plantillaCancelacion({ ...datos, cancelacionUrl: link, seDevuelve: true, retencionHs: 72 });
+    }
+
     return plantillaRemarketing({ ...datos, portalUrl: link });
   }
 
@@ -180,6 +189,11 @@ export function textoWhatsapp(
   if (tipo === "remarketing")
   {
     return `Hola, pasó un tiempo desde tu última visita a ${datos.negocio}. ¿Renovamos tu ${datos.servicio}? ${link}`;
+  }
+
+  if (tipo === "cancelacion")
+  {
+    return `Hola, si no podés venir a ${datos.negocio} el ${datos.fecha}, cancelá acá tu ${datos.servicio}: ${link}`;
   }
 
   return `Hola, tu reserva de ${datos.servicio} con ${datos.profesional} para el ${datos.fecha} en ${datos.negocio} está confirmada.`;

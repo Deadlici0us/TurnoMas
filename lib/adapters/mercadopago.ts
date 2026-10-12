@@ -13,6 +13,7 @@ import type {
   CreateDepositPreferenceInput,
   DepositPreference,
   IPaymentGateway,
+  RefundResult,
 } from "@/lib/ports/payment";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
@@ -100,7 +101,11 @@ export class MercadoPagoAdapter implements IPaymentGateway
     return { id: data.id, checkoutUrl, amountCents };
   }
 
-  async refundPayment(paymentId: string, accessToken?: string | null, idempotencyKey?: string): Promise<void>
+  async refundPayment(
+    paymentId: string,
+    accessToken?: string | null,
+    idempotencyKey?: string,
+  ): Promise<RefundResult>
   {
     const token = requireBusinessMpToken(accessToken ?? null);
     const headers: Record<string, string> =
@@ -124,5 +129,12 @@ export class MercadoPagoAdapter implements IPaymentGateway
     {
       throw new Error("No se pudo devolver la seña en MercadoPago.");
     }
+
+    const data = (await response.json().catch(() => null)) as { id?: unknown } | null;
+    const refundId = typeof data?.id === "number" || typeof data?.id === "string"
+      ? String(data.id)
+      : null;
+
+    return { refundId };
   }
 }

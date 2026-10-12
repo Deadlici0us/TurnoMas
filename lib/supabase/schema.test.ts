@@ -44,6 +44,10 @@ const REEMBOLSO_IDEMPOTENTE = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0012_reembolso_idempotente.sql"),
   "utf8",
 );
+const REEMBOLSO_ATOMICO = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0013_reembolso_atomico.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -239,5 +243,18 @@ describe("esquema Supabase",
     expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada");
     expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada_at");
     expect(REEMBOLSO_IDEMPOTENTE).toMatch(/alter table turnos add column/i);
+  });
+
+  it("debería reclamar el reembolso atómico con auditoría (fix TOCTOU)",
+  () =>
+  {
+    expect(REEMBOLSO_ATOMICO).toContain("reembolsos");
+    expect(REEMBOLSO_ATOMICO).toContain("turno_eventos");
+    expect(REEMBOLSO_ATOMICO).toContain("reclamar_reembolso");
+    expect(REEMBOLSO_ATOMICO).toMatch(/for update/i);
+    expect(REEMBOLSO_ATOMICO).toContain("idempotency_key");
+    expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on reembolsos/);
+    expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on turno_eventos/);
+    expect(REEMBOLSO_ATOMICO).not.toMatch(/policy[^;]*to anon/);
   });
 });

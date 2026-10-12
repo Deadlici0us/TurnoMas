@@ -6,6 +6,8 @@
  * la cancelación caiga dentro de la ventana de retención del negocio
  * (`sena_retencion_hs`, default 72): ahí el cliente pierde la seña.
  * `confirmado` nunca reembolsa: no hubo cobro online.
+ * Fail-closed: sin `horasRestantes` válido no se reembolsa (revisión
+ * manual del dueño en vez de devolver por defecto).
  */
 
 export type RefundableEstado = "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
@@ -62,12 +64,12 @@ export function shouldAutoRefund(input: RefundPolicyInput): boolean
 
   if (input.horasRestantes === undefined || input.horasRestantes === null)
   {
-    return true;
+    return false;
   }
 
   if (!Number.isFinite(input.horasRestantes))
   {
-    return true;
+    return false;
   }
 
   return input.horasRestantes > resolverRetencionHs(input.retencionHs);

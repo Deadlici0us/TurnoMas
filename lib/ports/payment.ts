@@ -22,10 +22,15 @@ export interface DepositPreference
   readonly amountCents: number;
 }
 
+export interface RefundResult
+{
+  readonly refundId: string | null;
+}
+
 export interface IPaymentGateway
 {
   createDepositPreference(input: CreateDepositPreferenceInput): Promise<DepositPreference>;
-  refundPayment(paymentId: string, accessToken?: string | null, idempotencyKey?: string): Promise<void>;
+  refundPayment(paymentId: string, accessToken?: string | null, idempotencyKey?: string): Promise<RefundResult>;
 }
 
 export class PaymentNotFoundError extends Error
@@ -74,7 +79,7 @@ export class FakePaymentGateway implements IPaymentGateway
     return preference;
   }
 
-  async refundPayment(paymentId: string): Promise<void>
+  async refundPayment(paymentId: string): Promise<RefundResult>
   {
     const existed = this.preferences.delete(paymentId);
 
@@ -82,5 +87,7 @@ export class FakePaymentGateway implements IPaymentGateway
     {
       throw new PaymentNotFoundError(paymentId);
     }
+
+    return { refundId: null };
   }
 }

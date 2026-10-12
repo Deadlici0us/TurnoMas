@@ -67,13 +67,17 @@ export class PaymentService
   }
 
   /** Devuelve la seña con el token del negocio (fail-closed: exige conexión). */
-  async refundForNegocio(negocioId: string, paymentId: string, idempotencyKey?: string): Promise<void>
+  async refundForNegocio(
+    negocioId: string,
+    paymentId: string,
+    idempotencyKey?: string,
+  ): Promise<{ refundId: string | null }>
   {
     const accessToken = requireBusinessMpToken(await this.getBusinessAccessToken(negocioId));
 
     try
     {
-      await this.adapter.refundPayment(paymentId, accessToken, idempotencyKey);
+      return await this.adapter.refundPayment(paymentId, accessToken, idempotencyKey);
     }
     catch (original)
     {
@@ -88,7 +92,7 @@ export class PaymentService
         throw original;
       }
 
-      await this.adapter.refundPayment(paymentId, renovado, idempotencyKey);
+      return await this.adapter.refundPayment(paymentId, renovado, idempotencyKey);
     }
   }
 
