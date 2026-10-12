@@ -12,14 +12,14 @@ import {
   verificarFirmaMp,
 } from "@/lib/webhooks/mercadopago";
 
-function extraerFirma(request: Request): { firma: string | null; ts: string }
+function extraerFirma(request: Request): { firma: string | null; requestId: string | null; ts: string }
 {
   const firma = request.headers.get("x-signature");
   const requestId = request.headers.get("x-request-id");
   const params = firma !== null ? firma.split(",").map((p) => p.trim()) : [];
   const ts = params.find((p) => p.startsWith("ts="))?.slice("ts=".length) ?? requestId ?? "";
 
-  return { firma, ts };
+  return { firma, requestId, ts };
 }
 
 /**
@@ -235,11 +235,14 @@ export async function POST(request: Request)
       return NextResponse.json({ error: "Falta el ID del pago." }, { status: 400 });
     }
 
-    const { firma, ts } = extraerFirma(request);
+    const { firma, requestId, ts } = extraerFirma(request);
+    // Docs MP: `data.id` viaja en el query; el cuerpo es fallback.
+    const pagoIdQuery = new URL(request.url).searchParams.get("data.id");
     const firmaOk = await verificarFirmaMp({
       firma,
       secreto: secretoMp,
-      pagoId: paymentId,
+      pagoId: pagoIdQuery ?? paymentId,
+      requestId,
       timestamp: ts,
     });
 
