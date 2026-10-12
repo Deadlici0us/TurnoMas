@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export interface CopiarComprobanteProps
 {
-  readonly comprobanteId: string | null;
+  readonly comprobanteId: string | null | undefined;
 }
 
 const COPIADO_MS = 2000;
@@ -16,18 +16,22 @@ const COPIADO_MS = 2000;
  * URL pública: el nro se copia para pegarlo en el buscador de Actividad.
  * Sin comprobante muestra guion (convención de tablas del dashboard).
  *
- * @param props ID del comprobante (`mp_payment_id` o `suscripcion_mp_id`).
+ * @param props ID del comprobante (`mp_payment_id` o `suscripcion_mp_id`;
+ *   `undefined` cuando el seed/fila no trae la clave).
  * @return Badge copiable o guion sin ID.
  */
 export default function CopiarComprobante(props: CopiarComprobanteProps)
 {
   const [copiado, setCopiado] = useState(false);
-  const id = props.comprobanteId === null ? null : props.comprobanteId.trim();
+  const crudo = props.comprobanteId;
+  const id = typeof crudo === "string" ? crudo.trim() : null;
 
   if (id === null || id.length === 0)
   {
     return <>—</>;
   }
+
+  const comprobante = id;
 
   async function copiar(): Promise<void>
   {
@@ -35,7 +39,7 @@ export default function CopiarComprobante(props: CopiarComprobanteProps)
     {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText)
       {
-        await navigator.clipboard.writeText(id as string);
+        await navigator.clipboard.writeText(comprobante);
       }
     }
     catch
@@ -49,7 +53,7 @@ export default function CopiarComprobante(props: CopiarComprobanteProps)
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="font-mono text-xs text-slate-700">{id}</span>
+      <span className="font-mono text-xs text-slate-700">{comprobante}</span>
       <button
         type="button"
         onClick={() => void copiar()}

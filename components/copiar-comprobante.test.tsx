@@ -37,6 +37,15 @@ describe("CopiarComprobante",
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("debería mostrar guion con comprobante indefinido (seed sin clave)",
+  () =>
+  {
+    render(<CopiarComprobante comprobanteId={undefined} />);
+
+    expect(screen.getByText("—")).toBeDefined();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
   it("debería mostrar guion con comprobante vacío",
   () =>
   {

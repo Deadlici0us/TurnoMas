@@ -143,4 +143,22 @@ describe("PagosPage",
     expect(screen.getByText("Comprobante")).toBeDefined();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
+
+  it("debería mostrar guion cuando el turno no trae la clave (seed demo)",
+  async () =>
+  {
+    const turnoSinClave = turnoBase({ id: "t-1", estado: "pendiente" });
+
+    delete (turnoSinClave as Record<string, unknown>).mp_payment_id;
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([turnoSinClave]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    expect(screen.getByText("Comprobante")).toBeDefined();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
 });

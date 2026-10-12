@@ -14,7 +14,7 @@ interface TurnoRow
   readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly monto_total: number | null;
   readonly sena_monto: number | null;
-  readonly mp_payment_id: string | null;
+  readonly mp_payment_id?: string | null;
 }
 
 function formatARS(cents: number | null): string
@@ -34,12 +34,13 @@ function formatARS(cents: number | null): string
  * El detalle del pago vive en un sidepanel dentro de la cuenta de MP, sin
  * URL pública: el nro se copia para pegarlo en el buscador de Actividad.
  *
- * @param paymentId ID del pago (`mp_payment_id`) o null.
+ * @param paymentId ID del pago (`mp_payment_id`) o null (`undefined` cuando
+ *   el seed/fila no trae la clave).
  * @return Badge copiable o guion sin pago.
  */
-function celdaComprobante(paymentId: string | null): React.ReactNode
+function celdaComprobante(paymentId: string | null | undefined): React.ReactNode
 {
-  return <CopiarComprobante comprobanteId={paymentId} />;
+  return <CopiarComprobante comprobanteId={paymentId ?? null} />;
 }
 
 export default async function PagosPage()
