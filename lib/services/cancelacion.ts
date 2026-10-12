@@ -124,10 +124,21 @@ export async function cancelarTurno(input: CancelarTurnoInput): Promise<Cancelar
   }
 
   const admin = getSupabaseAdmin();
-  const { data: turnoData } = await admin.from("turnos")
+  const { data: turnoData, error: turnoError } = await admin.from("turnos")
     .select("id, negocio_id, estado, inicio, cliente_id, servicio_id, mp_payment_id," +
       " google_calendar_event_id, sena_reembolsada")
     .eq("id", input.turnoId).single();
+
+  if (turnoError !== null && (turnoError as { code?: string }).code !== "PGRST116")
+  {
+    console.error("Cancelación sin lectura del turno:", turnoError.message, { turnoId: input.turnoId });
+
+    throw new CancelacionError(
+      "cancelacion_fallida",
+      "No pudimos leer el turno. Probá de nuevo.",
+      500,
+    );
+  }
 
   if (turnoData === null)
   {

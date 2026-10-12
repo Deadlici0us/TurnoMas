@@ -32,6 +32,7 @@ function turnoPagado(overrides: Record<string, unknown> = {})
 interface Tablas
 {
   readonly turno?: unknown;
+  readonly turnoError?: { code: string; message: string } | null;
   readonly servicio?: unknown;
   readonly negocio?: unknown;
   readonly reembolsoExistente?: unknown;
@@ -49,29 +50,29 @@ function stubAdmin(tablas: Tablas, auditoria: { updates: unknown[]; inserts: unk
   updates: [], inserts: [],
 })
 {
-  const singleFor = (tabla: string): { data: unknown } =>
+  const singleFor = (tabla: string): { data: unknown; error: { code: string; message: string } | null } =>
   {
     if (tabla === "turnos")
     {
-      return { data: tablas.turno ?? null };
+      return { data: tablas.turno ?? null, error: tablas.turnoError ?? null };
     }
 
     if (tabla === "servicios")
     {
-      return { data: tablas.servicio ?? { reembolso_auto: true } };
+      return { data: tablas.servicio ?? { reembolso_auto: true }, error: null };
     }
 
     if (tabla === "negocios")
     {
-      return { data: tablas.negocio ?? { sena_retencion_hs: 24 } };
+      return { data: tablas.negocio ?? { sena_retencion_hs: 24 }, error: null };
     }
 
     if (tabla === "reembolsos")
     {
-      return { data: tablas.reembolsoExistente ?? null };
+      return { data: tablas.reembolsoExistente ?? null, error: null };
     }
 
-    return { data: null };
+    return { data: null, error: null };
   };
 
   mockAdmin.mockReturnValue({
@@ -206,6 +207,22 @@ describe("cancelarTurno",
 
     await expect(cancelarTurno({ turnoId: "t-x", actor: "cliente" }))
       .rejects.toMatchObject({ codigo: "no_encontrado" });
+  });
+
+  it("debería lanzar 500 (no 404) cuando la lectura falla (ej. columna sin migrar)",
+  async () =>
+  {
+    stubAdmin({
+      turno: null,
+      turnoError: { code: "42703", message: "column turnos.sena_reembolsada does not exist" },
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(cancelarTurno({ turnoId: "t-1", actor: "cliente" }))
+      .rejects.toMatchObject({ codigo: "cancelacion_fallida", status: 500 });
+    expect(errorSpy).toHaveBeenCalled();
+
+    errorSpy.mockRestore();
   });
 
   it("debería no llamar dos veces a MP en doble cancelación paralela (claim)",
