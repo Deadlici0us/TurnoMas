@@ -256,7 +256,7 @@ describe("actualizarEstadoTurno transiciones",
 
     await actualizarEstadoTurno("t-1", "cancelado");
 
-    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1");
+    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1", "turno-t-1");
     expect(deleteSpy).toHaveBeenCalledWith("neg-1", "evt-1");
   });
 
@@ -293,7 +293,7 @@ describe("actualizarEstadoTurno transiciones",
 
     await actualizarEstadoTurno("t-1", "cancelado");
 
-    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1");
+    expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1", "turno-t-1");
   });
 
   it("debería cancelar sin reembolso cuando no hay paymentId",

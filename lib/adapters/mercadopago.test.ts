@@ -224,6 +224,33 @@ describe("MercadoPagoAdapter.refundPayment",
     await expect(new MercadoPagoAdapter().refundPayment("pay-1", "APP_USR-negocio"))
       .rejects.toThrow("No se pudo devolver la seña en MercadoPago.");
   });
+
+  it("debería enviar X-Idempotency-Key cuando se provee",
+  async () =>
+  {
+    const { fetchMock } = instalarFetch(respuestaOk({}));
+
+    await new MercadoPagoAdapter().refundPayment("pay-1", "APP_USR-negocio", "turno-t-1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.mercadopago.com/v1/payments/pay-1/refunds",
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Idempotency-Key": "turno-t-1" }),
+      }),
+    );
+  });
+
+  it("debería omitir X-Idempotency-Key cuando no se provee",
+  async () =>
+  {
+    const { fetchMock } = instalarFetch(respuestaOk({}));
+
+    await new MercadoPagoAdapter().refundPayment("pay-1", "APP_USR-negocio");
+
+    const init = fetchMock.mock.calls[0]?.[1] as { headers?: Record<string, string> };
+
+    expect(init.headers?.["X-Idempotency-Key"]).toBeUndefined();
+  });
 });
 
 describe("MercadoPagoAdapter integración",

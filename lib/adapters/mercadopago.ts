@@ -100,16 +100,23 @@ export class MercadoPagoAdapter implements IPaymentGateway
     return { id: data.id, checkoutUrl, amountCents };
   }
 
-  async refundPayment(paymentId: string, accessToken?: string | null): Promise<void>
+  async refundPayment(paymentId: string, accessToken?: string | null, idempotencyKey?: string): Promise<void>
   {
     const token = requireBusinessMpToken(accessToken ?? null);
+    const headers: Record<string, string> =
+    {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    if (typeof idempotencyKey === "string" && idempotencyKey.length > 0)
+    {
+      headers["X-Idempotency-Key"] = idempotencyKey;
+    }
 
     const response = await fetch(`${MP_API_BASE}/v1/payments/${paymentId}/refunds`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({}),
     });
 

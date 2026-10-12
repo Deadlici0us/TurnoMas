@@ -25,7 +25,7 @@ export interface DepositPreference
 export interface IPaymentGateway
 {
   createDepositPreference(input: CreateDepositPreferenceInput): Promise<DepositPreference>;
-  refundPayment(paymentId: string, accessToken?: string | null): Promise<void>;
+  refundPayment(paymentId: string, accessToken?: string | null, idempotencyKey?: string): Promise<void>;
 }
 
 export class PaymentNotFoundError extends Error

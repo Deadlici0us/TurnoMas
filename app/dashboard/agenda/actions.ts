@@ -131,7 +131,7 @@ async function intentarReembolsoAuto(
 
   try
   {
-    await paymentService.refundForNegocio(negocioId, mpPaymentId as string);
+    await paymentService.refundForNegocio(negocioId, mpPaymentId as string, `turno-${turnoId}`);
   }
   catch
   {

@@ -234,7 +234,19 @@ describe("PaymentService.refund",
 
     await new PaymentService().refundForNegocio("neg-1", "pay-2");
 
-    expect(mockRefund).toHaveBeenCalledWith("pay-2", "APP_USR-negocio");
+    expect(mockRefund).toHaveBeenCalledWith("pay-2", "APP_USR-negocio", undefined);
+  });
+
+  it("debería propagar la idempotency key al adapter",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+    stubSecretos({ mercadopago_access_token: "APP_USR-negocio" });
+    mockRefund.mockResolvedValueOnce(undefined);
+
+    await new PaymentService().refundForNegocio("neg-1", "pay-2", "turno-t-9");
+
+    expect(mockRefund).toHaveBeenCalledWith("pay-2", "APP_USR-negocio", "turno-t-9");
   });
 });
 
