@@ -5,6 +5,7 @@ import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
+import { comprobanteSuscripcionUrl } from "@/lib/payments/comprobante";
 import { resolverPlanPais } from "@/lib/payments/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -50,6 +51,12 @@ export default async function FacturacionPage(
   const demo = await esDuenoDemo();
   const params = props?.searchParams === undefined ? undefined : await props.searchParams;
   const diasRestantes = diasTrialRestantes(creado);
+  const paisTexto = typeof negocio.pais === "string" ? negocio.pais : null;
+  const suscripcionId = typeof negocio.suscripcion_mp_id === "string"
+    && negocio.suscripcion_mp_id.trim().length > 0
+    ? negocio.suscripcion_mp_id.trim()
+    : null;
+  const comprobanteUrl = comprobanteSuscripcionUrl(suscripcionId, paisTexto);
 
   return (
     <main className="p-8">
@@ -119,6 +126,20 @@ export default async function FacturacionPage(
               </button>
             </form>
           )}
+          {comprobanteUrl !== null && suscripcionId !== null && !demo ? (
+            <p className="text-xs text-slate-500 mt-4">
+              Comprobante:{" "}
+              <a
+                href={comprobanteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Ver comprobante completo en MercadoPago"
+                className="font-mono text-blue-600 hover:underline"
+              >
+                {suscripcionId}
+              </a>
+            </p>
+          ) : null}
         </div>
       </div>
     </main>

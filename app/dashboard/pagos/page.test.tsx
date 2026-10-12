@@ -21,6 +21,7 @@ function turnoBase(overrides: Record<string, unknown> = {})
     estado: "pendiente",
     monto_total: 10000,
     sena_monto: 5000,
+    mp_payment_id: null,
     ...overrides,
   };
 }
@@ -28,7 +29,7 @@ function turnoBase(overrides: Record<string, unknown> = {})
 function dashboardBase(turnos: unknown[] = [turnoBase()])
 {
   return {
-    negocio: { id: "neg-1", nombre: "Barbería" },
+    negocio: { id: "neg-1", nombre: "Barbería", pais: "ar" },
     staff: [],
     servicios: [{ id: "serv-1", nombre: "Corte" }],
     clientes: [{ id: "cli-1", nombre: "Juan" }],
@@ -106,5 +107,42 @@ describe("PagosPage",
     render(await PagosPage());
 
     expect(screen.getByText("Todavía no hay movimientos.")).toBeDefined();
+  });
+
+  it("debería linkear el nro de comprobante de MercadoPago",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        turnoBase({ id: "t-1", estado: "pagado", mp_payment_id: "1234567890" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    const link = screen.getByRole("link", { name: "1234567890" });
+
+    expect(link.getAttribute("href")).toBe(
+      "https://www.mercadopago.com.ar/activities/payment-detail/1234567890");
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("debería mostrar guion sin pago de MercadoPago",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        turnoBase({ id: "t-1", estado: "pendiente", mp_payment_id: null }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    expect(screen.getByText("Comprobante")).toBeDefined();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 });

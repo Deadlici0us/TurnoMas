@@ -135,4 +135,38 @@ describe("FacturacionPage",
     expect(screen.getByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización."))
       .toBeDefined();
   });
+
+  it("debería linkear el comprobante de la suscripción con plan activo",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      pais: "ar",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+    });
+
+    render(await FacturacionPage());
+
+    const link = screen.getByRole("link", { name: "pre-1" });
+
+    expect(link.getAttribute("href")).toBe(
+      "https://www.mercadopago.com.ar/subscriptions/detail/pre-1");
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("debería ocultar el comprobante sin suscripción",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      pais: "ar",
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.queryByText("Comprobante")).toBeNull();
+  });
 });

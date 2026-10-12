@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
+import { comprobantePagoUrl } from "@/lib/payments/comprobante";
 
 interface TurnoRow
 {
@@ -13,6 +15,7 @@ interface TurnoRow
   readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly monto_total: number | null;
   readonly sena_monto: number | null;
+  readonly mp_payment_id: string | null;
 }
 
 function formatARS(cents: number | null): string
@@ -26,6 +29,35 @@ function formatARS(cents: number | null): string
     { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(cents / 100);
 }
 
+/**
+ * Celda de comprobante: nro linkeado al detalle de MercadoPago o guion.
+ *
+ * @param paymentId ID del pago (`mp_payment_id`) o null.
+ * @param pais País del negocio para el dominio.
+ * @return Link al comprobante o guion sin pago.
+ */
+function celdaComprobante(paymentId: string | null, pais: string | null): ReactNode
+{
+  const url = comprobantePagoUrl(paymentId, pais);
+
+  if (url === null || paymentId === null)
+  {
+    return "—";
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Ver comprobante completo en MercadoPago"
+      className="font-mono text-xs text-blue-600 hover:underline"
+    >
+      {paymentId.trim()}
+    </a>
+  );
+}
+
 export default async function PagosPage()
 {
   const { data: dashboard } = await getDashboardData();
@@ -35,6 +67,9 @@ export default async function PagosPage()
     .map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
     .map((c) => [c.id, c.nombre]));
+  const pais = typeof (dashboard.negocio as { pais?: unknown } | null)?.pais === "string"
+    ? (dashboard.negocio as { pais: string }).pais
+    : null;
   const totalPendiente = turnos
     .filter((t) => t.estado === "pendiente" || t.estado === "confirmado")
     .reduce((acum, t) => acum + (t.estado === "confirmado"
@@ -70,6 +105,7 @@ export default async function PagosPage()
                   <th className="pb-3 font-semibold">Saldo</th>
                   <th className="pb-3 font-semibold">Estado</th>
                   <th className="pb-3 font-semibold">Fecha</th>
+                  <th className="pb-3 font-semibold">Comprobante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -93,6 +129,9 @@ export default async function PagosPage()
                     <td className="py-3 text-slate-600">
                       {new Date(turno.inicio).toLocaleDateString("es-AR",
                         { day: "2-digit", month: "2-digit" })}
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      {celdaComprobante(turno.mp_payment_id, pais)}
                     </td>
                   </tr>
                 ))}
