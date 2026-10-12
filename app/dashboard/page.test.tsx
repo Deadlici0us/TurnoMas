@@ -134,7 +134,7 @@ describe("DashboardPage",
     expect(screen.getByRole("link", { name: "Conectar MercadoPago" })).toHaveAttribute("href", "/dashboard/config");
   });
 
-  it("debería mostrar nombre, stats y tabla",
+  it("debería mostrar nombre, 4 indicadores y próximos turnos",
   async () =>
   {
     mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
@@ -144,9 +144,15 @@ describe("DashboardPage",
 
     expect(screen.getByRole("heading", { name: "Barbería" })).toBeDefined();
     expect(screen.getByText("Turnos hoy")).toBeDefined();
+    expect(screen.getByText("Pendientes")).toBeDefined();
+    expect(screen.getByText("Señas cobradas")).toBeDefined();
+    expect(screen.getByText("Ingresos por señas")).toBeDefined();
+    expect(screen.queryByText("Confirmados")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Próximos turnos" })).toBeDefined();
     expect(screen.getByText("Corte")).toBeDefined();
     expect(screen.getByText("Juan")).toBeDefined();
     expect(screen.getByText(/10[.,]000/)).toBeDefined();
+    expect(screen.getByRole("link", { name: "Ver agenda" })).toHaveAttribute("href", "/dashboard/agenda");
   });
 
   it("debería usar fallbacks sin nombres ni montos",
@@ -173,8 +179,8 @@ describe("DashboardPage",
     render(await DashboardPage());
 
     expect(screen.getByRole("heading", { name: "appName" })).toBeDefined();
-    expect(screen.getAllByText("Servicio").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("Cliente").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("$ 0")).toHaveLength(2);
+    expect(screen.getAllByText("Servicio").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Cliente")).toBeDefined();
+    expect(screen.getAllByText("$ 0").length).toBeGreaterThanOrEqual(1);
   });
 });

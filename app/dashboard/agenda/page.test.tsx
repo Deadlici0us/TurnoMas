@@ -27,6 +27,11 @@ vi.mock("@/lib/services/calendar", () =>
   return { calendarService: { getExternalEventsForNegocio: vi.fn(async () => []) } };
 });
 
+vi.mock("next/navigation", () =>
+{
+  return { usePathname: () => "/dashboard/agenda" };
+});
+
 const mockData = vi.mocked(getDashboardData);
 const mockExternos = vi.mocked(calendarService.getExternalEventsForNegocio);
 
@@ -148,7 +153,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ fecha: "2026-10-06" }) }));
 
     expect(screen.getByTitle("Google · Dentista")).toBeDefined();
   });
@@ -177,7 +182,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ fecha: "2026-10-06" }) }));
 
     expect(screen.getByTitle("Juan · Corte")).toBeDefined();
   });

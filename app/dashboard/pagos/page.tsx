@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import CopiarComprobante from "@/components/copiar-comprobante";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -59,12 +57,8 @@ export default async function PagosPage()
       : ((t.monto_total ?? 0) - (t.sena_monto ?? 0))), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl w-full mx-auto px-8 py-12">
-        <Link href="/dashboard" className="inline-block mb-4 text-sm font-semibold text-blue-600 hover:underline">
-          ← Volver al panel
-        </Link>
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
+    <div>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 mb-1">Pagos</h1>
@@ -122,7 +116,6 @@ export default async function PagosPage()
           </div>
           {turnos.length === 0 ? <p className="text-sm text-slate-500 mt-4">Todavía no hay movimientos.</p> : null}
         </div>
-      </div>
     </div>
   );
 }

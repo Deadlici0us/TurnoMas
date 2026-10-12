@@ -1,8 +1,7 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { ESTADO_BADGE, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
-import AgendaWeekGrid from "@/components/agenda-week-grid";
-import LeyendaEstados from "@/components/leyenda-estados";
+import AgendaCalendar from "@/components/agenda-calendar";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
 import { linkWhatsapp } from "@/lib/notifications/whatsapp";
@@ -44,8 +43,11 @@ async function cambiarEstado(turnoId: string, nuevo: EstadoTurno): Promise<void>
   await actualizarEstadoTurno(turnoId, nuevo);
 }
 
-export default async function AgendaPage()
+export default async function AgendaPage(props?: {
+  readonly searchParams?: Promise<{ vista?: string; fecha?: string }>;
+})
 {
+  const params = props?.searchParams === undefined ? undefined : await props.searchParams;
   const { data: dashboard } = await getDashboardData();
   const staff = dashboard.staff as StaffRow[];
   const negocioRow = dashboard.negocio as {
@@ -144,18 +146,19 @@ export default async function AgendaPage()
   });
 
   return (
-    <div className="space-y-6">
-    <AgendaWeekGrid
+    <div className="space-y-4 sm:space-y-6">
+    <AgendaCalendar
       base={hoy.toISOString()}
       timeZone={timeZone}
       staff={staff.map((s) => ({ id: s.id, nombre: s.nombre }))}
       turnos={turnosGrilla}
       externos={externos}
+      vistaInicial={params?.vista}
+      fechaInicial={params?.fecha}
     />
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
-      <h1 className="text-2xl font-bold text-slate-900 mb-1">Agenda</h1>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">Agenda</h1>
       <p className="text-sm text-slate-600 mb-4">Turnos por profesional con estados reales</p>
-      <div className="mb-6"><LeyendaEstados incluirExterno /></div>
       <div className="space-y-6">
         {staff.map((profesional) => (
           <section key={profesional.id}>

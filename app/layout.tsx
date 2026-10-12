@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "./providers";
+import AnimatedBackground from "@/components/animated-background";
 import SiteHeader from "@/components/site-header";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers messages={messages} locale={locale}>
+          <AnimatedBackground />
           <SiteHeader />
           {children}
         </Providers>
