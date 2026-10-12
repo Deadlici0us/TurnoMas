@@ -670,6 +670,49 @@ describe("POST /api/reservas",
     expect(body.checkoutUrl).toBe("https://pay/x");
   });
 
+  it("debería enviar email con link de pago y cancelación en reserva con seña",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
+    vi.stubEnv("CANCELACION_SECRET", "secreto-test-cancelacion-largo");
+    flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
+    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
+    const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
+    prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
+    mockQstashSchedule.mockResolvedValue("job-1");
+    mockEmailSend.mockResolvedValue("email-1");
+
+    const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
+    const body = await response.json() as { success: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "cli@ejemplo.com" }));
+    const html = mockEmailSend.mock.calls[0]?.[0]?.html as string;
+
+    expect(html).toContain("https://pay/x");
+    expect(html).toContain("/cancelar/t-1?token=");
+  });
+
+  it("debería reservar con seña aunque el email falle (best-effort)",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
+    vi.stubEnv("CANCELACION_SECRET", "secreto-test-cancelacion-largo");
+    flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
+    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
+    const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
+    prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
+    mockQstashSchedule.mockResolvedValue("job-1");
+    mockEmailSend.mockRejectedValueOnce(new Error("resend caído"));
+
+    const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
+    const body = await response.json() as { success: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+  });
+
   it("debería responder checkoutError cuando MercadoPago falla",
   async () =>
   {

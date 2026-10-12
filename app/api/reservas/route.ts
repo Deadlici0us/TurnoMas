@@ -197,6 +197,77 @@ async function sincronizarConfirmado(params: {
 }
 
 /**
+ * Envía el email de la reserva con seña: link de pago + link de cancelación.
+ *
+ * La reserva con seña nace `pendiente` y puede tardar en pagarse (o no
+ * pagarse nunca): el cliente recibe desde el inicio el link mágico para
+ * cancelar y liberar el lugar. Best-effort, nunca rompe la reserva.
+ *
+ * @param params Datos de la reserva con seña.
+ */
+async function enviarEmailReservaConSena(params: {
+  readonly negocioNombre: string;
+  readonly servicioNombre: string;
+  readonly staffNombre: string;
+  readonly clienteId: string;
+  readonly email: string;
+  readonly inicio: Date;
+  readonly timeZone: string;
+  readonly turnoId: string;
+  readonly checkoutUrl: string | null;
+  readonly plantillaSubject: unknown;
+  readonly plantillaCuerpo: unknown;
+}): Promise<void>
+{
+  try
+  {
+    const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
+      ? `https://${readEnv("VERCEL_URL") as string}` : null);
+    const secreto = readEnv("CANCELACION_SECRET");
+    const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
+    let cancelacionUrl = "";
+
+    if (base !== null && secreto !== null && secreto.trim().length >= 16)
+    {
+      const token = firmarTokenCancelacion({
+        turnoId: params.turnoId,
+        clienteId: params.clienteId,
+        inicio: params.inicio,
+      }, secreto);
+
+      cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), params.turnoId, token);
+    }
+
+    const pagoLinea = params.checkoutUrl !== null ? `\nPagá tu seña acá: ${params.checkoutUrl}` : "";
+    const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
+    const datos = {
+      negocio: params.negocioNombre,
+      servicio: params.servicioNombre,
+      profesional: params.staffNombre,
+      fecha: formatearFechaEnZona(params.inicio, params.timeZone),
+    };
+    const plantilla = resolverPlantilla("confirmacion", {
+      subject: params.plantillaSubject,
+      cuerpo: typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
+        ? `${params.plantillaCuerpo}${pagoLinea}${cancelaLinea}`
+        : `Hola, tu reserva de {servicio} con {profesional} para el {fecha} ` +
+          `en {negocio} está casi lista.${pagoLinea}${cancelaLinea}`,
+    }, datos, cancelacionUrl);
+
+    await new ResendAdapter().send({
+      to: params.email,
+      subject: plantilla.subject,
+      fromName: params.negocioNombre,
+      html: plantilla.html,
+    });
+  }
+  catch
+  {
+    // Best-effort: la reserva ya existe aunque falle el email.
+  }
+}
+
+/**
  * Resuelve negocio, staff y servicio del portal.
  *
  * @param pais País del negocio.
@@ -598,6 +669,23 @@ export async function POST(request: Request)
       montos.senaPorcentaje,
       negocio.nombre as string,
     );
+
+    if (email !== null)
+    {
+      await enviarEmailReservaConSena({
+        negocioNombre: negocio.nombre as string,
+        servicioNombre,
+        staffNombre,
+        clienteId,
+        email,
+        inicio,
+        timeZone,
+        turnoId,
+        checkoutUrl,
+        plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,
+        plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
+      });
+    }
 
     return NextResponse.json({
       success: true,
