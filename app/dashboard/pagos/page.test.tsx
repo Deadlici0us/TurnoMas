@@ -109,7 +109,7 @@ describe("PagosPage",
     expect(screen.getByText("Todavía no hay movimientos.")).toBeDefined();
   });
 
-  it("debería linkear el nro de comprobante de MercadoPago",
+  it("debería mostrar el nro de comprobante con botón para copiar",
   async () =>
   {
     mockData.mockResolvedValueOnce({
@@ -122,11 +122,9 @@ describe("PagosPage",
 
     render(await PagosPage());
 
-    const link = screen.getByRole("link", { name: "1234567890" });
-
-    expect(link.getAttribute("href")).toBe(
-      "https://www.mercadopago.com.ar/activities/payment-detail/1234567890");
-    expect(link.getAttribute("target")).toBe("_blank");
+    expect(screen.getByText("1234567890")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Copiar nro de comprobante" })).toBeDefined();
+    expect(screen.queryByRole("link", { name: "1234567890" })).toBeNull();
   });
 
   it("debería mostrar guion sin pago de MercadoPago",

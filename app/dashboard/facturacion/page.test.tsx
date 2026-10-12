@@ -136,7 +136,7 @@ describe("FacturacionPage",
       .toBeDefined();
   });
 
-  it("debería linkear el comprobante de la suscripción con plan activo",
+  it("debería mostrar el comprobante de la suscripción con botón para copiar",
   async () =>
   {
     stubFacturacion({
@@ -148,11 +148,8 @@ describe("FacturacionPage",
 
     render(await FacturacionPage());
 
-    const link = screen.getByRole("link", { name: "pre-1" });
-
-    expect(link.getAttribute("href")).toBe(
-      "https://www.mercadopago.com.ar/subscriptions/detail/pre-1");
-    expect(link.getAttribute("target")).toBe("_blank");
+    expect(screen.getByText("pre-1")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Copiar nro de comprobante" })).toBeDefined();
   });
 
   it("debería ocultar el comprobante sin suscripción",

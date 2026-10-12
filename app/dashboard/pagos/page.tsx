@@ -1,10 +1,9 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 
+import CopiarComprobante from "@/components/copiar-comprobante";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
-import { comprobantePagoUrl } from "@/lib/payments/comprobante";
 
 interface TurnoRow
 {
@@ -30,32 +29,17 @@ function formatARS(cents: number | null): string
 }
 
 /**
- * Celda de comprobante: nro linkeado al detalle de MercadoPago o guion.
+ * Celda de comprobante: badge con nro copiable o guion sin pago.
+ *
+ * El detalle del pago vive en un sidepanel dentro de la cuenta de MP, sin
+ * URL pública: el nro se copia para pegarlo en el buscador de Actividad.
  *
  * @param paymentId ID del pago (`mp_payment_id`) o null.
- * @param pais País del negocio para el dominio.
- * @return Link al comprobante o guion sin pago.
+ * @return Badge copiable o guion sin pago.
  */
-function celdaComprobante(paymentId: string | null, pais: string | null): ReactNode
+function celdaComprobante(paymentId: string | null): React.ReactNode
 {
-  const url = comprobantePagoUrl(paymentId, pais);
-
-  if (url === null || paymentId === null)
-  {
-    return "—";
-  }
-
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Ver comprobante completo en MercadoPago"
-      className="font-mono text-xs text-blue-600 hover:underline"
-    >
-      {paymentId.trim()}
-    </a>
-  );
+  return <CopiarComprobante comprobanteId={paymentId} />;
 }
 
 export default async function PagosPage()
@@ -67,9 +51,6 @@ export default async function PagosPage()
     .map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
     .map((c) => [c.id, c.nombre]));
-  const pais = typeof (dashboard.negocio as { pais?: unknown } | null)?.pais === "string"
-    ? (dashboard.negocio as { pais: string }).pais
-    : null;
   const totalPendiente = turnos
     .filter((t) => t.estado === "pendiente" || t.estado === "confirmado")
     .reduce((acum, t) => acum + (t.estado === "confirmado"
@@ -131,7 +112,7 @@ export default async function PagosPage()
                         { day: "2-digit", month: "2-digit" })}
                     </td>
                     <td className="py-3 text-slate-600">
-                      {celdaComprobante(turno.mp_payment_id, pais)}
+                      {celdaComprobante(turno.mp_payment_id)}
                     </td>
                   </tr>
                 ))}
