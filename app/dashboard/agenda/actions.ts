@@ -58,9 +58,10 @@ async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise
     throw new Error("No encontramos tu negocio.");
   }
 
-  const negocioId = negocio.id as string;
+  const negocioId = (negocio as { id: string }).id;
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, inicio, cliente_id, servicio_id, mp_payment_id, google_calendar_event_id")
+    .select("id, estado, inicio, cliente_id, servicio_id, mp_payment_id," +
+      " google_calendar_event_id, sena_reembolsada")
     .eq("id", turnoId).eq("negocio_id", negocioId).single();
 
   if (turno === null)
@@ -68,23 +69,38 @@ async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise
     throw new Error("No encontramos ese turno en tu agenda.");
   }
 
-  validarTransicionTurno(turno.estado as EstadoTurno, nuevo);
+  const turnoRow = turno as unknown as TurnoEditable["turno"];
 
-  return { negocioId, turno: turno as TurnoEditable["turno"] };
+  validarTransicionTurno(turnoRow.estado as EstadoTurno, nuevo);
+
+  return { negocioId, turno: turnoRow };
 }
 
 /**
- * Intenta el reembolso automático al cancelar con seña.
+ * Intenta el reembolso automático al cancelar con seña (idempotente).
+ *
+ * Candado `sena_reembolsada`: si el dueño cancela dos veces (doble clic
+ * o requests en paralelo), el segundo llamado ve la marca y no vuelve a
+ * llamar a MercadoPago. La marca solo se escribe tras un refund exitoso:
+ * si MP falla, el turno se cancela igual y el reintento futuro puede
+ * devolver la seña (o se hace manual desde el panel de MP).
  *
  * @param negocioId ID del negocio.
+ * @param turnoId ID del turno a cancelar.
  * @param turno Turno a cancelar.
- * @return Vacío, best-effort.
+ * @return Verdadero cuando la seña quedó devuelta en este llamado.
  */
 async function intentarReembolsoAuto(
   negocioId: string,
+  turnoId: string,
   turno: Record<string, unknown>,
-): Promise<void>
+): Promise<boolean>
 {
+  if (turno.sena_reembolsada === true)
+  {
+    return false;
+  }
+
   const admin = getSupabaseAdmin();
   const { data: servicio } = typeof turno.servicio_id === "string"
     ? await admin.from("servicios").select("reembolso_auto")
@@ -110,7 +126,7 @@ async function intentarReembolsoAuto(
 
   if (!debeReembolsar)
   {
-    return;
+    return false;
   }
 
   try
@@ -121,7 +137,15 @@ async function intentarReembolsoAuto(
   {
     // Best-effort: el turno se cancela igual y la seña se devuelve
     // manual desde el panel de MercadoPago.
+    return false;
   }
+
+  await admin.from("turnos").update({
+    sena_reembolsada: true,
+    sena_reembolsada_at: new Date().toISOString(),
+  }).eq("id", turnoId);
+
+  return true;
 }
 
 /**
@@ -191,7 +215,7 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
 
   if (nuevo === "cancelado")
   {
-    await intentarReembolsoAuto(negocioId, turno);
+    await intentarReembolsoAuto(negocioId, turnoId, turno);
   }
 
   const admin = getSupabaseAdmin();

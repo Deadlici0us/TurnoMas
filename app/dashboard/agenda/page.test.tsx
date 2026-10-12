@@ -253,6 +253,20 @@ describe("AgendaPage",
     expect(screen.queryByText(/Seña \$/)).toBeNull();
   });
 
+  it("debería mostrar Devuelta cuando la seña fue reembolsada",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([turnoBase({ sena_reembolsada: true })]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await AgendaPage());
+
+    expect(screen.getByText(/· Devuelta/)).toBeDefined();
+  });
+
   it("debería cambiar estado al enviar el formulario",
   async () =>
   {

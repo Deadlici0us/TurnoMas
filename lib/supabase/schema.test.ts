@@ -40,6 +40,10 @@ const PORTAL_ANON = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0011_portal_anon.sql"),
   "utf8",
 );
+const REEMBOLSO_IDEMPOTENTE = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0012_reembolso_idempotente.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -227,5 +231,13 @@ describe("esquema Supabase",
     expect(PORTAL_ANON).not.toMatch(/policy[^;]*on turnos/);
     expect(PORTAL_ANON).not.toMatch(/policy[^;]*on clientes/);
     expect(PORTAL_ANON).not.toMatch(/policy[^;]*on negocio_secretos/);
+  });
+
+  it("debería marcar la seña reembolsada para reembolso idempotente",
+  () =>
+  {
+    expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada");
+    expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada_at");
+    expect(REEMBOLSO_IDEMPOTENTE).toMatch(/alter table turnos add column/i);
   });
 });

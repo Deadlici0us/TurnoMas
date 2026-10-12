@@ -313,6 +313,65 @@ describe("actualizarEstadoTurno transiciones",
     expect(refundSpy).not.toHaveBeenCalled();
   });
 
+  it("debería no reembolsar dos veces si la seña ya fue devuelta",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubAgenda({
+      negocio: { id: "neg-1" },
+      turno: turnoPagado({ sena_reembolsada: true }),
+      servicio: { reembolso_auto: true },
+      negocioRow: { sena_retencion_hs: 24 },
+    }, null, updates);
+    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
+
+    await actualizarEstadoTurno("t-1", "cancelado");
+
+    expect(refundSpy).not.toHaveBeenCalled();
+    expect(updates).toEqual([{ estado: "cancelado" }]);
+  });
+
+  it("debería marcar la seña como reembolsada tras devolverla",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubAgenda({
+      negocio: { id: "neg-1" },
+      turno: turnoPagado({ sena_reembolsada: false }),
+      servicio: { reembolso_auto: true },
+      negocioRow: { sena_retencion_hs: 24 },
+    }, null, updates);
+    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
+    refundSpy.mockResolvedValueOnce(undefined);
+
+    await actualizarEstadoTurno("t-1", "cancelado");
+
+    expect(refundSpy).toHaveBeenCalledOnce();
+    expect(updates).toContainEqual(
+      expect.objectContaining({ sena_reembolsada: true }),
+    );
+  });
+
+  it("debería no marcar reembolso cuando MP falla (reintentable)",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubAgenda({
+      negocio: { id: "neg-1" },
+      turno: turnoPagado({ sena_reembolsada: false }),
+      servicio: { reembolso_auto: true },
+      negocioRow: { sena_retencion_hs: 24 },
+    }, null, updates);
+    const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
+    refundSpy.mockRejectedValueOnce(new Error("mp caído"));
+
+    await expect(actualizarEstadoTurno("t-1", "cancelado")).resolves.toBeUndefined();
+    expect(updates).toEqual([{ estado: "cancelado" }]);
+  });
+
   it("debería registrar la ausencia del cliente",
   async () =>
   {
@@ -366,7 +425,10 @@ describe("actualizarEstadoTurno integración",
 
     expect(refundSpy).toHaveBeenCalledOnce();
     expect(deleteSpy).toHaveBeenCalledOnce();
-    expect(updates).toEqual([{ estado: "cancelado" }]);
+    expect(updates).toEqual([
+      expect.objectContaining({ sena_reembolsada: true }),
+      { estado: "cancelado" },
+    ]);
     expect(mockRevalidate).toHaveBeenCalledTimes(2);
   });
 });

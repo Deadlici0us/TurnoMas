@@ -27,6 +27,7 @@ interface TurnoRow
   readonly estado: "pendiente" | "confirmado" | "pagado" | "completado" | "cancelado" | "ausente";
   readonly sena_monto: number | null;
   readonly sena_porcentaje: number | null;
+  readonly sena_reembolsada?: boolean | null;
 }
 
 const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = ESTADO_BADGE;
@@ -175,6 +176,7 @@ export default async function AgendaPage()
                         <p className="text-xs text-slate-500 mt-1">
                           {`Seña $${turno.sena_monto.toLocaleString("es-AR")}`}
                           {turno.sena_porcentaje !== null ? ` (${turno.sena_porcentaje}%)` : ""}
+                          {turno.sena_reembolsada === true ? " · Devuelta" : ""}
                         </p>
                       ) : null}
                     </div>
