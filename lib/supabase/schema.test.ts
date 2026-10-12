@@ -36,6 +36,10 @@ const PORTAL_VIEWS = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0010_portal_views.sql"),
   "utf8",
 );
+const PORTAL_ANON = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0011_portal_anon.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -208,5 +212,20 @@ describe("esquema Supabase",
     expect(PORTAL_VIEWS).toContain("portal_servicios");
     expect(PORTAL_VIEWS).toMatch(/security_invoker = true/);
     expect(PORTAL_VIEWS).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
+  });
+
+  it("debería permitir lectura anónima del portal (negocios/staff/servicios activos)",
+  () =>
+  {
+    expect(PORTAL_ANON).toMatch(/create policy/i);
+    expect(PORTAL_ANON).toMatch(/for select/i);
+    expect(PORTAL_ANON).toMatch(/to anon/);
+    expect(PORTAL_ANON).toContain("negocios_portal_anon");
+    expect(PORTAL_ANON).toContain("staff_portal_anon");
+    expect(PORTAL_ANON).toContain("servicios_portal_anon");
+    expect(PORTAL_ANON).not.toMatch(/grant select on negocio_secretos/);
+    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on turnos/);
+    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on clientes/);
+    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on negocio_secretos/);
   });
 });
