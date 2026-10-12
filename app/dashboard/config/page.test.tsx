@@ -197,6 +197,17 @@ describe("ConfigPage",
       .toBeDefined();
   });
 
+  it("debería avisar seña activa por ?mp=sena-activa en vez de error 500",
+  async () =>
+  {
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
+
+    render(await ConfigPage({ searchParams: Promise.resolve({ mp: "sena-activa" }) }));
+
+    expect(screen.getByText("Tenés servicios con seña activa. Desactivalas en Servicios y volvé a desconectar."))
+      .toBeDefined();
+  });
+
   it("debería ocultar el OAuth en la demo",
   async () =>
   {

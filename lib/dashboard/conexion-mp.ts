@@ -30,3 +30,22 @@ export function debeAvisarConexionMp(
 
   return servicios.some((servicio) => servicio.sena_requerida === true);
 }
+
+/**
+ * Destino del aviso al fallar la desconexión de MercadoPago.
+ *
+ * El guarda de seña activa debe mostrar mensaje (?mp=sena-activa) en vez
+ * de 500; los errores inesperados devuelven null para propagarse.
+ *
+ * @param error Error lanzado por `desconectarMercadoPago`.
+ * @return URL de aviso o null cuando debe propagarse.
+ */
+export function destinoDesconexionMp(error: unknown): string | null
+{
+  if (error instanceof Error && error.message.includes("seña activa"))
+  {
+    return "/dashboard/config?mp=sena-activa";
+  }
+
+  return null;
+}

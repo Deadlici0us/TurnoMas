@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
@@ -10,6 +11,7 @@ import type { PenalidadListaNegra } from "./actions";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
+import { destinoDesconexionMp } from "@/lib/dashboard/conexion-mp";
 import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
@@ -106,7 +108,22 @@ async function quitarTokenMp(): Promise<void>
 {
   "use server";
 
-  await desconectarMercadoPago();
+  try
+  {
+    await desconectarMercadoPago();
+  }
+  catch (error)
+  {
+    // Guarda esperado: avisa en vez de 500. El resto se propaga (500).
+    const destino = destinoDesconexionMp(error);
+
+    if (destino !== null)
+    {
+      redirect(destino);
+    }
+
+    throw error;
+  }
 }
 
 async function quitarGoogle(): Promise<void>
@@ -286,6 +303,14 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
     return {
       texto: "No pudimos conectar MercadoPago. Probá de nuevo.",
       clase: "bg-red-50 text-red-700 border-red-200",
+    };
+  }
+
+  if (mp === "sena-activa")
+  {
+    return {
+      texto: "Tenés servicios con seña activa. Desactivalas en Servicios y volvé a desconectar.",
+      clase: "bg-amber-50 text-amber-700 border-amber-200",
     };
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { debeAvisarConexionMp } from "./conexion-mp";
+import { debeAvisarConexionMp, destinoDesconexionMp } from "./conexion-mp";
 
 describe("debeAvisarConexionMp",
 () =>
@@ -24,5 +24,26 @@ describe("debeAvisarConexionMp",
   {
     expect(debeAvisarConexionMp(null, [])).toBe(false);
     expect(debeAvisarConexionMp(null, [{ sena_requerida: false }, {}])).toBe(false);
+  });
+});
+
+describe("destinoDesconexionMp",
+() =>
+{
+  it("debería avisar con ?mp=sena-activa ante el guarda de seña",
+  () =>
+  {
+    expect(destinoDesconexionMp(
+      new Error("Tenés servicios con seña activa. Desactivalas primero en Servicios.")))
+      .toBe("/dashboard/config?mp=sena-activa");
+  });
+
+  it("debería devolver null ante errores inesperados (se propagan como 500)",
+  () =>
+  {
+    expect(destinoDesconexionMp(new Error("No pudimos desconectar MercadoPago. Probá de nuevo.")))
+      .toBeNull();
+    expect(destinoDesconexionMp(null)).toBeNull();
+    expect(destinoDesconexionMp("texto")).toBeNull();
   });
 });
