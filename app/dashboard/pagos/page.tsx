@@ -2,6 +2,12 @@ import CopiarComprobante from "@/components/copiar-comprobante";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
+import
+{
+  formatearEnZonaConFecha,
+  formatearEnZonaConSegundos,
+  resolverTimezoneNegocio,
+} from "@/lib/timezone/timezone";
 
 interface TurnoRow
 {
@@ -13,7 +19,11 @@ interface TurnoRow
   readonly monto_total: number | null;
   readonly sena_monto: number | null;
   readonly mp_payment_id?: string | null;
+  readonly updated_at?: string | null;
+  readonly created_at?: string | null;
 }
+
+const ESTADOS_CON_PAGO: ReadonlySet<TurnoRow["estado"]> = new Set(["pagado", "completado"]);
 
 function formatARS(cents: number | null): string
 {
@@ -41,11 +51,70 @@ function celdaComprobante(paymentId: string | null | undefined): React.ReactNode
   return <CopiarComprobante comprobanteId={paymentId ?? null} />;
 }
 
+/**
+ * Fecha de acreditación de la seña con precisión de segundos.
+ *
+ * Sin columna dedicada en `turnos`, `updated_at` es el mejor proxy: el
+ * trigger `set_updated_at()` lo actualiza al confirmar el pago (webhook
+ * de MercadoPago o "Marcar seña pagada"). Solo aplica a estados con
+ * cobro acreditado; en cualquier otro caso muestra guion.
+ *
+ * @param turno Fila del turno con estado y `updated_at`.
+ * @param timeZone Zona IANA del negocio.
+ * @return `DD/MM/YYYY HH:mm:ss` en hora civil o guion sin acreditación.
+ */
+function celdaPagoSena(turno: TurnoRow, timeZone: string): string
+{
+  if (!ESTADOS_CON_PAGO.has(turno.estado))
+  {
+    return "—";
+  }
+
+  if (typeof turno.updated_at !== "string" || Number.isNaN(new Date(turno.updated_at).getTime()))
+  {
+    return "—";
+  }
+
+  return formatearEnZonaConSegundos(turno.updated_at, timeZone);
+}
+
+/**
+ * Ordena turnos por fecha con recientes primero y desempates estables.
+ *
+ * @param turnos Filas a ordenar.
+ * @return Nueva lista ordenada por `inicio` desc, `updated_at` desc e `id`.
+ */
+function ordenarPorFecha(turnos: TurnoRow[]): TurnoRow[]
+{
+  return turnos.slice().sort((a, b) =>
+  {
+    const porInicio = new Date(b.inicio).getTime() - new Date(a.inicio).getTime();
+
+    if (porInicio !== 0)
+    {
+      return porInicio;
+    }
+
+    const actualizadoA = typeof a.updated_at === "string" ? new Date(a.updated_at).getTime() : NaN;
+    const actualizadoB = typeof b.updated_at === "string" ? new Date(b.updated_at).getTime() : NaN;
+    const porActualizado = (Number.isNaN(actualizadoB) ? 0 : actualizadoB)
+      - (Number.isNaN(actualizadoA) ? 0 : actualizadoA);
+
+    if (porActualizado !== 0)
+    {
+      return porActualizado;
+    }
+
+    return a.id.localeCompare(b.id);
+  });
+}
+
 export default async function PagosPage()
 {
   const { data: dashboard } = await getDashboardData();
-  const turnos = (dashboard.turnos as TurnoRow[]).slice()
-    .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
+  const negocioRow = dashboard.negocio as { timezone?: unknown; pais?: unknown };
+  const timeZone = resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais });
+  const turnos = ordenarPorFecha(dashboard.turnos as TurnoRow[]);
   const nombrePorServicio = new Map((dashboard.servicios as Array<{ id: string; nombre: string }>)
     .map((s) => [s.id, s.nombre]));
   const nombrePorCliente = new Map((dashboard.clientes as Array<{ id: string; nombre: string }>)
@@ -80,7 +149,8 @@ export default async function PagosPage()
                   <th className="pb-3 font-semibold">Seña</th>
                   <th className="pb-3 font-semibold">Saldo</th>
                   <th className="pb-3 font-semibold">Estado</th>
-                  <th className="pb-3 font-semibold">Fecha</th>
+                  <th className="pb-3 font-semibold">Inicio</th>
+                  <th className="pb-3 font-semibold">Pago seña</th>
                   <th className="pb-3 font-semibold">Comprobante</th>
                 </tr>
               </thead>
@@ -102,9 +172,11 @@ export default async function PagosPage()
                         {etiquetaEstadoPara(turno.estado)}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-400">
-                      {new Date(turno.inicio).toLocaleDateString("es-AR",
-                        { day: "2-digit", month: "2-digit" })}
+                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                      {formatearEnZonaConFecha(turno.inicio, timeZone)}
+                    </td>
+                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                      {celdaPagoSena(turno, timeZone)}
                     </td>
                     <td className="py-3 text-slate-400">
                       {celdaComprobante(turno.mp_payment_id)}

@@ -81,9 +81,10 @@ describe("AgendaPage",
   {
     mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByRole("heading", { name: "Agenda" })).toBeDefined();
+    expect(screen.getByText("Citas del día seleccionado")).toBeDefined();
     expect(screen.getByRole("button", { name: "Marcar seña pagada" })).toBeDefined();
     expect(screen.queryByRole("link", { name: "WhatsApp" })).toBeNull();
   });
@@ -97,7 +98,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByRole("button", { name: "Completar" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Ausente" })).toBeDefined();
@@ -116,14 +117,14 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     const wa = screen.getByRole("link", { name: "WhatsApp" });
 
     expect(wa.getAttribute("href")).toContain("wa.me/5491112345678");
   });
 
-  it("debería avisar sin turnos del profesional",
+  it("debería avisar sin citas el día seleccionado",
   async () =>
   {
     mockData.mockResolvedValueOnce({
@@ -134,7 +135,37 @@ describe("AgendaPage",
 
     render(await AgendaPage());
 
-    expect(screen.getByText("Sin turnos para este profesional.")).toBeDefined();
+    expect(screen.getByText("Sin citas este día.")).toBeDefined();
+  });
+
+  it("debería mostrar solo las citas del día seleccionado en orden por horario",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: {
+        ...dashboardBase([]),
+        clientes: [
+          { id: "cli-1", nombre: "Manana", whatsapp: "+5491112345678" },
+          { id: "cli-2", nombre: "Tarde", whatsapp: "+5491112345679" },
+          { id: "cli-3", nombre: "OtroDia", whatsapp: "+5491112345680" },
+        ],
+        turnos: [
+          turnoBase({ id: "t-tarde", cliente_id: "cli-2", inicio: "2026-10-06T16:00:00-03:00" }),
+          turnoBase({ id: "t-otro", cliente_id: "cli-3", inicio: "2026-10-07T09:00:00-03:00" }),
+          turnoBase({ id: "t-manana", cliente_id: "cli-1", inicio: "2026-10-06T09:00:00-03:00" }),
+        ],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
+
+    const tarjetas = screen.getAllByTestId("cita-dia");
+
+    expect(tarjetas).toHaveLength(2);
+    expect(tarjetas[0]?.textContent).toContain("Manana");
+    expect(tarjetas[1]?.textContent).toContain("Tarde");
   });
 
   it("debería mapear eventos externos de Google",
@@ -199,7 +230,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByRole("button", { name: "Completar" })).toBeDefined();
     expect(screen.queryByRole("link", { name: "WhatsApp" })).toBeNull();
@@ -224,7 +255,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByRole("link", { name: "WhatsApp" })).toBeDefined();
   });
@@ -238,7 +269,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByText(/Seña \$/)).toBeDefined();
     expect(screen.queryByText(/\(50%\)/)).toBeNull();
@@ -253,7 +284,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.queryByText(/Seña \$/)).toBeNull();
   });
@@ -267,7 +298,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
     expect(screen.getByText(/· Devuelta/)).toBeDefined();
   });
@@ -283,7 +314,7 @@ describe("AgendaPage",
       isDemo: false,
     } as never);
 
-    render(await AgendaPage());
+    render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
     await user.click(screen.getByRole("button", { name: "Marcar seña pagada" }));
 
     expect(mockCambiar).toHaveBeenCalledWith("t-1", "pagado");

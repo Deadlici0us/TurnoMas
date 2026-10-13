@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import AgendaCalendar from "./agenda-calendar";
+import type { CitaDia } from "./agenda-citas-dia";
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const HOY = "2026-05-12T12:00:00-03:00";
@@ -25,6 +26,24 @@ function turnoBase(overrides: Record<string, unknown> = {})
   };
 }
 
+function citaBase(overrides: Record<string, unknown> = {}): CitaDia
+{
+  return {
+    id: "c-1",
+    staffId: "staff-1",
+    inicio: "2026-05-12T10:00:00-03:00",
+    estado: "confirmado",
+    cliente: "Juan",
+    servicio: "Corte",
+    profesional: "Diego",
+    sena_monto: 5000,
+    sena_porcentaje: 50,
+    sena_reembolsada: null,
+    whatsappHref: null,
+    ...overrides,
+  } as CitaDia;
+}
+
 function propsBase(overrides: Record<string, unknown> = {})
 {
   return {
@@ -33,6 +52,8 @@ function propsBase(overrides: Record<string, unknown> = {})
     staff: STAFF,
     turnos: [turnoBase()],
     externos: [{ id: "e-1", titulo: "Dentista", inicio: "2026-05-12T16:00:00-03:00", fin: "2026-05-12T17:00:00-03:00" }],
+    citas: [citaBase()],
+    onCambiarEstado: async () => {},
     vistaInicial: "dia",
     fechaInicial: "2026-05-12",
     ...overrides,
@@ -111,5 +132,54 @@ describe("AgendaCalendar",
     await user.click(screen.getByRole("button", { name: "Mes" }));
 
     expect(screen.getByText(/may 2026/)).toBeDefined();
+  });
+
+  it("debería mostrar las citas del día seleccionado en orden por horario",
+  () =>
+  {
+    render(<AgendaCalendar {...propsBase({
+      citas: [
+        citaBase({ id: "c-tarde", inicio: "2026-05-12T16:00:00-03:00", cliente: "Tarde" }),
+        citaBase({ id: "c-manana", inicio: "2026-05-12T09:00:00-03:00", cliente: "Manana" }),
+        citaBase({ id: "c-otro", inicio: "2026-05-13T09:00:00-03:00", cliente: "OtroDia" }),
+      ],
+    })} />);
+
+    const tarjetas = screen.getAllByTestId("cita-dia");
+
+    expect(tarjetas).toHaveLength(2);
+    expect(tarjetas[0]?.textContent).toContain("Manana");
+    expect(tarjetas[1]?.textContent).toContain("Tarde");
+  });
+
+  it("debería actualizar las citas al navegar de día",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<AgendaCalendar {...propsBase()} />);
+    await user.click(screen.getByRole("button", { name: "Día siguiente" }));
+
+    expect(screen.getByText("Sin citas este día.")).toBeDefined();
+    expect(screen.queryByTestId("cita-dia")).toBeNull();
+  });
+
+  it("debería filtrar las citas del día por profesional",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<AgendaCalendar {...propsBase({
+      citas: [
+        citaBase({ id: "c-1", staffId: "staff-1", cliente: "Juan" }),
+        citaBase({ id: "c-2", staffId: "staff-2", cliente: "Camila Cli", profesional: "Camila" }),
+      ],
+    })} />);
+    await user.click(screen.getByRole("button", { name: "Camila" }));
+
+    const tarjetas = screen.getAllByTestId("cita-dia");
+
+    expect(tarjetas).toHaveLength(1);
+    expect(tarjetas[0]?.textContent).toContain("Camila Cli");
   });
 });

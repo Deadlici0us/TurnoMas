@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 
 import LeyendaEstados from "@/components/leyenda-estados";
+import AgendaCitasDia, { type CitaDia } from "@/components/agenda-citas-dia";
+import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { claseBadgePara, claseGrillaPara, EXTERNO_LEYENDA } from "@/lib/dashboard/estados-colores";
 import
 {
@@ -49,6 +51,8 @@ interface AgendaCalendarProps
   readonly staff: ReadonlyArray<{ readonly id: string; readonly nombre: string }>;
   readonly turnos: readonly CalendarTurno[];
   readonly externos: readonly CalendarExterno[];
+  readonly citas: readonly CitaDia[];
+  readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<void>;
   readonly vistaInicial?: unknown;
   readonly fechaInicial?: unknown;
 }
@@ -100,10 +104,11 @@ function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaC
  * Calendario visual de la agenda con vistas día, semana y mes.
  *
  * Día en curso por defecto; navegación por día/semana/mes, selector
- * de fecha y filtro por profesional. Solo visual: las acciones
- * (cambiar estado, WhatsApp) siguen en la lista inferior de la página.
+ * de fecha y filtro por profesional. Debajo del calendario muestra las
+ * citas del día seleccionado en orden por horario (con sus acciones).
+ * El contenedor se ajusta al tamaño del calendario (`h-auto`).
  *
- * @return Calendario con toolbar, vistas y leyenda de estados.
+ * @return Calendario con toolbar, vistas, leyenda y citas del día.
  */
 export default function AgendaCalendar(props: AgendaCalendarProps)
 {
@@ -148,6 +153,11 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
   const turnosFiltrados = staffId === null
     ? props.turnos
     : props.turnos.filter((t) => t.staffId === staffId);
+
+  const citasFiltradas = staffId === null
+    ? props.citas
+    : props.citas.filter((c) => c.staffId === staffId);
+  const diaSeleccionado = claveDeBase(base);
 
   const rango = useMemo(() =>
   {
@@ -321,7 +331,9 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
   const altoSemana = (rango.horaHasta - rango.horaDesde) * 44;
 
   return (
-    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4 sm:mb-6">
+    <div className="w-full h-auto space-y-4 sm:space-y-6">
+    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur
+      p-4 sm:p-6 h-auto w-full">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <p className="text-base font-semibold text-slate-100">Calendario</p>
@@ -569,6 +581,13 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           ) : null}
         </div>
       ) : null}
+    </div>
+    <AgendaCitasDia
+      timeZone={props.timeZone}
+      diaClave={diaSeleccionado}
+      citas={citasFiltradas}
+      onCambiarEstado={props.onCambiarEstado}
+    />
     </div>
   );
 }

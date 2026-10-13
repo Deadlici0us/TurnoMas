@@ -48,6 +48,7 @@ export interface PartesCiviles
   readonly dia: number;
   readonly hora: number;
   readonly minuto: number;
+  readonly segundo: number;
   readonly weekday: number;
 }
 
@@ -184,6 +185,7 @@ export function obtenerPartesCiviles(fecha: Date, timeZone: string): PartesCivil
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hour12: false,
     weekday: "short",
   }).formatToParts(fecha);
@@ -195,6 +197,7 @@ export function obtenerPartesCiviles(fecha: Date, timeZone: string): PartesCivil
     dia: Number(get("day")),
     hora: Number(get("hour")) % 24,
     minuto: Number(get("minute")),
+    segundo: Number(get("second")),
     weekday: weekdayEnANumero(get("weekday")),
   };
 }
@@ -247,6 +250,52 @@ export function formatearEnZona(valor: Date | string, timeZone: string): string
   const partes = obtenerPartesCiviles(fecha, timeZone);
 
   return `${dos(partes.dia)}/${dos(partes.mes)} ${dos(partes.hora)}:${dos(partes.minuto)}`;
+}
+
+/**
+ * Formatea un instante con fecha completa y precisión de minutos.
+ *
+ * @param valor Instante ISO o Date.
+ * @param timeZone Zona IANA del negocio.
+ * @return `DD/MM/YYYY HH:mm` en hora civil, o el raw si es inválido.
+ */
+export function formatearEnZonaConFecha(valor: Date | string, timeZone: string): string
+{
+  const fecha = aFecha(valor);
+
+  if (fecha === null)
+  {
+    return typeof valor === "string" ? valor : String(valor);
+  }
+
+  const dos = (n: number): string => String(n).padStart(2, "0");
+  const partes = obtenerPartesCiviles(fecha, timeZone);
+
+  return `${dos(partes.dia)}/${dos(partes.mes)}/${partes.anio} ` +
+    `${dos(partes.hora)}:${dos(partes.minuto)}`;
+}
+
+/**
+ * Formatea un instante con fecha completa y precisión de segundos.
+ *
+ * @param valor Instante ISO o Date.
+ * @param timeZone Zona IANA del negocio.
+ * @return `DD/MM/YYYY HH:mm:ss` en hora civil, o el raw si es inválido.
+ */
+export function formatearEnZonaConSegundos(valor: Date | string, timeZone: string): string
+{
+  const fecha = aFecha(valor);
+
+  if (fecha === null)
+  {
+    return typeof valor === "string" ? valor : String(valor);
+  }
+
+  const dos = (n: number): string => String(n).padStart(2, "0");
+  const partes = obtenerPartesCiviles(fecha, timeZone);
+
+  return `${dos(partes.dia)}/${dos(partes.mes)}/${partes.anio} ` +
+    `${dos(partes.hora)}:${dos(partes.minuto)}:${dos(partes.segundo)}`;
 }
 
 /**

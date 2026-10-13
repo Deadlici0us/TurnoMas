@@ -1,7 +1,7 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { ESTADO_BADGE, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import AgendaCalendar from "@/components/agenda-calendar";
+import type { CitaDia } from "@/components/agenda-citas-dia";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
 import { linkWhatsapp } from "@/lib/notifications/whatsapp";
@@ -28,8 +28,6 @@ interface TurnoRow
   readonly sena_porcentaje: number | null;
   readonly sena_reembolsada?: boolean | null;
 }
-
-const ESTADO_ESTILOS: Record<TurnoRow["estado"], string> = ESTADO_BADGE;
 
 function formatearInicio(iso: string, timeZone: string): string
 {
@@ -145,6 +143,22 @@ export default async function AgendaPage(props?: {
     };
   });
 
+  // Detalle completo para las citas del día seleccionado (todos los estados,
+  // orden por horario lo resuelve el componente cliente).
+  const citas: CitaDia[] = turnos.map((t) => ({
+    id: t.id,
+    staffId: t.staff_id,
+    inicio: t.inicio,
+    estado: t.estado,
+    cliente: nombrePorCliente.get(t.cliente_id) ?? "Cliente",
+    servicio: nombrePorServicio.get(t.servicio_id) ?? "Servicio",
+    profesional: nombrePorStaff.get(t.staff_id) ?? "Profesional",
+    sena_monto: t.sena_monto,
+    sena_porcentaje: t.sena_porcentaje,
+    sena_reembolsada: t.sena_reembolsada ?? null,
+    whatsappHref: linkRefuerzo(t),
+  }));
+
   return (
     <div className="space-y-4 sm:space-y-6">
     <AgendaCalendar
@@ -153,109 +167,11 @@ export default async function AgendaPage(props?: {
       staff={staff.map((s) => ({ id: s.id, nombre: s.nombre }))}
       turnos={turnosGrilla}
       externos={externos}
+      citas={citas}
+      onCambiarEstado={cambiarEstado}
       vistaInicial={params?.vista}
       fechaInicial={params?.fecha}
     />
-    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-100 mb-1">Agenda</h1>
-      <p className="text-sm text-slate-400 mb-4">Turnos por profesional con estados reales</p>
-      <div className="space-y-6">
-        {staff.map((profesional) => (
-          <section key={profesional.id}>
-            <h2 className="font-semibold text-slate-100 mb-3">{profesional.nombre}</h2>
-            <div className="space-y-3">
-              {turnos.filter((t) => t.staff_id === profesional.id).map((turno) => (
-                <div key={turno.id} className="p-4 border border-white/10 rounded-xl bg-white/5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-100">
-                        {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
-                      </h3>
-                      <p className="text-sm text-slate-400">
-                        {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio")
-                          + " · " + formatearInicio(turno.inicio, timeZone)}
-                      </p>
-                      {turno.sena_monto !== null ? (
-                        <p className="text-xs text-slate-400 mt-1">
-                          {`Seña $${turno.sena_monto.toLocaleString("es-AR")}`}
-                          {turno.sena_porcentaje !== null ? ` (${turno.sena_porcentaje}%)` : ""}
-                          {turno.sena_reembolsada === true ? " · Devuelta" : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                    <span
-                      className={"shrink-0 text-xs font-semibold px-3 py-1 rounded-full border "
-                        + ESTADO_ESTILOS[turno.estado]}
-                    >
-                      {etiquetaEstadoPara(turno.estado)}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {turno.estado === "pendiente" ? (
-                      <>
-                        <form action={cambiarEstado.bind(null, turno.id, "pagado")}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
-                            text-white hover:bg-green-700">
-                            Marcar seña pagada
-                          </button>
-                        </form>
-                        <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-white/15 hover:bg-white/10">
-                            Cancelar
-                          </button>
-                        </form>
-                      </>
-                    ) : null}
-                    {turno.estado === "pagado" || turno.estado === "confirmado" ? (
-                      <>
-                        <form action={cambiarEstado.bind(null, turno.id, "completado")}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600
-                            text-white hover:bg-blue-700">
-                            Completar
-                          </button>
-                        </form>
-                        <form action={cambiarEstado.bind(null, turno.id, "ausente")}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600
-                            text-white hover:bg-red-700">
-                            Ausente
-                          </button>
-                        </form>
-                        <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-white/15 hover:bg-white/10">
-                            Cancelar
-                          </button>
-                        </form>
-                      </>
-                    ) : null}
-                    {(() =>
-                    {
-                      const wa = linkRefuerzo(turno);
-
-                      return wa !== null ? (
-                        <a
-                          href={wa}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-green-500/40 text-green-300 hover:bg-green-500/20"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : null;
-                    })()}
-                  </div>
-                </div>
-              ))}
-              {turnos.filter((t) => t.staff_id === profesional.id).length === 0 ? (
-                <p className="text-sm text-slate-400">Sin turnos para este profesional.</p>
-              ) : null}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import
   claveDiaEnZona,
   DEFAULT_TIMEZONE,
   formatearEnZona,
+  formatearEnZonaConFecha,
+  formatearEnZonaConSegundos,
   minutosEnZona,
   resolverTimezoneNegocio,
   validarTimezone,
@@ -61,5 +63,25 @@ describe("timezone por negocio",
   {
     expect(formatearEnZona("2026-09-30T17:00:00.000Z", "America/Argentina/Buenos_Aires")).toBe("30/09 14:00");
     expect(formatearEnZona("no-fecha", "America/Argentina/Buenos_Aires")).toBe("no-fecha");
+  });
+
+  it("debería formatear inicio con fecha completa y precisión de minutos",
+  () =>
+  {
+    expect(formatearEnZonaConFecha("2026-10-05T14:07:00.000Z", "America/Argentina/Buenos_Aires"))
+      .toBe("05/10/2026 11:07");
+    expect(formatearEnZonaConFecha(new Date("2026-01-15T05:30:00.000Z"), "America/Cancun"))
+      .toBe("15/01/2026 00:30");
+    expect(formatearEnZonaConFecha("no-fecha", "America/Argentina/Buenos_Aires")).toBe("no-fecha");
+  });
+
+  it("debería formatear pago de seña con precisión de segundos",
+  () =>
+  {
+    expect(formatearEnZonaConSegundos("2026-10-05T14:07:09.000Z", "America/Argentina/Buenos_Aires"))
+      .toBe("05/10/2026 11:07:09");
+    expect(formatearEnZonaConSegundos(new Date("2026-01-15T05:30:45.000Z"), "America/Cancun"))
+      .toBe("15/01/2026 00:30:45");
+    expect(formatearEnZonaConSegundos("no-fecha", "America/Argentina/Buenos_Aires")).toBe("no-fecha");
   });
 });

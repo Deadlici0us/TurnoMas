@@ -161,4 +161,87 @@ describe("PagosPage",
     expect(screen.getByText("Comprobante")).toBeDefined();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
+
+  it("debería mostrar el inicio con fecha completa y precisión de minutos",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        turnoBase({ id: "t-1", inicio: "2026-10-05T14:07:00.000Z", estado: "pendiente" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    expect(screen.getByText("Inicio")).toBeDefined();
+    expect(screen.getByText("05/10/2026 11:07")).toBeDefined();
+  });
+
+  it("debería mostrar la fecha de pago de la seña con precisión de segundos",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        turnoBase({
+          id: "t-1",
+          estado: "pagado",
+          inicio: "2026-10-05T14:07:00.000Z",
+          updated_at: "2026-10-05T15:07:09.000Z",
+        }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    expect(screen.getByText("Pago seña")).toBeDefined();
+    expect(screen.getByText("05/10/2026 12:07:09")).toBeDefined();
+  });
+
+  it("debería mostrar guion en pago de seña sin acreditación",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        turnoBase({ id: "t-1", estado: "pendiente", updated_at: "2026-10-05T15:07:09.000Z" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    expect(screen.getByText("Pago seña")).toBeDefined();
+    expect(screen.queryByText("05/10/2026 12:07:09")).toBeNull();
+  });
+
+  it("debería ordenar por fecha con recientes primero",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: {
+        ...dashboardBase([]),
+        clientes: [
+          { id: "cli-1", nombre: "Juan" },
+          { id: "cli-2", nombre: "Maria" },
+        ],
+        turnos: [
+          turnoBase({ id: "t-viejo", cliente_id: "cli-1", inicio: "2026-10-01T14:00:00.000Z" }),
+          turnoBase({ id: "t-nuevo", cliente_id: "cli-2", inicio: "2026-10-10T14:00:00.000Z" }),
+        ],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    const filas = screen.getAllByRole("row").slice(1);
+
+    expect(filas[0]?.textContent).toContain("Maria");
+    expect(filas[1]?.textContent).toContain("Juan");
+  });
 });
