@@ -49,12 +49,15 @@ export default async function AgendaPage(props?: {
   const { data: dashboard } = await getDashboardData();
   const staff = dashboard.staff as StaffRow[];
   const negocioRow = dashboard.negocio as {
-    id?: unknown; nombre?: unknown; timezone?: unknown; pais?: unknown;
+    id?: unknown; nombre?: unknown; timezone?: unknown; pais?: unknown; horarios?: unknown;
     msg_recordatorio_subject?: unknown; msg_recordatorio_cuerpo?: unknown;
     msg_resena_subject?: unknown; msg_resena_cuerpo?: unknown;
   };
   const negocioNombre = typeof negocioRow.nombre === "string" ? negocioRow.nombre : "tu negocio";
   const timeZone = resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais });
+  const horariosNegocio = typeof negocioRow.horarios === "object" && negocioRow.horarios !== null
+    ? negocioRow.horarios as Record<string, unknown>
+    : {};
   const base = readEnv("NEXT_PUBLIC_APP_URL")
     ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : null);
   const turnos = (dashboard.turnos as TurnoRow[]).slice().sort((a, b) =>
@@ -171,6 +174,7 @@ export default async function AgendaPage(props?: {
       onCambiarEstado={cambiarEstado}
       vistaInicial={params?.vista}
       fechaInicial={params?.fecha}
+      horariosNegocio={horariosNegocio}
     />
     </div>
   );

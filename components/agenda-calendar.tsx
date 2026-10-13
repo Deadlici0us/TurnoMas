@@ -18,6 +18,7 @@ import
   normalizarVista,
   resolverVistaAgenda,
 } from "@/lib/agenda/navegacion";
+import { resolverBaseHorarioNegocio } from "@/lib/agenda/horario-rango";
 import
 {
   type DiaCivil,
@@ -55,6 +56,7 @@ interface AgendaCalendarProps
   readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<void>;
   readonly vistaInicial?: unknown;
   readonly fechaInicial?: unknown;
+  readonly horariosNegocio?: Record<string, unknown>;
 }
 
 const HORA_DESDE_DEFECTO = 8;
@@ -214,8 +216,15 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
 
   const rango = useMemo(() =>
   {
-    let min = HORA_DESDE_DEFECTO * 60;
-    let max = HORA_HASTA_DEFECTO * 60;
+    const diasParaBase = vista === "dia" ? [base] : vista === "semana" ? dias : [];
+    const usaHorario = props.horariosNegocio !== undefined && diasParaBase.length > 0;
+    const baseHorario = usaHorario
+      ? resolverBaseHorarioNegocio(diasParaBase, props.horariosNegocio ?? {})
+      : null;
+    const baseDesde = baseHorario?.horaDesde ?? HORA_DESDE_DEFECTO;
+    const baseHasta = baseHorario?.horaHasta ?? HORA_HASTA_DEFECTO;
+    let min = baseDesde * 60;
+    let max = baseHasta * 60;
 
     const considerar = (inicioIso: string, finIso: string): void =>
     {
@@ -230,7 +239,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       min = Math.min(min, minutosEnZona(inicio, props.timeZone));
       const mismoDia = claveDiaEnZona(inicio, props.timeZone) === claveDiaEnZona(fin, props.timeZone);
 
-      max = Math.max(max, mismoDia ? minutosEnZona(fin, props.timeZone) : HORA_HASTA_DEFECTO * 60);
+      max = Math.max(max, mismoDia ? minutosEnZona(fin, props.timeZone) : baseHasta * 60);
     };
 
     for (const t of turnosFiltrados)
@@ -243,11 +252,15 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       considerar(e.inicio, e.fin);
     }
 
-    const horaDesde = Math.max(0, Math.min(HORA_DESDE_DEFECTO, Math.floor(min / 60)));
-    const horaHasta = Math.min(24, Math.max(HORA_HASTA_DEFECTO, Math.ceil(max / 60)));
+    const horaDesde = Math.max(0, Math.min(baseDesde, Math.floor(min / 60)));
+    const horaHasta = Math.min(24, Math.max(baseHasta, Math.ceil(max / 60)));
 
-    return { horaDesde, horaHasta: Math.max(horaHasta, horaDesde + 4) };
-  }, [turnosFiltrados, props.externos, props.timeZone]);
+    return {
+      horaDesde,
+      horaHasta: Math.max(horaHasta, horaDesde + 4),
+      cerrado: baseHorario !== null && !baseHorario.hayHorario,
+    };
+  }, [turnosFiltrados, props.externos, props.timeZone, props.horariosNegocio, vista, dias, base]);
 
   const horas = useMemo(
     () => Array.from({ length: rango.horaHasta - rango.horaDesde }, (_, i) => rango.horaDesde + i),
@@ -514,7 +527,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
             ))}
             {bloquesDelDia(claveDeBase(base)).length === 0 ? (
               <p className="absolute inset-x-0 top-1/2 text-center text-sm text-slate-400">
-                Sin turnos este día.
+                {rango.cerrado ? "Sin turnos este día · Cerrado." : "Sin turnos este día."}
               </p>
             ) : null}
           </div>
