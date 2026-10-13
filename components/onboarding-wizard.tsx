@@ -63,54 +63,57 @@ export default function OnboardingWizard()
 
   return (
     <div className="max-w-xl w-full px-8 py-12">
-      <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 space-y-8">
+      <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 space-y-8
+        backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">{t("onboarding.title")}</h1>
-          <p className="text-sm text-slate-600">{t("onboarding.subtitle")}</p>
+          <h1 className="text-2xl font-bold text-white mb-2">{t("onboarding.title")}</h1>
+          <p className="text-sm text-slate-400">{t("onboarding.subtitle")}</p>
         </div>
 
         {paso === 1 && (
           <form action={createBusiness} className="space-y-4">
-            <h2 className="font-semibold text-slate-900">{t("onboarding.step1Title")}</h2>
-            <p className="text-sm text-slate-600">{t("onboarding.step1Desc")}</p>
+            <h2 className="font-semibold text-white">{t("onboarding.step1Title")}</h2>
+            <p className="text-sm text-slate-400">{t("onboarding.step1Desc")}</p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-300 mb-1">
                 {t("auth.businessName")}
               </label>
               <input
                 name="nombre"
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                  focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-300 mb-1">
                 {t("onboarding.country")}
               </label>
               <select
                 name="pais"
                 value={pais}
                 onChange={(event) => setPais(event.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                  focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
               >
                 <option value="ar">Argentina (ar)</option>
                 <option value="mx">México (mx)</option>
               </select>
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-400">
               {t("onboarding.urlPreview")}:{" "}
-              <span className="font-mono font-semibold text-slate-900">{preview}</span>
+              <span className="font-mono font-semibold text-white">{preview}</span>
             </p>
             <input type="hidden" name="timezone" value={timezoneDetectada} />
-            <p className="text-xs text-slate-500">Zona horaria detectada: {timezoneDetectada}.</p>
+            <p className="text-xs text-slate-400">Zona horaria detectada: {timezoneDetectada}.</p>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-                hover:bg-blue-700 transition-colors"
+              className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
+                rounded-xl hover:bg-brand-500 transition-all duration-300"
             >
+              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
+                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
               {t("onboarding.crearNegocio")}
             </button>
           </form>
@@ -118,18 +121,18 @@ export default function OnboardingWizard()
 
         {paso === 2 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-slate-900">{t("onboarding.step2Title")}</h2>
-            <p className="text-sm text-slate-600">{t("onboarding.step2Desc")}</p>
+            <h2 className="font-semibold text-white">{t("onboarding.step2Title")}</h2>
+            <p className="text-sm text-slate-400">{t("onboarding.step2Desc")}</p>
             {mpOk ? (
               <>
-                <p className="text-sm font-semibold text-green-700 bg-green-50 border
-                  border-green-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-emerald-300 bg-emerald-500/10 border
+                  border-emerald-500/30 rounded-xl p-3">
                   {"✓ "}{t("onboarding.mpConectado")}
                 </p>
                 <button
                   onClick={() => setPaso(3)}
-                  className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-                    hover:bg-blue-700 transition-colors"
+                  className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
+                    hover:bg-brand-500 transition-colors"
                 >
                   {t("onboarding.continuar")}
                 </button>
@@ -138,12 +141,12 @@ export default function OnboardingWizard()
               <>
                 <Link
                   href={mpAuthorizeHref}
-                  className="block text-center w-full bg-blue-600 text-white font-semibold py-3
-                    rounded-lg hover:bg-blue-700 transition-colors"
+                  className="block text-center w-full bg-brand-600 text-white font-semibold py-3
+                    rounded-xl hover:bg-brand-500 transition-colors"
                 >
                   {t("onboarding.connectMp")}
                 </Link>
-                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-xl p-3">
                   {t("onboarding.mpObligatorio")}
                 </p>
               </>
@@ -151,8 +154,8 @@ export default function OnboardingWizard()
             <div className="flex gap-3">
               <button
                 onClick={() => setPaso(1)}
-                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
-                  rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
+                  rounded-xl hover:bg-white/10 transition-colors"
               >
                 ←
               </button>
@@ -162,27 +165,27 @@ export default function OnboardingWizard()
 
         {paso === 3 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-slate-900">{t("onboarding.step3Title")}</h2>
-            <p className="text-sm text-slate-600">{t("onboarding.step3Desc")}</p>
+            <h2 className="font-semibold text-white">{t("onboarding.step3Title")}</h2>
+            <p className="text-sm text-slate-400">{t("onboarding.step3Desc")}</p>
             <button
               onClick={() => setWaConectado(true)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-                hover:bg-blue-700 transition-colors"
+              className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
+                hover:bg-brand-500 transition-colors"
             >
               {waConectado ? "✓ " : ""}{t("onboarding.connectWa")}
             </button>
             <div className="flex gap-3">
               <button
                 onClick={() => setPaso(2)}
-                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
-                  rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
+                  rounded-xl hover:bg-white/10 transition-colors"
               >
                 ←
               </button>
               <button
                 onClick={() => setPaso(4)}
-                className="flex-1 border border-slate-300 text-slate-700 font-semibold py-3
-                  rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
+                  rounded-xl hover:bg-white/10 transition-colors"
               >
                 {t("onboarding.skipWa")}
               </button>
@@ -192,29 +195,29 @@ export default function OnboardingWizard()
 
         {paso === 4 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-slate-900">{t("onboarding.step4Title")}</h2>
-            <p className="text-sm text-slate-600">{t("onboarding.step4Desc")}</p>
+            <h2 className="font-semibold text-white">{t("onboarding.step4Title")}</h2>
+            <p className="text-sm text-slate-400">{t("onboarding.step4Desc")}</p>
             <button
               onClick={() => setGcalConectado(true)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-                hover:bg-blue-700 transition-colors"
+              className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
+                hover:bg-brand-500 transition-colors"
             >
               {gcalConectado ? "✓ " : ""}{t("onboarding.connectGcal")}
             </button>
-            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-xl p-3">
               {t("onboarding.trialNote")}
             </p>
             <Link
               href="/dashboard"
-              className="block text-center w-full bg-blue-600 text-white font-semibold py-3
-                rounded-lg hover:bg-blue-700 transition-colors"
+              className="block text-center w-full bg-brand-600 text-white font-semibold py-3
+                rounded-xl hover:bg-brand-500 transition-colors"
             >
               {t("onboarding.finish")}
             </Link>
             <button
               onClick={() => setPaso(3)}
-              className="w-full border border-slate-300 text-slate-700 font-semibold py-3
-                rounded-lg hover:bg-slate-50 transition-colors"
+              className="w-full border border-white/15 text-slate-200 font-semibold py-3
+                rounded-xl hover:bg-white/10 transition-colors"
             >
               ←
             </button>

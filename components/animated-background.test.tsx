@@ -6,7 +6,7 @@ import AnimatedBackground from "./animated-background";
 describe("AnimatedBackground",
 () =>
 {
-  it("debería renderizar fondo oculto con tres brillos y viñeta",
+  it("debería renderizar fondo oculto con aurora, grilla, tres brillos y viñeta",
   () =>
   {
     render(<AnimatedBackground />);
@@ -14,7 +14,21 @@ describe("AnimatedBackground",
     const fondo = screen.getByTestId("fondo-animado");
 
     expect(fondo).toHaveAttribute("aria-hidden", "true");
-    expect(fondo.children).toHaveLength(4);
+    expect(fondo.children).toHaveLength(6);
+  });
+
+  it("debería incluir capa aurora y grilla con movimiento continuo",
+  () =>
+  {
+    render(<AnimatedBackground />);
+
+    const fondo = screen.getByTestId("fondo-animado");
+
+    expect(fondo.innerHTML).toContain("animate-aurora");
+    expect(fondo.innerHTML).toContain("animate-grid-pan");
+    expect(fondo.innerHTML).toContain("animate-float-a");
+    expect(fondo.innerHTML).toContain("animate-float-b");
+    expect(fondo.innerHTML).toContain("animate-float-c");
   });
 
   it("debería quedar detrás del contenido en flujo",

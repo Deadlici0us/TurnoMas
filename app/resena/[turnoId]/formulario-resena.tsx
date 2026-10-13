@@ -64,13 +64,13 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
             href={resultado.mapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg
-              hover:bg-blue-700 transition-colors"
+            className="inline-flex px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl
+              hover:bg-brand-500 transition-colors"
           >
             Dejanos tu reseña en Google
           </a>
         ) : (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-400">
             Recibimos tu devolución y la vamos a usar para mejorar. ¡Gracias!
           </p>
         )}
@@ -86,7 +86,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
             key={n}
             onClick={() => { setEstrellas(n); setError(null); }}
             aria-label={`${n} estrellas`}
-            className={`text-4xl transition-colors ${n <= estrellas ? "text-amber-400" : "text-slate-300"}`}
+            className={`text-4xl transition-all duration-200 hover:scale-110 ${n <= estrellas ? "text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]" : "text-slate-600 hover:text-slate-500"}`}
           >
             ★
           </button>
@@ -97,16 +97,18 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
         onChange={(event) => setComentario(event.target.value)}
         placeholder="Contanos más (opcional)"
         rows={3}
-        className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-          focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+          placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
       />
-      {error !== null ? <p className="text-sm text-red-600 text-center">{error}</p> : null}
+      {error !== null ? <p className="text-sm text-rose-300 text-center">{error}</p> : null}
       <button
         onClick={() => { void enviar(); }}
         disabled={enviando}
-        className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700
-          transition-colors disabled:opacity-60"
+        className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
+          rounded-xl hover:bg-brand-500 transition-all duration-300 disabled:opacity-60"
       >
+        <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
+          bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
         {enviando ? "Enviando..." : "Enviar calificación"}
       </button>
     </div>

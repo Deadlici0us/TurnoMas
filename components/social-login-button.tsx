@@ -67,8 +67,8 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
         type="button"
         disabled={pending}
         onClick={() => void startOAuth()}
-        className="w-full flex items-center justify-center gap-2 border border-slate-300 bg-white
-          text-slate-700 font-semibold py-3 rounded-lg hover:bg-slate-50 transition-colors
+        className="w-full flex items-center justify-center gap-2 border border-white/15 bg-white/10
+          text-white font-semibold py-3 rounded-xl hover:bg-white/15 transition-colors
           disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -92,7 +92,7 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
         {pending ? "..." : props.label}
       </button>
       {failed && props.errorLabel !== undefined && (
-        <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+        <p role="alert" className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">
           {props.errorLabel}
         </p>
       )}

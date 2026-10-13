@@ -46,4 +46,25 @@ describe("HomePage",
     expect(screen.getByText("calculator.title")).toBeDefined();
     expect(screen.getByRole("link", { name: "pricing.cta" })).toHaveAttribute("href", "/register");
   });
+
+  it("debería dejar ver el fondo animado con raíz transparente",
+  () =>
+  {
+    const { container } = render(<HomePage />);
+    const raiz = container.firstChild as HTMLElement;
+
+    expect(raiz.className).toContain("bg-transparent");
+    expect(raiz.className).not.toContain("from-slate-50");
+    expect(raiz.className).not.toContain("bg-gradient-to-b");
+  });
+
+  it("debería usar animaciones de revelado con stagger en el héroe y las cards",
+  () =>
+  {
+    const { container } = render(<HomePage />);
+    const raiz = container.firstChild as HTMLElement;
+
+    expect(raiz.innerHTML).toContain("animate-reveal-up");
+    expect(raiz.innerHTML).toContain("animate-shimmer");
+  });
 });

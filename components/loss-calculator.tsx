@@ -36,50 +36,51 @@ export default function LossCalculator()
 
   return (
     <div className="w-full max-w-4xl mx-auto px-8 py-16">
-      <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">{t("calculator.title")}</h2>
-        <p className="text-slate-600 text-center mb-8">{t("calculator.subtitle")}</p>
+      <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl
+        shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">{t("calculator.title")}</h2>
+        <p className="text-slate-400 text-center mb-8">{t("calculator.subtitle")}</p>
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               {t("calculator.weeklyBookings")}
             </label>
             <input
               inputMode="numeric"
               value={turnos}
               onChange={(event) => setTurnos(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               {t("calculator.avgValue")}
             </label>
             <input
               inputMode="numeric"
               value={valor}
               onChange={(event) => setValor(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               {t("calculator.absenceRate")}
             </label>
             <input
               inputMode="numeric"
               value={tasa}
               onChange={(event) => setTasa(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
             />
           </div>
         </div>
-        <p className="text-center text-lg text-slate-700">
+        <p className="text-center text-lg text-slate-300">
           {t("calculator.resultPrefix")}{" "}
-          <span className="font-bold text-red-600">$ {perdida.toLocaleString("es-AR")}</span>{" "}
+          <span className="font-bold text-rose-400">$ {perdida.toLocaleString("es-AR")}</span>{" "}
           {t("calculator.resultSuffix")}
         </p>
       </div>

@@ -47,16 +47,17 @@ export default function DemoCredentials(props: DemoCredentialsProps)
   return (
     <div className="space-y-2">
       {rows.map((row) => (
-        <div key={row.field} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+        <div key={row.field} className="flex items-center justify-between gap-2 rounded-xl border
+          border-white/10 bg-white/5 px-3 py-2">
           <div className="min-w-0">
-            <p className="text-xs text-slate-500">{row.label}</p>
-            <p className="truncate text-sm font-mono text-slate-900 select-all">{row.value}</p>
+            <p className="text-xs text-slate-400">{row.label}</p>
+            <p className="truncate text-sm font-mono text-white select-all">{row.value}</p>
           </div>
           <button
             type="button"
             onClick={() => void copyValue(row.field, row.value)}
-            className="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700
-              hover:bg-slate-50 transition-colors"
+            className="shrink-0 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium
+              text-slate-200 hover:bg-white/10 transition-colors"
           >
             {copiedField === row.field ? props.copiedLabel : props.copyLabel}
           </button>

@@ -34,63 +34,66 @@ export default async function LoginPage({
       subtitle={t("auth.loginSubtitle")}
       error={errorKey !== null ? t(errorKey) : null}
       footer={(
-        <Link href="/register" className="block text-blue-600 hover:underline">
+        <Link href="/register" className="block text-brand-400 hover:text-brand-500 hover:underline">
           {t("auth.toRegister")}
         </Link>
       )}
     >
       {showSocialLogin && (
         <>
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-3">
-            <p className="text-sm font-semibold text-slate-900">{t("auth.googleTitle")}</p>
-            <p className="text-xs text-slate-600">{t("auth.googleHint")}</p>
+          <div className="rounded-xl bg-brand-500/10 border border-brand-500/30 p-4 space-y-3">
+            <p className="text-sm font-semibold text-white">{t("auth.googleTitle")}</p>
+            <p className="text-xs text-slate-400">{t("auth.googleHint")}</p>
             <SocialLoginButton
               label={t("auth.continueWithGoogle")}
               errorLabel={t("auth.oauthError")}
             />
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span className="flex-1 border-t border-slate-200" />
+          <div className="flex items-center gap-3 text-xs text-slate-400">
+            <span className="flex-1 border-t border-white/10" />
             {t("auth.useEmailInstead")}
-            <span className="flex-1 border-t border-slate-200" />
+            <span className="flex-1 border-t border-white/10" />
           </div>
         </>
       )}
       <form className="space-y-4" action={login}>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t("auth.email")}</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">{t("auth.email")}</label>
           <input
             type="email"
             name="email"
             required
             autoComplete="email"
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+              placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t("auth.password")}</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">{t("auth.password")}</label>
           <input
             type="password"
             name="password"
             required
             autoComplete="current-password"
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+              placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
           />
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg
-            hover:bg-blue-700 transition-colors"
+          className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
+            rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
+            transition-all duration-300"
         >
+          <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
+            bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
           {t("auth.loginCta")}
         </button>
       </form>
-      <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-3">
+      <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
         <div className="text-center">
-          <p className="text-sm font-medium text-slate-700">{t("auth.demoTitle")}</p>
-          <p className="text-xs text-slate-500">{t("auth.demoSubtitle")}</p>
+          <p className="text-sm font-medium text-white">{t("auth.demoTitle")}</p>
+          <p className="text-xs text-slate-400">{t("auth.demoSubtitle")}</p>
         </div>
         <DemoCredentials
           email={demo.email}

@@ -195,7 +195,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-transparent">
       <div className="max-w-lg w-full mx-auto px-4 py-8">
         <BookingFlow
           negocioNombre={business.nombre}
@@ -207,7 +207,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           bloqueos={business.bloqueos}
           horariosNegocio={business.horarios}
         />
-        <p className="text-xs text-slate-400 text-center mt-4">Reservas por TurnoMas</p>
+        <p className="text-xs text-slate-500 text-center mt-4">Reservas por TurnoMas</p>
       </div>
     </div>
   );

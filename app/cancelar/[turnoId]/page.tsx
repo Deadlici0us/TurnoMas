@@ -101,20 +101,21 @@ export default async function CancelarPage(
   const yaCerrado = !["pendiente", "confirmado", "pagado"].includes(resumen.estado);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-transparent">
       <div className="max-w-md w-full px-8 py-12">
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 space-y-6">
-          <h1 className="text-2xl font-bold text-slate-900 text-center">
+        <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 space-y-6
+          backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
+          <h1 className="text-2xl font-bold text-white text-center">
             {`Cancelar turno en ${resumen.negocio}`}
           </h1>
-          <p className="text-sm text-slate-600 text-center">
+          <p className="text-sm text-slate-400 text-center">
             {`${resumen.servicio} con ${resumen.profesional} · ${resumen.fecha}`}
           </p>
           {yaCerrado ? (
-            <p className="text-sm text-slate-600 text-center">Ese turno ya está cerrado.</p>
+            <p className="text-sm text-slate-400 text-center">Ese turno ya está cerrado.</p>
           ) : (
             <>
-              <p className="text-sm text-slate-600 text-center">
+              <p className="text-sm text-slate-300 text-center">
                 {resumen.seDevuelve
                   ? `Faltan ${Math.floor(resumen.horasRestantes)}hs: tu seña se devuelve automáticamente.`
                   : `Faltan ${Math.floor(Math.max(resumen.horasRestantes, 0))}hs ` +

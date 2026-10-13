@@ -50,7 +50,7 @@ export default function FormularioCancelacion(
   if (resultado?.success === true)
   {
     return (
-      <p className="text-sm text-green-700 text-center">
+      <p className="text-sm text-emerald-300 text-center">
         {resultado.reembolso === "devuelta"
           ? "Turno cancelado. Tu seña vuelve a tu cuenta en los próximos días."
           : (resultado.reembolso === "retenida"
@@ -63,7 +63,7 @@ export default function FormularioCancelacion(
   return (
     <div className="space-y-3">
       {typeof resultado?.error === "string" ? (
-        <p className="text-sm text-red-600 text-center">{resultado.error}</p>
+        <p className="text-sm text-rose-300 text-center">{resultado.error}</p>
       ) : null}
       <button
         type="button"
