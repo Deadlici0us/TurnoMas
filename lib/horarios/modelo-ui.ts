@@ -12,11 +12,20 @@ import { DAY_ORDER, formatDayRange, parseDayRanges, type DayKey, type DayRange }
 /** Minuto máximo del día (24:00) para los sliders. */
 export const MAX_MINUTOS_DIA = 1440;
 
-/** Paso de snap de los sliders en minutos (15 min). */
-export const PASO_SLIDER_MINUTOS = 15;
-
-/** Paso de los botones −/+ en minutos (30 min). */
+/** Paso de los selectores de hora en minutos (30 min). */
 export const PASO_STEPPER_MINUTOS = 30;
+
+/** Máximo de franjas por día en el asistente (corrido o cortado). */
+export const MAX_FRANJAS_POR_DIA = 2;
+
+/** Modo de jornada de un día: cerrado, corrido (1 turno) o cortado (2 turnos). */
+export type ModoJornada = "cerrado" | "corrido" | "cortado";
+
+/** Opciones de hora cada 30 min para los chips (00:00 a 23:30, en minutos). */
+export const OPCIONES_HORAS_30: readonly number[] = Array.from(
+  { length: 48 },
+  (_, indice) => indice * 30,
+);
 
 /** Jornada corrida por defecto (9 a 19). */
 export const PRESET_CORRIDO: readonly DayRange[] = [{ openMinutes: 540, closeMinutes: 1140 }];
@@ -79,6 +88,41 @@ export function ajustarMinutos(minutes: number, paso: number = PASO_STEPPER_MINU
   const redondeado = Math.round(minutes / paso) * paso;
 
   return Math.max(0, Math.min(MAX_MINUTOS_DIA, redondeado));
+}
+
+/**
+ * Clasifica las franjas de un día en cerrado, corrido o cortado.
+ *
+ * @param franjas Franjas del día en minutos.
+ * @return Modo de jornada.
+ */
+export function modoDeFranjas(franjas: readonly DayRange[]): ModoJornada
+{
+  if (franjas.length === 0)
+  {
+    return "cerrado";
+  }
+
+  if (franjas.length === 1)
+  {
+    return "corrido";
+  }
+
+  return "cortado";
+}
+
+/**
+ * Recorta las franjas legacy a un máximo de 2, ordenadas por apertura.
+ *
+ * @param franjas Franjas del día en minutos.
+ * @return Hasta 2 franjas ordenadas.
+ */
+export function normalizarDiaAMaxDos(franjas: readonly DayRange[]): DayRange[]
+{
+  return franjas
+    .map((franja) => ({ ...franja }))
+    .sort((a, b) => a.openMinutes - b.openMinutes)
+    .slice(0, MAX_FRANJAS_POR_DIA);
 }
 
 /**

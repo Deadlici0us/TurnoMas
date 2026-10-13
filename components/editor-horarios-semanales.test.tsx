@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import EditorHorariosSemanales from "./editor-horarios-semanales";
@@ -95,13 +95,15 @@ describe("EditorHorariosSemanales",
       action={action}
     />);
 
-    const aperturas = screen.getAllByLabelText("Apertura");
+    await user.click(screen.getByRole("button", { name: /Lunes.*13/ }));
 
-    fireEvent.change(aperturas[1], { target: { value: "12:00" } });
+    const grupo = screen.getByRole("group", { name: "Opciones de Cerrás" });
+
+    fireEvent.click(within(grupo).getByRole("button", { name: "16:00" }));
 
     await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
 
-    expect(screen.getByText(/Revisá los días marcados/)).toBeDefined();
+    expect(await screen.findByText(/Revisá los días marcados/)).toBeDefined();
     expect(action).not.toHaveBeenCalled();
   });
 

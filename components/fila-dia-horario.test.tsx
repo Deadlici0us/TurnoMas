@@ -1,13 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import FilaDiaHorario from "./fila-dia-horario";
 
+/** Expande el día colapsado para ver los pasos. */
+async function expandir(nombre: RegExp): Promise<void>
+{
+  const user = userEvent.setup();
+
+  await user.click(screen.getByRole("button", { name: nombre }));
+}
+
 describe("FilaDiaHorario",
 () =>
 {
-  it("debería mostrar el día, el resumen y el switch prendido",
+  it("debería mostrar el día colapsado con el resumen",
   () =>
   {
     render(<FilaDiaHorario dia="lun" franjas={[{ openMinutes: 540, closeMinutes: 1140 }]} onChange={() => undefined} />);
@@ -15,15 +23,28 @@ describe("FilaDiaHorario",
     expect(screen.getByText("Lunes")).toBeDefined();
     expect(screen.getByText("9 a 19")).toBeDefined();
     expect(screen.getByRole("switch", { name: /Lunes/ })).toBeChecked();
+    expect(screen.queryByText("¿Cómo trabajás?")).toBeNull();
   });
 
-  it("debería mostrar cerrado con switch apagado y sin controles",
+  it("debería expandir al tocar la fila",
+  async () =>
+  {
+    render(<FilaDiaHorario dia="lun" franjas={[{ openMinutes: 540, closeMinutes: 1140 }]} onChange={() => undefined} />);
+
+    await expandir(/Lunes.*9 a 19/);
+
+    expect(screen.getByText("¿Cómo trabajás?")).toBeDefined();
+    expect(screen.getByText("Abrís")).toBeDefined();
+    expect(screen.getByText("Cerrás")).toBeDefined();
+  });
+
+  it("debería mostrar cerrado con switch apagado",
   () =>
   {
     render(<FilaDiaHorario dia="dom" franjas={[]} onChange={() => undefined} />);
 
     expect(screen.getByText("Cerrado")).toBeDefined();
-    expect(screen.queryByLabelText("Apertura")).toBeNull();
+    expect(screen.queryByText("¿Cómo trabajás?")).toBeNull();
   });
 
   it("debería cerrar el día al apagar el switch",
@@ -54,7 +75,7 @@ describe("FilaDiaHorario",
     expect(onChange).toHaveBeenCalledWith([{ openMinutes: 540, closeMinutes: 1140 }]);
   });
 
-  it("debería agregar una segunda franja para el descanso",
+  it("debería pasar a cortado agregando el segundo turno",
   async () =>
   {
     const user = userEvent.setup();
@@ -65,7 +86,8 @@ describe("FilaDiaHorario",
       onChange={onChange}
     />);
 
-    await user.click(screen.getByRole("button", { name: /Agregar segundo turno/ }));
+    await expandir(/Lunes/);
+    await user.click(screen.getByRole("button", { name: /Cortado/ }));
 
     expect(onChange).toHaveBeenCalledWith([
       { openMinutes: 540, closeMinutes: 1140 },
@@ -73,7 +95,7 @@ describe("FilaDiaHorario",
     ]);
   });
 
-  it("debería quitar una franja",
+  it("debería volver a corrido conservando el primer turno",
   async () =>
   {
     const user = userEvent.setup();
@@ -87,27 +109,13 @@ describe("FilaDiaHorario",
       onChange={onChange}
     />);
 
-    await user.click(screen.getAllByRole("button", { name: /Quitar turno/ })[0]);
+    await expandir(/Lunes/);
+    await user.click(screen.getByRole("button", { name: /Corrido/ }));
 
-    expect(onChange).toHaveBeenCalledWith([{ openMinutes: 900, closeMinutes: 1200 }]);
+    expect(onChange).toHaveBeenCalledWith([{ openMinutes: 540, closeMinutes: 780 }]);
   });
 
-  it("debería mostrar error de superposición",
-  () =>
-  {
-    render(<FilaDiaHorario
-      dia="lun"
-      franjas={[
-        { openMinutes: 540, closeMinutes: 780 },
-        { openMinutes: 700, closeMinutes: 1200 },
-      ]}
-      onChange={() => undefined}
-    />);
-
-    expect(screen.getByText("Esos turnos se superponen. Separalos o unilos en uno solo.")).toBeDefined();
-  });
-
-  it("debería actualizar una franja desde los steppers",
+  it("debería cambiar la apertura con chips",
   async () =>
   {
     const user = userEvent.setup();
@@ -118,23 +126,30 @@ describe("FilaDiaHorario",
       onChange={onChange}
     />);
 
-    await user.click(screen.getByRole("button", { name: "Adelantar apertura" }));
+    await expandir(/Lunes/);
 
-    expect(onChange).toHaveBeenCalledWith([{ openMinutes: 570, closeMinutes: 1140 }]);
-  });
+    const grupo = screen.getByRole("group", { name: "Opciones de Abrís" });
 
-  it("debería actualizar una franja desde el input de hora",
-  () =>
-  {
-    const onChange = vi.fn();
-    render(<FilaDiaHorario
-      dia="lun"
-      franjas={[{ openMinutes: 540, closeMinutes: 1140 }]}
-      onChange={onChange}
-    />);
-
-    fireEvent.change(screen.getByLabelText("Apertura"), { target: { value: "10:00" } });
+    await user.click(within(grupo).getByRole("button", { name: "10:00" }));
 
     expect(onChange).toHaveBeenCalledWith([{ openMinutes: 600, closeMinutes: 1140 }]);
+  });
+
+  it("debería mostrar error de superposición sin botón de agregar",
+  async () =>
+  {
+    render(<FilaDiaHorario
+      dia="lun"
+      franjas={[
+        { openMinutes: 540, closeMinutes: 780 },
+        { openMinutes: 700, closeMinutes: 1200 },
+      ]}
+      onChange={() => undefined}
+    />);
+
+    await expandir(/Lunes/);
+
+    expect(screen.getByText("Esos turnos se superponen. Separalos o unilos en uno solo.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Agregar/ })).toBeNull();
   });
 });

@@ -8,6 +8,9 @@ import
   formatearHoraCorta,
   horaAMinutos,
   minutosAHora,
+  modoDeFranjas,
+  normalizarDiaAMaxDos,
+  OPCIONES_HORAS_30,
   PRESET_CORRIDO,
   PRESET_CORTADO,
   PRESET_SABADO,
@@ -201,5 +204,62 @@ describe("resumenSemana",
   () =>
   {
     expect(resumenSemana(convertirHorariosAUI({}))).toBe("Todo cerrado");
+  });
+});
+
+describe("OPCIONES_HORAS_30",
+() =>
+{
+  it("debería ofrecer las 48 medias horas del día",
+  () =>
+  {
+    expect(OPCIONES_HORAS_30).toHaveLength(48);
+    expect(OPCIONES_HORAS_30[0]).toBe(0);
+    expect(OPCIONES_HORAS_30[18]).toBe(540);
+    expect(OPCIONES_HORAS_30[47]).toBe(1410);
+  });
+});
+
+describe("modoDeFranjas",
+() =>
+{
+  it("debería distinguir cerrado, corrido y cortado",
+  () =>
+  {
+    expect(modoDeFranjas([])).toBe("cerrado");
+    expect(modoDeFranjas([{ openMinutes: 540, closeMinutes: 1140 }])).toBe("corrido");
+    expect(modoDeFranjas([
+      { openMinutes: 540, closeMinutes: 780 },
+      { openMinutes: 900, closeMinutes: 1200 },
+    ])).toBe("cortado");
+  });
+});
+
+describe("normalizarDiaAMaxDos",
+() =>
+{
+  it("debería conservar hasta 2 franjas ordenadas",
+  () =>
+  {
+    expect(normalizarDiaAMaxDos([])).toEqual([]);
+    expect(normalizarDiaAMaxDos([{ openMinutes: 540, closeMinutes: 1140 }]))
+      .toEqual([{ openMinutes: 540, closeMinutes: 1140 }]);
+    expect(normalizarDiaAMaxDos([
+      { openMinutes: 900, closeMinutes: 1200 },
+      { openMinutes: 540, closeMinutes: 780 },
+    ])).toEqual([
+      { openMinutes: 540, closeMinutes: 780 },
+      { openMinutes: 900, closeMinutes: 1200 },
+    ]);
+  });
+
+  it("debería recortar franjas legacy de más de 2",
+  () =>
+  {
+    expect(normalizarDiaAMaxDos([
+      { openMinutes: 540, closeMinutes: 660 },
+      { openMinutes: 720, closeMinutes: 840 },
+      { openMinutes: 900, closeMinutes: 1200 },
+    ])).toHaveLength(2);
   });
 });
