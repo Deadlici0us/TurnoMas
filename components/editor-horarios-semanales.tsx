@@ -92,7 +92,7 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
 
   const campos = (
     <>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {DAY_ORDER.map((dia) => (
           <FilaDiaHorario key={dia} dia={dia} franjas={semana[dia]} onChange={(franjas) => cambiarDia(dia, franjas)} />
         ))}
@@ -104,39 +104,46 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
   );
 
   const cuerpo = (
-    <div className="space-y-3">
-      <p className="text-sm text-slate-300 bg-white/5 border border-white/10 rounded-xl p-3" aria-live="polite">
-        {resumenSemana(semana)}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={aplicarCorrido}
-          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15 text-slate-300
-            hover:bg-white/10 transition-colors min-h-[44px]"
-        >
-          Corrido 9 a 19 (Lun a Sáb)
-        </button>
-        <button
-          type="button"
-          onClick={aplicarCortado}
-          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15 text-slate-300
-            hover:bg-white/10 transition-colors min-h-[44px]"
-        >
-          Cortado 9 a 13 y 15 a 20 (Lun a Vie)
-        </button>
-        <button
-          type="button"
-          onClick={copiarLunes}
-          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15 text-slate-300
-            hover:bg-white/10 transition-colors min-h-[44px]"
-        >
-          Copiar lunes a todos
-        </button>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-blue-500/25 bg-blue-500/10 p-4" aria-live="polite">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-blue-300">Tu semana</p>
+        <p className="text-base font-semibold text-slate-100 mt-0.5">{resumenSemana(semana)}</p>
+      </div>
+      <div className="space-y-2">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Atajos rápidos</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={aplicarCorrido}
+            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
+              hover:bg-white/10 transition-colors min-h-[44px]"
+          >
+            Corrido 9 a 19 (Lun a Sáb)
+          </button>
+          <button
+            type="button"
+            onClick={aplicarCortado}
+            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
+              hover:bg-white/10 transition-colors min-h-[44px]"
+          >
+            Cortado 9 a 13 y 15 a 20 (Lun a Vie)
+          </button>
+          <button
+            type="button"
+            onClick={copiarLunes}
+            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
+              hover:bg-white/10 transition-colors min-h-[44px]"
+          >
+            Copiar lunes a todos
+          </button>
+        </div>
       </div>
       {campos}
       {errorSemana !== null ? (
-        <p className="text-xs text-red-400 font-semibold" role="alert">{errorSemana}</p>
+        <p className="text-xs text-red-400 font-semibold rounded-xl border border-red-500/30 bg-red-500/10 p-3"
+          role="alert">
+          {errorSemana}
+        </p>
       ) : null}
     </div>
   );
@@ -164,8 +171,8 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
       {cuerpo}
       <button
         type="submit"
-        className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-          hover:bg-blue-700 transition-colors min-h-[44px]"
+        className="w-full sm:w-auto bg-blue-600 text-white text-sm font-semibold px-8 py-3 rounded-xl
+          hover:bg-blue-500 transition-colors min-h-[48px] shadow-lg shadow-blue-600/25"
       >
         {submitLabel ?? "Guardar horarios"}
       </button>

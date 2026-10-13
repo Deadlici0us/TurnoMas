@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import
 {
+  ajustarMinutos,
   convertirHorariosAUI,
   errorDeFranjas,
   formatearHoraCorta,
@@ -13,6 +14,25 @@ import
   resumenSemana,
   serializarDia,
 } from "./modelo-ui";
+
+describe("ajustarMinutos",
+() =>
+{
+  it("debería redondear al paso de 30 minutos",
+  () =>
+  {
+    expect(ajustarMinutos(540)).toBe(540);
+    expect(ajustarMinutos(551)).toBe(540);
+    expect(ajustarMinutos(566)).toBe(570);
+  });
+
+  it("debería limitar al rango del día",
+  () =>
+  {
+    expect(ajustarMinutos(-30)).toBe(0);
+    expect(ajustarMinutos(1450)).toBe(1440);
+  });
+});
 
 describe("minutosAHora",
 () =>

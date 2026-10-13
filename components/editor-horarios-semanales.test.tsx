@@ -95,9 +95,9 @@ describe("EditorHorariosSemanales",
       action={action}
     />);
 
-    const aperturas = screen.getAllByLabelText("Apertura deslizable");
+    const aperturas = screen.getAllByLabelText("Apertura");
 
-    fireEvent.change(aperturas[1], { target: { value: "720" } });
+    fireEvent.change(aperturas[1], { target: { value: "12:00" } });
 
     await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
 

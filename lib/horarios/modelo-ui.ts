@@ -15,6 +15,9 @@ export const MAX_MINUTOS_DIA = 1440;
 /** Paso de snap de los sliders en minutos (15 min). */
 export const PASO_SLIDER_MINUTOS = 15;
 
+/** Paso de los botones −/+ en minutos (30 min). */
+export const PASO_STEPPER_MINUTOS = 30;
+
 /** Jornada corrida por defecto (9 a 19). */
 export const PRESET_CORRIDO: readonly DayRange[] = [{ openMinutes: 540, closeMinutes: 1140 }];
 
@@ -62,6 +65,20 @@ export function horaAMinutos(raw: string): number
   }
 
   return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/**
+ * Redondea minutos al paso dado y los limita al día (0–1440).
+ *
+ * @param minutes Minutos a ajustar.
+ * @param paso Paso en minutos (default 30).
+ * @return Minutos ajustados dentro del día.
+ */
+export function ajustarMinutos(minutes: number, paso: number = PASO_STEPPER_MINUTOS): number
+{
+  const redondeado = Math.round(minutes / paso) * paso;
+
+  return Math.max(0, Math.min(MAX_MINUTOS_DIA, redondeado));
 }
 
 /**

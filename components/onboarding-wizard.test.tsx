@@ -76,8 +76,8 @@ describe("OnboardingWizard",
 
     render(<OnboardingWizard />);
 
-    expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toHaveProperty("checked", true);
-    expect(screen.getByRole("switch", { name: /Domingo abierto/ })).toHaveProperty("checked", false);
+    expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
+    expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
     expect(screen.getByRole("button", { name: /Corrido 9 a 19/ })).toBeDefined();
   });
 

@@ -1,9 +1,11 @@
 "use client";
 
+import { Switch } from "@base-ui/react/switch";
+
 import type { DayKey, DayRange } from "@/lib/staff/schedule";
 import { dayLabel } from "@/lib/staff/schedule";
-import { errorDeFranjas, MAX_MINUTOS_DIA, PRESET_CORRIDO } from "@/lib/horarios/modelo-ui";
-import DeslizadorRango from "./deslizador-rango";
+import { errorDeFranjas, formatearHoraCorta, PRESET_CORRIDO } from "@/lib/horarios/modelo-ui";
+import ControlFranja from "./control-franja";
 
 interface FilaDiaHorarioProps
 {
@@ -16,10 +18,10 @@ interface FilaDiaHorarioProps
 const DESCANSO_SUGERIDO: DayRange = { openMinutes: 900, closeMinutes: 1200 };
 
 /**
- * Fila de un día: switch Abierto/Cerrado + N franjas con slider + barra.
+ * Fila de un día: nombre + resumen + switch, y debajo los turnos.
  *
- * Vacío = cerrado. El switch prendido sin franjas abre con jornada
- * corrida (9 a 19) para no dejar al barbero en un estado intermedio.
+ * Vacío = cerrado. Al prender el switch sin franjas abre con jornada
+ * corrida (9 a 19) para no dejar un estado intermedio.
  *
  * @param dia Clave del día (`lun`...`dom`).
  * @param franjas Franjas actuales en minutos.
@@ -63,51 +65,47 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-3">
+    <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${abierto
+      ? "border-amber-400/30 bg-amber-400/5"
+      : "border-white/10 bg-white/5"}`}>
       <div className="flex items-center gap-3">
-        <span className="w-20 shrink-0 text-sm font-medium text-slate-200">{nombre}</span>
-        <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
-          <input
-            type="checkbox"
-            role="switch"
-            aria-label={`${nombre} abierto`}
-            checked={abierto}
-            onChange={(event) => alternar(event.target.checked)}
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden="true"
-            className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-white/15 transition-colors
-              peer-checked:bg-amber-400 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500
-              peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-slate-900
-              after:absolute after:left-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform
-              peer-checked:after:translate-x-5"
-          />
-          <span className={`text-xs font-semibold ${abierto ? "text-amber-300" : "text-slate-500"}`}>
-            {abierto ? "Abierto" : "Cerrado"}
-          </span>
-        </label>
-        <div className="ml-auto hidden sm:block w-40" aria-hidden="true">
-          <BarraDia franjas={franjas} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-100">{nombre}</p>
+          <p className={`text-xs tabular-nums truncate ${abierto ? "text-amber-200/90" : "text-slate-500"}`}>
+            {abierto ? resumirFranjas(franjas) : "Cerrado"}
+          </p>
         </div>
-      </div>
-      <div className="sm:hidden" aria-hidden="true">
-        <BarraDia franjas={franjas} />
+        <Switch.Root
+          checked={abierto}
+          onCheckedChange={(checked) => alternar(checked)}
+          aria-label={`${nombre} abierto`}
+          className="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full bg-white/15 transition-colors
+            data-checked:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500
+            focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 outline-none"
+        >
+          <Switch.Thumb
+            className={`block size-6 rounded-full bg-white shadow transition-transform
+              ${abierto ? "translate-x-7" : "translate-x-1"}`}
+          />
+        </Switch.Root>
       </div>
       {abierto ? (
-        <div className="space-y-3">
+        <div className="space-y-4 pt-1">
           {franjas.map((franja, indice) => (
-            <div key={indice} className="flex gap-2 items-start">
-              <div className="flex-1">
-                <DeslizadorRango franja={franja} onChange={(nueva) => actualizarFranja(indice, nueva)} />
+            <div key={indice} className="flex gap-1 items-start">
+              <span className="pt-4 text-[10px] font-bold text-slate-500 w-4 shrink-0" aria-hidden="true">
+                {franjas.length > 1 ? indice + 1 : ""}
+              </span>
+              <div className="flex-1 min-w-0">
+                <ControlFranja franja={franja} onChange={(nueva) => actualizarFranja(indice, nueva)} />
               </div>
               {franjas.length > 1 ? (
                 <button
                   type="button"
                   aria-label={`Quitar turno ${indice + 1} del ${nombre}`}
                   onClick={() => quitarFranja(indice)}
-                  className="mt-1 shrink-0 min-w-[44px] min-h-[44px] px-2 rounded-lg border border-white/15
-                    text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-colors text-lg leading-none"
+                  className="mt-2 shrink-0 size-11 rounded-full border border-white/15 text-xl leading-none
+                    text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-colors"
                 >
                   ×
                 </button>
@@ -115,15 +113,15 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
             </div>
           ))}
           {error !== null ? (
-            <p className="text-xs text-red-400" role="alert">{error}</p>
+            <p className="text-xs text-red-400 font-medium" role="alert">{error}</p>
           ) : null}
           <button
             type="button"
             onClick={agregarFranja}
-            className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors
-              min-h-[44px] px-2 -ml-2 rounded-lg"
+            className="w-full text-xs font-semibold text-amber-300 hover:text-amber-200 hover:bg-amber-400/10
+              transition-colors min-h-[44px] px-3 rounded-xl border border-dashed border-amber-400/30"
           >
-            + Agregar turno (descanso en el medio)
+            + Agregar segundo turno
           </button>
         </div>
       ) : null}
@@ -131,30 +129,15 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
   );
 }
 
-interface BarraDiaProps
-{
-  readonly franjas: readonly DayRange[];
-}
-
 /**
- * Barra 0–24h que pinta las franjas ocupadas (solo lectura visual).
+ * Resume las franjas del día (`9 a 19`, `9 a 13 y 15 a 20`).
  *
  * @param franjas Franjas del día en minutos.
+ * @return Resumen legible.
  */
-function BarraDia({ franjas }: BarraDiaProps)
+function resumirFranjas(franjas: readonly DayRange[]): string
 {
-  return (
-    <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
-      {franjas.map((franja, indice) => (
-        <div
-          key={indice}
-          className="absolute inset-y-0 rounded-full bg-amber-400/80"
-          style={{
-            left: `${(Math.max(0, franja.openMinutes) / MAX_MINUTOS_DIA) * 100}%`,
-            width: `${(Math.max(0, franja.closeMinutes - franja.openMinutes) / MAX_MINUTOS_DIA) * 100}%`,
-          }}
-        />
-      ))}
-    </div>
-  );
+  return franjas
+    .map((franja) => `${formatearHoraCorta(franja.openMinutes)} a ${formatearHoraCorta(franja.closeMinutes)}`)
+    .join(" y ");
 }
