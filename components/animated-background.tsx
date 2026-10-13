@@ -13,7 +13,7 @@ export default function AnimatedBackground()
     <div
       data-testid="fondo-animado"
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 overflow-hidden bg-slate-950"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-slate-950"
     >
       <div className="animate-drift-a absolute -top-40 -left-40 h-[42rem] w-[42rem] rounded-full bg-brand-500/30 blur-3xl" />
       <div className="animate-drift-b absolute top-1/3 -right-48 h-[38rem] w-[38rem] rounded-full bg-fuchsia-600/20 blur-3xl" />

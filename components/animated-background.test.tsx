@@ -17,6 +17,14 @@ describe("AnimatedBackground",
     expect(fondo.children).toHaveLength(4);
   });
 
+  it("debería quedar detrás del contenido en flujo",
+  () =>
+  {
+    render(<AnimatedBackground />);
+
+    expect(screen.getByTestId("fondo-animado").className).toContain("-z-10");
+  });
+
   it("no debería exponer texto visible",
   () =>
   {
