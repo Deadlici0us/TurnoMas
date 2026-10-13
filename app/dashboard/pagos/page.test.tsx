@@ -68,7 +68,7 @@ describe("PagosPage",
 
     render(await PagosPage());
 
-    expect(screen.getByText(/ARS\s+130/)).toBeDefined();
+    expect(screen.getByText(/\$\s*130/)).toBeDefined();
   });
 
   it("debería usar fallbacks y guiones sin datos",

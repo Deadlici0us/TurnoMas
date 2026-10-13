@@ -90,7 +90,7 @@ describe("FakePaymentGateway",
       description: "Seña turno barbería",
     });
 
-    await expect(gateway.refundPayment(preference.id)).resolves.toBeUndefined();
+    await expect(gateway.refundPayment(preference.id)).resolves.toEqual({ refundId: null });
   });
 
   it("debería fallar al reembolsar un pago desconocido",
