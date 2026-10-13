@@ -57,17 +57,17 @@ export default function ZonaPeligroEliminar()
   }
 
   return (
-    <div className="p-4 border border-red-200 bg-red-50/50 rounded-lg space-y-3">
+    <div className="p-4 border border-red-500/30 bg-red-500/10 rounded-lg space-y-3">
       <div>
-        <div className="text-sm font-semibold text-red-900">Eliminar mi negocio</div>
-        <p className="text-xs text-red-700">
+        <div className="text-sm font-semibold text-red-200">Eliminar mi negocio</div>
+        <p className="text-xs text-red-300">
           Borra turnos, clientes, servicios, staff e integraciones, y cierra tu cuenta. No se puede deshacer.
         </p>
       </div>
-      {error !== null ? <p className="text-xs font-semibold text-red-700" role="alert">{error}</p> : null}
+      {error !== null ? <p className="text-xs font-semibold text-red-300" role="alert">{error}</p> : null}
       {paso === "codigo" ? (
         <div className="space-y-2">
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-400">
             {`Enviamos un código de 6 dígitos a ${email}. Ingresalo junto con la palabra ${TEXTO_CONFIRMACION_ELIMINACION}.`}
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -80,7 +80,7 @@ export default function ZonaPeligroEliminar()
               value={codigo}
               onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="Código del email"
-              className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none
+              className="flex-1 px-3 py-2 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
                 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
             <input
@@ -90,7 +90,7 @@ export default function ZonaPeligroEliminar()
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               placeholder={TEXTO_CONFIRMACION_ELIMINACION}
-              className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none
+              className="flex-1 px-3 py-2 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
                 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
           </div>
@@ -107,8 +107,8 @@ export default function ZonaPeligroEliminar()
             <button
               type="button"
               onClick={() => void pedirCodigo()}
-              className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                text-slate-600 hover:bg-white transition-colors"
+              className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                text-slate-400 hover:bg-white/10 transition-colors"
             >
               Reenviar código
             </button>
@@ -119,8 +119,8 @@ export default function ZonaPeligroEliminar()
           type="button"
           onClick={() => void pedirCodigo()}
           disabled={paso === "enviando" || paso === "eliminando"}
-          className="bg-white text-red-700 text-sm font-semibold px-6 py-2 rounded-lg border
-            border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50"
+          className="bg-red-500/15 text-red-200 text-sm font-semibold px-6 py-2 rounded-lg border
+            border-red-500/40 hover:bg-red-500/20 transition-colors disabled:opacity-50"
         >
           {paso === "enviando" ? "Enviando código…" : "Eliminar mi cuenta y mis datos"}
         </button>

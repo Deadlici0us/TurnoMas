@@ -20,8 +20,8 @@ export default async function RootLayout({ children }: { readonly children: Reac
   const messages = { common };
   const locale = "es-AR";
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+    <html lang={locale} className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
         <Providers messages={messages} locale={locale}>
           <AnimatedBackground />
           <SiteHeader />

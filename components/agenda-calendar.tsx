@@ -321,11 +321,11 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
   const altoSemana = (rango.horaHasta - rango.horaDesde) * 44;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4 sm:mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <p className="text-base font-semibold text-slate-900">Calendario</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-base font-semibold text-slate-100">Calendario</p>
+          <p className="text-xs text-slate-400">
             {`${etiquetaRango(vista, dias, base)} · ${props.timeZone}`}
           </p>
         </div>
@@ -338,8 +338,8 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
               aria-pressed={vista === v}
               className={`h-8 px-3 rounded-xl text-[13px] font-semibold border transition-colors ${
                 vista === v
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "bg-white text-slate-950 border-white"
+                  : "border-white/15 text-slate-400 hover:bg-white/10"
               }`}
             >
               {ETIQUETA_VISTA[v]}
@@ -352,14 +352,14 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           type="button"
           onClick={() => mover(-1)}
           aria-label={`${etiquetaMovimiento} anterior`}
-          className="h-9 min-w-9 px-3 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+          className="h-9 min-w-9 px-3 rounded-xl border border-white/15 text-slate-400 text-sm font-semibold hover:bg-white/10"
         >
           ←
         </button>
         <button
           type="button"
           onClick={irHoy}
-          className="h-9 px-4 rounded-xl border border-slate-300 text-slate-600 text-[13px] font-semibold hover:bg-slate-50"
+          className="h-9 px-4 rounded-xl border border-white/15 text-slate-400 text-[13px] font-semibold hover:bg-white/10"
         >
           Hoy
         </button>
@@ -367,7 +367,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           type="button"
           onClick={() => mover(1)}
           aria-label={`${etiquetaMovimiento} siguiente`}
-          className="h-9 min-w-9 px-3 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+          className="h-9 min-w-9 px-3 rounded-xl border border-white/15 text-slate-400 text-sm font-semibold hover:bg-white/10"
         >
           →
         </button>
@@ -377,7 +377,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           key={claveDeBase(base)}
           onChange={(e) => elegirFecha(e.target.value)}
           aria-label="Ir a fecha"
-          className="h-9 px-3 rounded-xl border border-slate-300 text-[13px] text-slate-600 outline-none
+          className="h-9 px-3 rounded-xl bg-white/5 border border-white/15 text-[13px] text-slate-300 outline-none [color-scheme:dark]
             focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
         />
       </div>
@@ -389,8 +389,8 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
             onClick={() => setStaffId(null)}
             className={`h-8 px-3 rounded-xl border text-[13px] font-semibold transition-colors ${
               staffId === null
-                ? "bg-slate-900 text-white border-slate-900"
-                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                ? "bg-white text-slate-950 border-white"
+                : "border-white/15 text-slate-400 hover:bg-white/10"
             }`}
           >
             Todos
@@ -402,8 +402,8 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
               onClick={() => setStaffId(s.id)}
               className={`h-8 px-3 rounded-xl border text-[13px] font-semibold transition-colors ${
                 staffId === s.id
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "bg-white text-slate-950 border-white"
+                  : "border-white/15 text-slate-400 hover:bg-white/10"
               }`}
             >
               {s.nombre}
@@ -412,27 +412,27 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
         </div>
       </div>
       {vista === "dia" ? (
-        <div className="grid grid-cols-[56px_1fr] gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden">
-          <div className="bg-slate-50 px-2 py-2 text-center">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase">
+        <div className="grid grid-cols-[56px_1fr] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
+          <div className="bg-white/5 px-2 py-2 text-center">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase">
               {etiquetaDiaCorta(base).semana}
             </div>
             <div className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold
-              ${claveDeBase(base) === claveHoy ? "bg-violet-600 text-white" : "text-slate-900"}`}>
+              ${claveDeBase(base) === claveHoy ? "bg-violet-600 text-white" : "text-slate-100"}`}>
               {etiquetaDiaCorta(base).numero}
             </div>
-            <div className="mt-1 text-[11px] font-semibold text-slate-500">
+            <div className="mt-1 text-[11px] font-semibold text-slate-400">
               {claveDeBase(base) === claveHoy ? "Hoy" : etiquetaDiaCorta(base).fecha}
             </div>
           </div>
-          <div className="bg-white relative" style={{ height: altoDia }}>
+          <div className="bg-slate-950/60 relative" style={{ height: altoDia }}>
             {horas.map((h) => (
               <div
                 key={h}
-                className="absolute inset-x-0 border-t border-slate-100"
+                className="absolute inset-x-0 border-t border-white/10"
                 style={{ top: (h - rango.horaDesde) * PX_POR_HORA_DIA }}
               >
-                <span className="absolute left-1 -top-2 bg-white px-1 font-mono text-[11px] text-slate-400 tabular-nums">
+                <span className="absolute left-1 -top-2 bg-slate-950 px-1 font-mono text-[11px] text-slate-400 tabular-nums">
                   {`${String(h).padStart(2, "0")}:00`}
                 </span>
               </div>
@@ -458,26 +458,26 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       {vista === "semana" ? (
         <div className="overflow-auto">
           <div className="min-w-[720px]">
-            <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden">
-              <div className="bg-slate-50" />
+            <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
+              <div className="bg-white/5" />
               {dias.map((dia) => (
                 <div
                   key={claveDeDiaCivil(dia)}
-                  className={`px-2 py-1.5 text-center ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-100/50 ring-2 ring-inset ring-violet-500" : "bg-slate-50"}`}
+                  className={`px-2 py-1.5 text-center ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-500/15 ring-2 ring-inset ring-violet-500" : "bg-white/5"}`}
                 >
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase">
                     {etiquetaDiaCorta(dia).semana}
                   </div>
-                  <div className="text-sm font-bold text-slate-900">
+                  <div className="text-sm font-bold text-slate-100">
                     {etiquetaDiaCorta(dia).fecha}
                   </div>
                 </div>
               ))}
-              <div className="bg-white relative" style={{ height: altoSemana }}>
+              <div className="bg-slate-950/60 relative" style={{ height: altoSemana }}>
                 {horas.map((h) => (
                   <div
                     key={h}
-                    className="absolute inset-x-0 border-t border-slate-100 text-[11px] font-mono text-slate-400 pl-1 tabular-nums"
+                    className="absolute inset-x-0 border-t border-white/10 text-[11px] font-mono text-slate-400 pl-1 tabular-nums"
                     style={{ top: (h - rango.horaDesde) * 44 }}
                   >
                     {`${String(h).padStart(2, "0")}:00`}
@@ -487,13 +487,13 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
               {dias.map((dia) => (
                 <div
                   key={claveDeDiaCivil(dia)}
-                  className={`relative ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-50/60" : "bg-white"}`}
+                  className={`relative ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-500/15" : "bg-slate-950/60"}`}
                   style={{ height: altoSemana }}
                 >
                   {horas.map((h) => (
                     <div
                       key={h}
-                      className="absolute inset-x-0 border-t border-slate-100"
+                      className="absolute inset-x-0 border-t border-white/10"
                       style={{ top: (h - rango.horaDesde) * 44 }}
                     />
                   ))}
@@ -515,9 +515,9 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       ) : null}
       {vista === "mes" ? (
         <div>
-          <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
             {NOMBRES_DIA.slice(1).concat(NOMBRES_DIA.slice(0, 1)).map((n) => (
-              <div key={n} className="bg-slate-50 px-1 py-1.5 text-center text-[11px] font-semibold text-slate-500 uppercase">
+              <div key={n} className="bg-white/5 px-1 py-1.5 text-center text-[11px] font-semibold text-slate-400 uppercase">
                 {n}
               </div>
             ))}
@@ -541,10 +541,10 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
                     }}
                     aria-label={`Ver ${etiquetaDiaCorta(dia).fecha}`}
                     className={`min-h-[96px] lg:min-h-[112px] p-2 text-left align-top transition-colors
-                      ${esHoy ? "bg-white ring-2 ring-inset ring-violet-500" : "bg-white hover:bg-slate-50"}
+                      ${esHoy ? "bg-slate-900/60 ring-2 ring-inset ring-violet-500" : "bg-slate-900/60 hover:bg-white/5"}
                       ${esOtroMes ? "opacity-50" : ""}`}
                   >
-                    <span className={`text-[13px] font-semibold ${esHoy ? "text-violet-700" : "text-slate-900"}`}>
+                    <span className={`text-[13px] font-semibold ${esHoy ? "text-violet-300" : "text-slate-100"}`}>
                       {dia.dia}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1">
@@ -556,7 +556,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
                         />
                       ))}
                       {puntos.length > 4 ? (
-                        <span className="text-[10px] font-semibold text-slate-500">+{puntos.length - 4}</span>
+                        <span className="text-[10px] font-semibold text-slate-400">+{puntos.length - 4}</span>
                       ) : null}
                     </span>
                   </button>
@@ -565,7 +565,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
             ))}
           </div>
           {turnosFiltrados.length === 0 && props.externos.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">Sin datos en este rango.</p>
+            <p className="mt-3 text-sm text-slate-400">Sin datos en este rango.</p>
           ) : null}
         </div>
       ) : null}

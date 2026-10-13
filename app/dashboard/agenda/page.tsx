@@ -156,27 +156,27 @@ export default async function AgendaPage(props?: {
       vistaInicial={params?.vista}
       fechaInicial={params?.fecha}
     />
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">Agenda</h1>
-      <p className="text-sm text-slate-600 mb-4">Turnos por profesional con estados reales</p>
+    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
+      <h1 className="text-2xl font-bold tracking-tight text-slate-100 mb-1">Agenda</h1>
+      <p className="text-sm text-slate-400 mb-4">Turnos por profesional con estados reales</p>
       <div className="space-y-6">
         {staff.map((profesional) => (
           <section key={profesional.id}>
-            <h2 className="font-semibold text-slate-900 mb-3">{profesional.nombre}</h2>
+            <h2 className="font-semibold text-slate-100 mb-3">{profesional.nombre}</h2>
             <div className="space-y-3">
               {turnos.filter((t) => t.staff_id === profesional.id).map((turno) => (
-                <div key={turno.id} className="p-4 border border-slate-200 rounded-lg">
+                <div key={turno.id} className="p-4 border border-white/10 rounded-xl bg-white/5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold text-slate-900">
+                      <h3 className="font-semibold text-slate-100">
                         {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
                       </h3>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-400">
                         {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio")
                           + " · " + formatearInicio(turno.inicio, timeZone)}
                       </p>
                       {turno.sena_monto !== null ? (
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-slate-400 mt-1">
                           {`Seña $${turno.sena_monto.toLocaleString("es-AR")}`}
                           {turno.sena_porcentaje !== null ? ` (${turno.sena_porcentaje}%)` : ""}
                           {turno.sena_reembolsada === true ? " · Devuelta" : ""}
@@ -201,7 +201,7 @@ export default async function AgendaPage(props?: {
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
                           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-slate-300 hover:bg-slate-50">
+                            border-white/15 hover:bg-white/10">
                             Cancelar
                           </button>
                         </form>
@@ -223,7 +223,7 @@ export default async function AgendaPage(props?: {
                         </form>
                         <form action={cambiarEstado.bind(null, turno.id, "cancelado")}>
                           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-slate-300 hover:bg-slate-50">
+                            border-white/15 hover:bg-white/10">
                             Cancelar
                           </button>
                         </form>
@@ -239,7 +239,7 @@ export default async function AgendaPage(props?: {
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-green-300 text-green-700 hover:bg-green-50"
+                            border-green-500/40 text-green-300 hover:bg-green-500/20"
                         >
                           WhatsApp
                         </a>
@@ -249,7 +249,7 @@ export default async function AgendaPage(props?: {
                 </div>
               ))}
               {turnos.filter((t) => t.staff_id === profesional.id).length === 0 ? (
-                <p className="text-sm text-slate-500">Sin turnos para este profesional.</p>
+                <p className="text-sm text-slate-400">Sin turnos para este profesional.</p>
               ) : null}
             </div>
           </section>

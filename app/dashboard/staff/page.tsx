@@ -79,10 +79,10 @@ export default async function StaffPage()
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Equipo</h1>
-        <p className="text-slate-600 mt-1 text-sm">Profesionales del negocio y sus horarios.</p>
+        <h1 className="text-2xl font-bold text-slate-100">Equipo</h1>
+        <p className="text-slate-400 mt-1 text-sm">Profesionales del negocio y sus horarios.</p>
       </div>
-      <form action={crearStaff} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col sm:flex-row gap-3">
+      <form action={crearStaff} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6 flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           name="nombre"
@@ -90,7 +90,7 @@ export default async function StaffPage()
           minLength={2}
           maxLength={80}
           placeholder="Nombre del profesional"
-          className="flex-1 px-4 py-2 border border-slate-300 rounded-lg outline-none
+          className="flex-1 px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
             focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
@@ -103,22 +103,22 @@ export default async function StaffPage()
       </form>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {(dashboard.staff as StaffRow[]).map((member) => (
-          <div key={member.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div key={member.id} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 font-bold">
                 {member.nombre.charAt(0)}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">{member.nombre}</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-semibold text-slate-100">{member.nombre}</h3>
+                <p className="text-sm text-slate-400">
                   {member.activo === false ? "Inactivo" : "Activo"}
                 </p>
               </div>
               <form action={alternarStaff.bind(null, member.id, member.activo === false)}>
                 <button
                   type="submit"
-                  className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                    text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                    text-slate-400 hover:bg-white/10 transition-colors"
                 >
                   {member.activo === false ? "Activar" : "Desactivar"}
                 </button>
@@ -126,20 +126,20 @@ export default async function StaffPage()
               <StaffDeleteForm action={quitarStaff.bind(null, member.id)} />
             </div>
             <form action={guardarHorarios.bind(null, member.id)} className="mt-4 space-y-2">
-              <h4 className="text-sm font-semibold text-slate-900">Horarios por día</h4>
-              <p className="text-xs text-slate-500">
+              <h4 className="text-sm font-semibold text-slate-100">Horarios por día</h4>
+              <p className="text-xs text-slate-400">
                 Una franja de corrido (09:00-19:00) o varias con descanso (09:00-13:00, 15:00-20:00).
                 Vacío = cerrado.
               </p>
               {DAY_ORDER.map((day) => (
-                <label key={day} className="flex items-center gap-2 text-sm text-slate-600">
+                <label key={day} className="flex items-center gap-2 text-sm text-slate-400">
                   <span className="w-20 shrink-0 font-medium">{dayLabel(day)}</span>
                   <input
                     type="text"
                     name={day}
                     defaultValue={franjasDeDia(member.horarios, day)}
                     placeholder="Cerrado"
-                    className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none
+                    className="flex-1 px-3 py-1.5 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </label>

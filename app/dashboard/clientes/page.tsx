@@ -139,25 +139,25 @@ export default async function ClientesPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Clientes</h1>
-        <p className="text-slate-600 mt-1 text-sm">CRM local con ausencias y lista negra automática</p>
+        <h1 className="text-2xl font-bold text-slate-100">Clientes</h1>
+        <p className="text-slate-400 mt-1 text-sm">CRM local con ausencias y lista negra automática</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <p className="text-xs font-medium text-slate-500 uppercase">Total</p>
-          <p className="text-2xl font-bold text-slate-900">{clientes.length}</p>
+        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
+          <p className="text-xs font-medium text-slate-400 uppercase">Total</p>
+          <p className="text-2xl font-bold text-slate-100">{clientes.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <p className="text-xs font-medium text-slate-500 uppercase">Activos</p>
-          <p className="text-2xl font-bold text-slate-900">{totalActivos}</p>
+        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
+          <p className="text-xs font-medium text-slate-400 uppercase">Activos</p>
+          <p className="text-2xl font-bold text-slate-100">{totalActivos}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <p className="text-xs font-medium text-slate-500 uppercase">Lista negra</p>
-          <p className="text-2xl font-bold text-slate-900">{totalListaNegra}</p>
+        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
+          <p className="text-xs font-medium text-slate-400 uppercase">Lista negra</p>
+          <p className="text-2xl font-bold text-slate-100">{totalListaNegra}</p>
         </div>
       </div>
-      <form action={crearCliente} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h2 className="font-semibold text-slate-900 mb-4">Nuevo cliente</h2>
+      <form action={crearCliente} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6">
+        <h2 className="font-semibold text-slate-100 mb-4">Nuevo cliente</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input
             type="text"
@@ -166,7 +166,7 @@ export default async function ClientesPage({
             minLength={2}
             maxLength={80}
             placeholder="Nombre y apellido"
-            className="px-4 py-2 border border-slate-300 rounded-lg outline-none
+            className="px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <input
@@ -176,7 +176,7 @@ export default async function ClientesPage({
             minLength={6}
             maxLength={20}
             placeholder="WhatsApp (+549...)"
-            className="px-4 py-2 border border-slate-300 rounded-lg outline-none
+            className="px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <button
@@ -188,14 +188,14 @@ export default async function ClientesPage({
           </button>
         </div>
       </form>
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6">
         <form method="get" className="flex flex-col sm:flex-row gap-3">
           <input
             type="search"
             name="q"
             defaultValue={q ?? ""}
             placeholder="Buscar por nombre o WhatsApp"
-            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg outline-none
+            className="flex-1 px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <div className="flex gap-2">
@@ -206,7 +206,7 @@ export default async function ClientesPage({
               className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
                 + (filtroActivo === "todos"
                   ? "bg-blue-600 text-white border-blue-600"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50")}
+                  : "border-white/15 text-slate-400 hover:bg-white/10")}
             >
               Todos
             </button>
@@ -217,7 +217,7 @@ export default async function ClientesPage({
               className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
                 + (filtroActivo === "activos"
                   ? "bg-blue-600 text-white border-blue-600"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50")}
+                  : "border-white/15 text-slate-400 hover:bg-white/10")}
             >
               Activos
             </button>
@@ -228,18 +228,18 @@ export default async function ClientesPage({
               className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
                 + (filtroActivo === "lista-negra"
                   ? "bg-blue-600 text-white border-blue-600"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50")}
+                  : "border-white/15 text-slate-400 hover:bg-white/10")}
             >
               Lista negra
             </button>
           </div>
         </form>
       </div>
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
+              <tr className="border-b border-white/10 text-slate-400">
                 <th className="px-6 py-3 font-semibold">Cliente</th>
                 <th className="px-6 py-3 font-semibold">Turnos</th>
                 <th className="px-6 py-3 font-semibold">Ausencias</th>
@@ -247,7 +247,7 @@ export default async function ClientesPage({
                 <th className="px-6 py-3 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/10">
               {filtrados.map((cliente) =>
               {
                 const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
@@ -257,32 +257,32 @@ export default async function ClientesPage({
                 const enListaNegra = decision !== "allowed";
 
                 return (
-                  <tr key={cliente.id} className="hover:bg-slate-50 align-top">
+                  <tr key={cliente.id} className="hover:bg-white/10 align-top">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-slate-900">{cliente.nombre}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{cliente.whatsapp}</p>
-                      <p className="text-slate-500 text-xs mt-1">
+                      <p className="font-medium text-slate-100">{cliente.nombre}</p>
+                      <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
+                      <p className="text-slate-400 text-xs mt-1">
                         {ultimo
                           ? "Último: " + (nombrePorServicio.get(ultimo.servicio_id) ?? "Servicio")
                             + " · " + ultimo.estado
                           : "Sin turnos"}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{historial.length}</td>
+                    <td className="px-6 py-4 text-slate-400">{historial.length}</td>
                     <td className="px-6 py-4">
                       <span className={cliente.ausencias >= umbral
-                        ? "text-red-600 font-semibold"
-                        : "text-slate-600"}>
+                        ? "text-red-400 font-semibold"
+                        : "text-slate-400"}>
                         {cliente.ausencias}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       {enListaNegra ? (
-                        <span className="inline-flex px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-semibold">
+                        <span className="inline-flex px-2 py-0.5 bg-red-500/10 text-red-300 rounded-full text-xs font-semibold">
                           {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
                         </span>
                       ) : (
-                        <span className="inline-flex px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                        <span className="inline-flex px-2 py-0.5 bg-green-500/10 text-green-300 rounded-full text-xs font-semibold">
                           Activo
                         </span>
                       )}
@@ -301,7 +301,7 @@ export default async function ClientesPage({
                               target="_blank"
                               rel="noreferrer"
                               className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                                border-green-300 text-green-700 hover:bg-green-50"
+                                border-green-500/40 text-green-300 hover:bg-green-500/20"
                             >
                               WhatsApp
                             </a>
@@ -309,25 +309,25 @@ export default async function ClientesPage({
                         })()}
                         <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
                           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-slate-300 hover:bg-slate-50" title="Sumar ausencia">
+                            border-white/15 hover:bg-white/10" title="Sumar ausencia">
                             + Falta
                           </button>
                         </form>
                         <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
                           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-slate-300 hover:bg-slate-50" title="Quitar ausencia">
+                            border-white/15 hover:bg-white/10" title="Quitar ausencia">
                             − Falta
                           </button>
                         </form>
                         <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
                           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-slate-300 hover:bg-slate-50">
+                            border-white/15 hover:bg-white/10">
                             {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
                           </button>
                         </form>
                         <form action={eliminarCliente.bind(null, cliente.id)}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
-                            text-red-600 hover:bg-red-50">
+                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/30
+                            text-red-400 hover:bg-red-500/20">
                             Eliminar
                           </button>
                         </form>
@@ -339,7 +339,7 @@ export default async function ClientesPage({
             </tbody>
           </table>
         </div>
-        <div className="md:hidden divide-y divide-slate-100">
+        <div className="md:hidden divide-y divide-white/10">
           {filtrados.map((cliente) =>
           {
             const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
@@ -351,28 +351,28 @@ export default async function ClientesPage({
               <div key={cliente.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{cliente.nombre}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{cliente.whatsapp}</p>
-                    <p className="text-slate-500 text-xs mt-1">
+                    <p className="font-medium text-slate-100">{cliente.nombre}</p>
+                    <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
+                    <p className="text-slate-400 text-xs mt-1">
                       {historial.length} turnos · {cliente.ausencias} faltas
                     </p>
                   </div>
                   {enListaNegra ? (
-                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-semibold">
+                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-red-500/10 text-red-300 rounded-full text-xs font-semibold">
                       {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
                     </span>
                   ) : (
-                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-green-500/10 text-green-300 rounded-full text-xs font-semibold">
                       Activo
                     </span>
                   )}
                 </div>
-                <details className="mt-3 border border-slate-200 rounded-lg">
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700">
+                <details className="mt-3 border border-white/10 rounded-lg">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-300">
                     Historial y acciones
                   </summary>
-                  <div className="px-3 pb-3 pt-1 border-t border-slate-200">
-                    <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                  <div className="px-3 pb-3 pt-1 border-t border-white/10">
+                    <ul className="mt-2 space-y-1 text-xs text-slate-400">
                       {historial.length === 0 ? <li>Sin turnos todavía.</li> : null}
                       {historial.slice(0, 5).map((turno) => (
                         <li key={turno.id}>
@@ -394,7 +394,7 @@ export default async function ClientesPage({
                             target="_blank"
                             rel="noreferrer"
                             className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                              border-green-300 text-green-700 hover:bg-green-50"
+                              border-green-500/40 text-green-300 hover:bg-green-500/20"
                           >
                             WhatsApp
                           </a>
@@ -402,25 +402,25 @@ export default async function ClientesPage({
                       })()}
                       <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
                         <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-slate-300 hover:bg-slate-50">
+                          border-white/15 hover:bg-white/10">
                           + Falta
                         </button>
                       </form>
                       <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
                         <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-slate-300 hover:bg-slate-50">
+                          border-white/15 hover:bg-white/10">
                           − Falta
                         </button>
                       </form>
                       <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
                         <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-slate-300 hover:bg-slate-50">
+                          border-white/15 hover:bg-white/10">
                           {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
                         </button>
                       </form>
                       <form action={eliminarCliente.bind(null, cliente.id)}>
-                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200
-                          text-red-600 hover:bg-red-50">
+                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/30
+                          text-red-400 hover:bg-red-500/20">
                           Eliminar
                         </button>
                       </form>
@@ -432,7 +432,7 @@ export default async function ClientesPage({
           })}
         </div>
         {filtrados.length === 0 ? (
-          <p className="text-sm text-slate-500 px-6 py-6">
+          <p className="text-sm text-slate-400 px-6 py-6">
             {clientes.length === 0 ? "Todavía no tenés clientes." : "Ningún cliente coincide con la búsqueda."}
           </p>
         ) : null}

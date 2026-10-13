@@ -58,22 +58,22 @@ export default async function PagosPage()
 
   return (
     <div>
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-1">Pagos</h1>
-              <p className="text-sm text-slate-600">Seguimiento financiero de señas</p>
+              <h1 className="text-2xl font-bold text-slate-100 mb-1">Pagos</h1>
+              <p className="text-sm text-slate-400">Seguimiento financiero de señas</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-slate-600">Pendiente cobrar</div>
-              <div className="text-2xl font-bold text-blue-600">{formatARS(totalPendiente)}</div>
+              <div className="text-sm text-slate-400">Pendiente cobrar</div>
+              <div className="text-2xl font-bold text-blue-400">{formatARS(totalPendiente)}</div>
             </div>
           </div>
           <div className="mb-4"><LeyendaEstados /></div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-white/10 text-slate-400">
                   <th className="pb-3 font-semibold">Cliente</th>
                   <th className="pb-3 font-semibold">Servicio</th>
                   <th className="pb-3 font-semibold">Total</th>
@@ -84,29 +84,29 @@ export default async function PagosPage()
                   <th className="pb-3 font-semibold">Comprobante</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/10">
                 {turnos.map((turno) => (
-                  <tr key={turno.id} className="hover:bg-slate-50">
-                    <td className="py-3 font-medium text-slate-900">
+                  <tr key={turno.id} className="hover:bg-white/10">
+                    <td className="py-3 font-medium text-slate-100">
                       {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
                     </td>
-                    <td className="py-3 text-slate-600">
+                    <td className="py-3 text-slate-400">
                       {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
                     </td>
-                    <td className="py-3 text-slate-600">{formatARS(turno.monto_total)}</td>
-                    <td className="py-3 text-slate-600">{formatARS(turno.sena_monto)}</td>
-                    <td className="py-3 text-slate-600">{formatARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
+                    <td className="py-3 text-slate-400">{formatARS(turno.monto_total)}</td>
+                    <td className="py-3 text-slate-400">{formatARS(turno.sena_monto)}</td>
+                    <td className="py-3 text-slate-400">{formatARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
                     <td className="py-3">
                       <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
                         + claseBadgePara(turno.estado)}>
                         {etiquetaEstadoPara(turno.estado)}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600">
+                    <td className="py-3 text-slate-400">
                       {new Date(turno.inicio).toLocaleDateString("es-AR",
                         { day: "2-digit", month: "2-digit" })}
                     </td>
-                    <td className="py-3 text-slate-600">
+                    <td className="py-3 text-slate-400">
                       {celdaComprobante(turno.mp_payment_id)}
                     </td>
                   </tr>
@@ -114,7 +114,7 @@ export default async function PagosPage()
               </tbody>
             </table>
           </div>
-          {turnos.length === 0 ? <p className="text-sm text-slate-500 mt-4">Todavía no hay movimientos.</p> : null}
+          {turnos.length === 0 ? <p className="text-sm text-slate-400 mt-4">Todavía no hay movimientos.</p> : null}
         </div>
     </div>
   );

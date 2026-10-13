@@ -57,40 +57,39 @@ export default async function FacturacionPage(
     : null;
 
   return (
-    <main className="p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Facturación</h1>
-            <p className="text-slate-600 mt-2">Plan mensual de TurnoMas: {plan.etiqueta}.</p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-          >
-            Volver
-          </Link>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Facturación</h1>
+          <p className="text-slate-400 mt-1 text-sm">Plan mensual de TurnoMas: {plan.etiqueta}.</p>
         </div>
+        <Link
+          href="/dashboard"
+          className="px-4 py-2 border border-white/15 rounded-xl text-slate-300 hover:bg-white/10"
+        >
+          Volver
+        </Link>
+      </div>
 
-        {params?.suscripcion === "ok" && (
-          <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
-            bg-green-50 text-green-700 border-green-200">
-            Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
-          </p>
-        )}
+      {params?.suscripcion === "ok" && (
+        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
+          bg-green-500/10 text-green-300 border-green-500/30">
+          Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
+        </p>
+      )}
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">Plan mensual</h3>
+            <h3 className="font-semibold text-slate-100">Plan mensual</h3>
             <span className="text-xs font-semibold px-3 py-1 rounded-full border
-              bg-slate-100 text-slate-500 border-slate-200">
+              bg-white/10 text-slate-400 border-white/10">
               {estado === "active" ? "Activo"
                 : estado === "past_due" ? `En mora (${GRACIA_PAST_DUE_DIAS} días de gracia)`
                 : estado === "blocked" ? "Bloqueado"
                 : diasRestantes !== null ? `Prueba: ${diasRestantes} días restantes` : "Prueba"}
             </span>
           </div>
-          <p className="text-sm text-slate-500 mb-4">
+          <p className="text-sm text-slate-400 mb-4">
             {estado === "active"
               ? "Tu plan está activo. El débito es automático cada mes."
               : estado === "past_due"
@@ -100,15 +99,15 @@ export default async function FacturacionPage(
               : "Tenés 14 días gratis. Activá el plan para no interrumpir tu agenda."}
           </p>
           {demo ? (
-            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
               La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
             </p>
           ) : estado === "active" ? (
             <form action={cancelarPlan}>
               <button
                 type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                  text-slate-600 hover:bg-slate-50 transition-colors"
+                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                  text-slate-400 hover:bg-white/10 transition-colors"
               >
                 Cancelar plan
               </button>
@@ -125,12 +124,11 @@ export default async function FacturacionPage(
             </form>
           )}
           {suscripcionId !== null && !demo ? (
-            <p className="text-xs text-slate-500 mt-4">
+            <p className="text-xs text-slate-400 mt-4">
               Comprobante: <CopiarComprobante comprobanteId={suscripcionId} />
             </p>
           ) : null}
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

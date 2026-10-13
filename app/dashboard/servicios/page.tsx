@@ -73,25 +73,25 @@ export default async function ServiciosPage()
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Servicios</h1>
-        <p className="text-slate-600 mt-1 text-sm">Duración, precios y seña por servicio.</p>
+        <h1 className="text-2xl font-bold text-slate-100">Servicios</h1>
+        <p className="text-slate-400 mt-1 text-sm">Duración, precios y seña por servicio.</p>
       </div>
       <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
 
         {(dashboard.servicios as ServicioRow[]).map((servicio) => (
-          <div key={servicio.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
+          <div key={servicio.id} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-4">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-300 font-bold">
                 {servicio.nombre.charAt(0)}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">
+                <h3 className="font-semibold text-slate-100">
                   {servicio.nombre}
                   {servicio.activo === false ? (
-                    <span className="ml-2 text-xs font-semibold text-slate-500">(Inactivo)</span>
+                    <span className="ml-2 text-xs font-semibold text-slate-400">(Inactivo)</span>
                   ) : null}
                 </h3>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2 text-sm text-slate-600">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2 text-sm text-slate-400">
                   <span>Duración: {servicio.duracion_min} min</span>
                   <span>Precio: $ {servicio.precio_base.toLocaleString("es-AR")}</span>
                   {servicio.precio_promocional !== null && (
@@ -109,8 +109,8 @@ export default async function ServiciosPage()
                   <form action={alternarServicio.bind(null, servicio.id, servicio.activo === false)}>
                     <button
                       type="submit"
-                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                        text-slate-600 hover:bg-slate-50 transition-colors"
+                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                        text-slate-400 hover:bg-white/10 transition-colors"
                     >
                       {servicio.activo === false ? "Activar" : "Desactivar"}
                     </button>
@@ -118,18 +118,18 @@ export default async function ServiciosPage()
                   <form action={borrarServicio.bind(null, servicio.id)}>
                     <button
                       type="submit"
-                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-red-200
-                        text-red-600 hover:bg-red-50 transition-colors"
+                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-red-500/30
+                        text-red-400 hover:bg-red-500/20 transition-colors"
                     >
                       Eliminar
                     </button>
                   </form>
                 </div>
-                <details className="border border-slate-200 rounded-lg">
-                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <details className="border border-white/10 rounded-lg">
+                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-white/10">
                     Editar
                   </summary>
-                  <div className="p-4 border-t border-slate-200">
+                  <div className="p-4 border-t border-white/10">
                     <FormularioServicio
                       action={editarServicio.bind(null, servicio.id)}
                       titulo="Editar servicio"

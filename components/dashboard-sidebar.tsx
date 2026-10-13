@@ -95,7 +95,7 @@ export default function DashboardSidebar()
           lg:translate-x-0 ${abierto ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="mb-2 flex items-center justify-between px-1 lg:hidden">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Panel
           </span>
           <button

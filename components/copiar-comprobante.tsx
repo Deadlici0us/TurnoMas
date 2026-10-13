@@ -53,14 +53,14 @@ export default function CopiarComprobante(props: CopiarComprobanteProps)
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="font-mono text-xs text-slate-700">{comprobante}</span>
+      <span className="font-mono text-xs text-slate-300">{comprobante}</span>
       <button
         type="button"
         onClick={() => void copiar()}
         title="Copiar nro para buscarlo en Actividad de MercadoPago"
         aria-label="Copiar nro de comprobante"
-        className="shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] font-medium
-          text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className="shrink-0 rounded border border-white/15 px-1.5 py-0.5 text-[11px] font-medium
+          text-slate-400 hover:bg-white/10 hover:text-slate-300 transition-colors"
       >
         {copiado ? "¡Copiado!" : "Copiar"}
       </button>

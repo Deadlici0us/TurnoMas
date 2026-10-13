@@ -28,11 +28,11 @@ export default function FormularioServicio({ action, titulo, cta, servicio }: Fo
 
   return (
     <form action={formAction} className="space-y-4">
-      <h2 className="font-semibold text-slate-900">{titulo}</h2>
+      <h2 className="font-semibold text-slate-100">{titulo}</h2>
       <CamposServicio servicio={servicio} />
       {error !== null && (
-        <p role="alert" className="text-sm font-semibold text-red-700 bg-red-50 border
-          border-red-200 rounded-lg p-3">
+        <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
+          border-red-500/30 rounded-lg p-3">
           {error}
         </p>
       )}

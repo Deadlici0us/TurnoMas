@@ -278,7 +278,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "MercadoPago conectado. Las señas se cobran directo en tu cuenta.",
-      clase: "bg-green-50 text-green-700 border-green-200",
+      clase: "bg-green-500/10 text-green-300 border-green-500/30",
     };
   }
 
@@ -286,7 +286,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "Cancelaste la conexión con MercadoPago. Podés intentarlo de nuevo.",
-      clase: "bg-amber-50 text-amber-700 border-amber-200",
+      clase: "bg-amber-500/10 text-amber-300 border-amber-500/30",
     };
   }
 
@@ -294,7 +294,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas.",
-      clase: "bg-red-50 text-red-700 border-red-200",
+      clase: "bg-red-500/10 text-red-300 border-red-500/30",
     };
   }
 
@@ -302,7 +302,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "No pudimos conectar MercadoPago. Probá de nuevo.",
-      clase: "bg-red-50 text-red-700 border-red-200",
+      clase: "bg-red-500/10 text-red-300 border-red-500/30",
     };
   }
 
@@ -310,7 +310,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "Tenés servicios con seña activa. Desactivalas en Servicios y volvé a desconectar.",
-      clase: "bg-amber-50 text-amber-700 border-amber-200",
+      clase: "bg-amber-500/10 text-amber-300 border-amber-500/30",
     };
   }
 
@@ -353,15 +353,15 @@ export default async function ConfigPage(
   const mpConectado = mpToken !== null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Configuración</h1>
-        <p className="text-sm text-slate-600">Parámetros del negocio y lista negra</p>
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-100">Configuración</h1>
+        <p className="text-slate-400 mt-1 text-sm">Parámetros del negocio y lista negra</p>
       </div>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Negocio</h2>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Negocio</h2>
         <form action={guardarNombre} className="space-y-3">
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Nombre del negocio"}
             <input
               type="text"
@@ -370,11 +370,11 @@ export default async function ConfigPage(
               minLength={2}
               maxLength={80}
               defaultValue={negocio.nombre ?? ""}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
-          <p className="text-xs text-slate-500">País: {negocio.pais ?? "—"} · El link público no cambia.</p>
+          <p className="text-xs text-slate-400">País: {negocio.pais ?? "—"} · El link público no cambia.</p>
           <button
             type="submit"
             className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
@@ -384,20 +384,20 @@ export default async function ConfigPage(
           </button>
         </form>
         <form action={guardarTimezone} className="space-y-3">
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Zona horaria del negocio"}
             <select
               name="timezone"
               defaultValue={timezoneActual}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {TIMEZONES_SOPORTADAS.map((zona) => (
-                <option key={zona} value={zona}>{zona}</option>
+                <option key={zona} value={zona} className="bg-slate-900 text-slate-100">{zona}</option>
               ))}
             </select>
           </label>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             La agenda (lista y calendario) muestra los turnos en esta zona. Importante en países
             con varios husos (MX, BR, ES, US).
           </p>
@@ -410,33 +410,33 @@ export default async function ConfigPage(
           </button>
         </form>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-400">
             {"Tu página pública: "}
             <Link
               href={"/" + negocio.pais + "/" + negocio.slug}
-              className="font-mono font-semibold text-blue-600 hover:underline"
+              className="font-mono font-semibold text-blue-400 hover:underline"
             >
               {"/" + negocio.pais + "/" + negocio.slug}
             </Link>
           </p>
         ) : null}
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Horarios del negocio</h2>
-        <p className="text-xs text-slate-500">
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Horarios del negocio</h2>
+        <p className="text-xs text-slate-400">
           Rango más amplio en el que aceptás reservas (ej: lun a sáb 08:00-22:00).
           Cada profesional ajusta su turno dentro de este marco. Vacío = cerrado.
         </p>
         <form action={guardarHorariosNegocio} className="space-y-2">
           {DAY_ORDER.map((day) => (
-            <label key={day} className="flex items-center gap-2 text-sm text-slate-600">
+            <label key={day} className="flex items-center gap-2 text-sm text-slate-400">
               <span className="w-20 shrink-0 font-medium">{dayLabel(day)}</span>
               <input
                 type="text"
                 name={day}
                 defaultValue={franjasDeDia(negocio.horarios, day)}
                 placeholder="Cerrado"
-                className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none
+                className="flex-1 px-3 py-1.5 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </label>
@@ -450,11 +450,11 @@ export default async function ConfigPage(
           </button>
         </form>
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Lista negra automática</h2>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Lista negra automática</h2>
         <form action={guardarPolitica} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            <label className="flex-1 text-sm text-slate-600">
+            <label className="flex-1 text-sm text-slate-400">
               {"Ausencias que disparan la penalidad"}
               <input
                 type="number"
@@ -462,20 +462,20 @@ export default async function ConfigPage(
                 min={1}
                 max={10}
                 defaultValue={umbral}
-                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </label>
-            <label className="flex-1 text-sm text-slate-600">
+            <label className="flex-1 text-sm text-slate-400">
               {"Penalidad"}
               <select
                 name="penalidad"
                 defaultValue={penalidad}
-                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="blocked">Bloqueo total</option>
-                <option value="fullDeposit">Exigir seña del 100%</option>
+                <option value="blocked" className="bg-slate-900 text-slate-100">Bloqueo total</option>
+                <option value="fullDeposit" className="bg-slate-900 text-slate-100">Exigir seña del 100%</option>
               </select>
             </label>
           </div>
@@ -488,14 +488,14 @@ export default async function ConfigPage(
           </button>
         </form>
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Política de seña</h2>
-        <p className="text-xs text-slate-500">
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Política de seña</h2>
+        <p className="text-xs text-slate-400">
           Si se cancela con más anticipación que este umbral, se devuelve la seña.
           Dentro del umbral, el cliente la pierde.
         </p>
         <form action={guardarSena} className="space-y-3">
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Horas de retención antes del turno"}
             <input
               type="number"
@@ -503,7 +503,7 @@ export default async function ConfigPage(
               min={1}
               max={720}
               defaultValue={retencionHs}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
@@ -516,10 +516,10 @@ export default async function ConfigPage(
           </button>
         </form>
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Recordatorios automáticos</h2>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Recordatorios automáticos</h2>
         <form action={guardarRecordatorios} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-slate-400">
             <input
               type="checkbox"
               name="recordatorioActivo"
@@ -528,7 +528,7 @@ export default async function ConfigPage(
             />
             {"Enviar recordatorio antes del turno"}
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Horas antes del turno"}
             <input
               type="number"
@@ -536,7 +536,7 @@ export default async function ConfigPage(
               min={1}
               max={72}
               defaultValue={recordatorioHs}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
@@ -549,11 +549,11 @@ export default async function ConfigPage(
           </button>
         </form>
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Reseñas</h2>
-        <p className="text-xs text-slate-500">Solo llega a clientes con email. El email sigue opcional en la reserva.</p>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Reseñas</h2>
+        <p className="text-xs text-slate-400">Solo llega a clientes con email. El email sigue opcional en la reserva.</p>
         <form action={guardarResenas} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-slate-400">
             <input
               type="checkbox"
               name="resenaActiva"
@@ -562,7 +562,7 @@ export default async function ConfigPage(
             />
             {"Pedir reseña después del turno"}
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Horas después del fin"}
             <input
               type="number"
@@ -570,7 +570,7 @@ export default async function ConfigPage(
               min={1}
               max={72}
               defaultValue={resenaHs}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
@@ -584,14 +584,14 @@ export default async function ConfigPage(
         </form>
         {resenaActiva ? (
           <form action={guardarMaps} className="space-y-3">
-            <label className="block text-sm text-slate-600">
+            <label className="block text-sm text-slate-400">
               {"Link de Google Maps (4-5 estrellas derivan acá)"}
               <input
                 type="url"
                 name="mapsUrl"
                 defaultValue={negocio.google_maps_url ?? ""}
                 placeholder="https://maps.app.goo.gl/..."
-                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </label>
@@ -605,13 +605,13 @@ export default async function ConfigPage(
           </form>
         ) : null}
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Remarketing</h2>
-        <p className="text-xs text-slate-500">
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Remarketing</h2>
+        <p className="text-xs text-slate-400">
           Solo llega a clientes con email. Cada servicio puede tener sus propios días.
         </p>
         <form action={guardarRemarketing} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-slate-400">
             <input
               type="checkbox"
               name="remarketingActivo"
@@ -620,7 +620,7 @@ export default async function ConfigPage(
             />
             {"Invitar a renovar después del turno"}
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className="block text-sm text-slate-400">
             {"Días por defecto (cada servicio puede overridear)"}
             <input
               type="number"
@@ -628,7 +628,7 @@ export default async function ConfigPage(
               min={1}
               max={90}
               defaultValue={remarketingDias}
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
@@ -641,10 +641,10 @@ export default async function ConfigPage(
           </button>
         </form>
       </section>
-      <section className="space-y-4">
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-900">Mensajes</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="font-semibold text-slate-100">Mensajes</h2>
+          <p className="text-xs text-slate-400">
             Personalizá subject y cuerpo. Variables: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
             Vacío = mensaje default. Recomendá el refuerzo por WhatsApp desde Agenda y Clientes.
           </p>
@@ -662,9 +662,9 @@ export default async function ConfigPage(
 
           return (
             <form key={tipo} action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)} className="space-y-3
-              p-4 border border-slate-200 rounded-lg">
-              <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
-              <label className="block text-sm text-slate-600">
+              p-4 border border-white/10 rounded-xl bg-white/5">
+              <h3 className="text-sm font-semibold text-slate-100">{titulo}</h3>
+              <label className="block text-sm text-slate-400">
                 {"Asunto"}
                 <input
                   type="text"
@@ -672,11 +672,11 @@ export default async function ConfigPage(
                   maxLength={120}
                   defaultValue={subject ?? ""}
                   placeholder="Vacío = default"
-                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                  className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </label>
-              <label className="block text-sm text-slate-600">
+              <label className="block text-sm text-slate-400">
                 {"Cuerpo"}
                 <textarea
                   name="cuerpo"
@@ -684,7 +684,7 @@ export default async function ConfigPage(
                   maxLength={2000}
                   defaultValue={cuerpo ?? ""}
                   placeholder="Vacío = default"
-                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none
+                  className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </label>
@@ -699,27 +699,27 @@ export default async function ConfigPage(
           );
         })}
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Conexiones</h2>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Conexiones</h2>
         {avisoMp !== null && (
           <p className={`text-xs font-semibold px-3 py-2 rounded-lg border ${avisoMp.clase}`}>
             {avisoMp.texto}
           </p>
         )}
-        <div className="p-3 border border-slate-200 rounded-lg space-y-3">
+        <div className="p-3 border border-white/10 rounded-xl bg-white/5 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-900">MercadoPago</div>
-              <div className="text-xs text-slate-500">Cobro de señas directo en tu billetera</div>
+              <div className="text-sm font-semibold text-slate-100">MercadoPago</div>
+              <div className="text-xs text-slate-400">Cobro de señas directo en tu billetera</div>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${mpConectado
-              ? "bg-green-50 text-green-700 border-green-200"
-              : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+              ? "bg-green-500/10 text-green-300 border-green-500/30"
+              : "bg-white/10 text-slate-400 border-white/10"}`}>
               {mpConectado ? `Conectado ${maskMpToken(mpToken)}` : "Sin conectar"}
             </span>
           </div>
           {demo ? (
-            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
               La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
               con tu MercadoPago.
             </p>
@@ -727,8 +727,8 @@ export default async function ConfigPage(
             <form action={quitarTokenMp}>
               <button
                 type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                  text-slate-600 hover:bg-slate-50 transition-colors"
+                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                  text-slate-400 hover:bg-white/10 transition-colors"
               >
                 Desconectar
               </button>
@@ -749,14 +749,14 @@ export default async function ConfigPage(
           </p>
         </div>
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+          <div className="flex items-center justify-between p-3 border border-white/10 rounded-xl bg-white/5">
             <div>
-              <div className="text-sm font-semibold text-slate-900">Google Calendar</div>
-              <div className="text-xs text-slate-500">Tus turnos inyectados en tu calendario</div>
+              <div className="text-sm font-semibold text-slate-100">Google Calendar</div>
+              <div className="text-xs text-slate-400">Tus turnos inyectados en tu calendario</div>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${gcalConectado
-              ? "bg-green-50 text-green-700 border-green-200"
-              : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+              ? "bg-green-500/10 text-green-300 border-green-500/30"
+              : "bg-white/10 text-slate-400 border-white/10"}`}>
               {gcalConectado ? "Conectado" : "Sin conectar"}
             </span>
           </div>
@@ -764,8 +764,8 @@ export default async function ConfigPage(
             <form action={quitarGoogle}>
               <button
                 type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-slate-300
-                  text-slate-600 hover:bg-slate-50 transition-colors"
+                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+                  text-slate-400 hover:bg-white/10 transition-colors"
               >
                 Desconectar Google
               </button>
@@ -773,8 +773,8 @@ export default async function ConfigPage(
           ) : (
             <Link
               href="/api/integrations/google/authorize"
-              className="inline-block bg-white text-slate-900 text-sm font-semibold px-6 py-2 rounded-lg
-                border border-slate-300 hover:bg-slate-50 transition-colors"
+              className="inline-block bg-white/10 text-slate-100 text-sm font-semibold px-6 py-2 rounded-lg
+                border border-white/15 hover:bg-white/10 transition-colors"
             >
               Conectar con Google
             </Link>
@@ -784,21 +784,21 @@ export default async function ConfigPage(
             para otorgar el permiso de lectura.
           </p>
           <div
-            className="flex items-center justify-between p-3 border border-slate-200 rounded-lg"
+            className="flex items-center justify-between p-3 border border-white/10 rounded-xl bg-white/5"
           >
             <div>
-              <div className="text-sm font-semibold text-slate-900">WhatsApp</div>
-              <div className="text-xs text-slate-500">Recordatorios 24hs antes por WhatsApp</div>
+              <div className="text-sm font-semibold text-slate-100">WhatsApp</div>
+              <div className="text-xs text-slate-400">Recordatorios 24hs antes por WhatsApp</div>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100
-              text-slate-500 border border-slate-200">
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/10
+              text-slate-400 border border-white/10">
               Manual en esta versión
             </span>
           </div>
         </div>
       </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-slate-900">Zona de peligro</h2>
+      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
+        <h2 className="font-semibold text-slate-100">Zona de peligro</h2>
         <ZonaPeligroEliminar />
       </section>
     </div>

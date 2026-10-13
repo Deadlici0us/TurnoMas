@@ -14,16 +14,16 @@ export interface DemoReadonlyBannerProps
 export default function DemoReadonlyBanner(props: DemoReadonlyBannerProps)
 {
   return (
-    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
-      <p className="font-semibold text-amber-900">
+    <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+      <p className="font-semibold text-amber-200">
         Estás explorando la cuenta demo: es de solo lectura.
       </p>
       {props.accionBloqueada ? (
-        <p role="alert" className="mt-1 text-amber-800">
+        <p role="alert" className="mt-1 text-amber-300">
           No pudimos guardar ese cambio en la demo. Creá tu cuenta gratis y probá con tu negocio.
         </p>
       ) : (
-        <p className="mt-1 text-amber-800">
+        <p className="mt-1 text-amber-300">
           Mirá todo lo que quieras, pero los cambios están desactivados en la demo.
         </p>
       )}

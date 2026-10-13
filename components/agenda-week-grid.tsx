@@ -173,11 +173,11 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
+    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 sm:p-8 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Semana</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-lg font-bold text-slate-100">Semana</h2>
+          <p className="text-xs text-slate-400">
             {`Turnos y eventos de Google del negocio (${rango.horaDesde} a ${rango.horaHasta}h) · ` +
               `${etiquetaRango} · ${timeZone}`}
           </p>
@@ -187,8 +187,8 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
             type="button"
             onClick={() => setSemanaOffset((v) => v - 1)}
             aria-label="Semana anterior"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300
-              text-slate-600 hover:bg-slate-50 transition-colors"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/15
+              text-slate-400 hover:bg-white/10 transition-colors"
           >
             ← Anterior
           </button>
@@ -198,8 +198,8 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
             disabled={semanaOffset === 0}
             className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
               semanaOffset === 0
-                ? "border-slate-200 text-slate-400 cursor-default"
-                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                ? "border-white/10 text-slate-400 cursor-default"
+                : "border-white/15 text-slate-400 hover:bg-white/10"
             }`}
           >
             Hoy
@@ -208,8 +208,8 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
             type="button"
             onClick={() => setSemanaOffset((v) => v + 1)}
             aria-label="Semana siguiente"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300
-              text-slate-600 hover:bg-slate-50 transition-colors"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/15
+              text-slate-400 hover:bg-white/10 transition-colors"
           >
             Siguiente →
           </button>
@@ -222,8 +222,8 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
             onClick={() => setStaffId(null)}
             className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
               staffId === null
-                ? "bg-slate-900 text-white border-slate-900"
-                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                ? "bg-white text-slate-950 border-white"
+                : "border-white/15 text-slate-400 hover:bg-white/10"
             }`}
           >
             Todos
@@ -234,8 +234,8 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
               onClick={() => setStaffId(s.id)}
               className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
                 staffId === s.id
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "bg-white text-slate-950 border-white"
+                  : "border-white/15 text-slate-400 hover:bg-white/10"
               }`}
             >
               {s.nombre}
@@ -245,23 +245,23 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
       </div>
       <div className="overflow-auto max-h-[70vh]">
         <div className="min-w-[720px]">
-          <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden">
-            <div className="bg-slate-50" />
+          <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-white/10 border border-white/10 rounded-lg overflow-hidden">
+            <div className="bg-white/5" />
             {dias.map((dia) => (
-              <div key={claveDeDiaCivil(dia)} className="bg-slate-50 px-2 py-1.5 text-center">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase">
+              <div key={claveDeDiaCivil(dia)} className="bg-white/5 px-2 py-1.5 text-center">
+                <div className="text-[11px] font-semibold text-slate-400 uppercase">
                   {etiquetaDia(dia).semana}
                 </div>
-                <div className="text-sm font-bold text-slate-900">
+                <div className="text-sm font-bold text-slate-100">
                   {etiquetaDia(dia).fecha}
                 </div>
               </div>
             ))}
-            <div className="bg-white relative" style={{ height: alto }}>
+            <div className="bg-slate-950/60 relative" style={{ height: alto }}>
               {horas.map((h) => (
                 <div
                   key={h}
-                  className="absolute inset-x-0 border-t border-slate-100 text-[10px] text-slate-400 pl-1"
+                  className="absolute inset-x-0 border-t border-white/10 text-[10px] text-slate-400 pl-1"
                   style={{ top: (h - rango.horaDesde) * PX_POR_HORA }}
                 >
                   {`${String(h).padStart(2, "0")}:00`}
@@ -269,11 +269,11 @@ export default function AgendaWeekGrid({ base, timeZone, staff, turnos, externos
               ))}
             </div>
             {dias.map((dia) => (
-              <div key={claveDeDiaCivil(dia)} className="bg-white relative" style={{ height: alto }}>
+              <div key={claveDeDiaCivil(dia)} className="bg-slate-950/60 relative" style={{ height: alto }}>
                 {horas.map((h) => (
                   <div
                     key={h}
-                    className="absolute inset-x-0 border-t border-slate-100"
+                    className="absolute inset-x-0 border-t border-white/10"
                     style={{ top: (h - rango.horaDesde) * PX_POR_HORA }}
                   />
                 ))}

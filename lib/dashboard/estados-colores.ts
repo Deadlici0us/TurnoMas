@@ -15,26 +15,26 @@ export interface LeyendaEstado
   readonly clase: string;
 }
 
-/** Badge compacto (listas y tabla de pagos). */
+/** Badge compacto (listas y tabla de pagos) — oscuro unificado. */
 export const ESTADO_BADGE: Record<EstadoTurno, string> =
 {
-  pagado: "bg-green-100 text-green-800 border-green-200",
-  confirmado: "bg-blue-100 text-blue-800 border-blue-200",
-  pendiente: "bg-amber-100 text-amber-800 border-amber-200",
-  completado: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  cancelado: "bg-slate-100 text-slate-500 border-slate-200",
-  ausente: "bg-red-100 text-red-800 border-red-200",
+  pagado: "bg-green-500/15 text-green-300 border-green-500/30",
+  confirmado: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  pendiente: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  completado: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
+  cancelado: "bg-white/10 text-slate-400 border-white/10",
+  ausente: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
-/** Bloque de la grilla semanal (más saturado para verse sobre la grilla). */
+/** Bloque de la grilla semanal (más saturado para verse sobre la grilla oscura). */
 export const ESTADO_GRILLA: Record<EstadoTurno, string> =
 {
-  pendiente: "bg-amber-200 border-amber-400 text-amber-900",
-  confirmado: "bg-blue-200 border-blue-400 text-blue-900",
-  pagado: "bg-green-200 border-green-400 text-green-900",
-  completado: "bg-indigo-200 border-indigo-400 text-indigo-900",
-  ausente: "bg-red-200 border-red-400 text-red-900",
-  cancelado: "bg-slate-100 border-slate-200 text-slate-400 line-through",
+  pendiente: "bg-amber-500/25 border-amber-400/40 text-amber-100",
+  confirmado: "bg-blue-500/25 border-blue-400/40 text-blue-100",
+  pagado: "bg-green-500/25 border-green-400/40 text-green-100",
+  completado: "bg-indigo-500/25 border-indigo-400/40 text-indigo-100",
+  ausente: "bg-red-500/25 border-red-400/40 text-red-100",
+  cancelado: "bg-white/10 border-white/15 text-slate-400 line-through",
 };
 
 /** Etiqueta visible para cada estado (el enum `pagado` es solo la seña). */
@@ -53,7 +53,7 @@ export const EXTERNO_LEYENDA =
 {
   titulo: "Google",
   descripcion: "Evento de tu Google Calendar (ocupa la agenda, no se cobra)",
-  clase: "bg-slate-300/70 border-slate-400 text-slate-700",
+  clase: "bg-white/10 border-white/20 text-slate-300",
 } as const;
 
 /** Leyenda completa en es-AR para agenda y pagos. */

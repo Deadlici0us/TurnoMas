@@ -26,13 +26,13 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
     && servicio?.precio_promocional !== undefined);
   const [remarketingActivo, setRemarketingActivo] = useState(servicio?.remarketing !== false);
 
-  const inputBase = "mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg outline-none"
+  const inputBase = "mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500"
     + " focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
-  const inputDeshabilitado = " bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed";
+  const inputDeshabilitado = " bg-white/10 text-slate-400 opacity-60 cursor-not-allowed";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <label className="block text-sm text-slate-600 sm:col-span-2">
+      <label className="block text-sm text-slate-400 sm:col-span-2">
         {"Nombre"}
         <input
           type="text"
@@ -44,7 +44,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <label className="block text-sm text-slate-600">
+      <label className="block text-sm text-slate-400">
         {"Duración (min)"}
         <input
           type="number"
@@ -55,7 +55,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <label className="block text-sm text-slate-600">
+      <label className="block text-sm text-slate-400">
         {"Precio base"}
         <input
           type="number"
@@ -67,7 +67,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <div className="block text-sm text-slate-600">
+      <div className="block text-sm text-slate-400">
         <label className="flex items-center gap-2 mb-1">
           <input
             type="checkbox"
@@ -88,7 +88,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={`${inputBase}${promoActiva ? "" : inputDeshabilitado}`}
         />
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-600">
+      <label className="flex items-center gap-2 text-sm text-slate-400">
         <input
           type="checkbox"
           name="senaRequerida"
@@ -98,7 +98,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
         />
         {"Exige seña"}
       </label>
-      <label className="block text-sm text-slate-600">
+      <label className="block text-sm text-slate-400">
         {"Seña (%)"}
         <input
           type="number"
@@ -112,7 +112,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={`${inputBase}${exigeSena ? "" : inputDeshabilitado}`}
         />
       </label>
-      <label className="flex items-center gap-2 text-sm text-slate-600">
+      <label className="flex items-center gap-2 text-sm text-slate-400">
         <input
           type="checkbox"
           name="remarketingActivo"
@@ -122,7 +122,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
         />
         {"Remarketing"}
       </label>
-      <label className="block text-sm text-slate-600">
+      <label className="block text-sm text-slate-400">
         {"Remarketing (días)"}
         <input
           type="number"
