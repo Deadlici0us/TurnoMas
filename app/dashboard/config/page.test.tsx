@@ -305,8 +305,21 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    expect((document.querySelector('input[name="lun"]') as HTMLInputElement).value)
+    expect((document.querySelector('input[type="hidden"][name="lun"]') as HTMLInputElement).value)
       .toBe("09:00-13:00, 15:00-20:00");
+  });
+
+  it("debería mostrar el editor visual con switches y sliders",
+  async () =>
+  {
+    stubConfig(negocioBase({ horarios: { lun: "09:00-19:00", dom: "" } }));
+
+    render(await ConfigPage());
+
+    expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toHaveProperty("checked", true);
+    expect(screen.getByRole("switch", { name: /Domingo abierto/ })).toHaveProperty("checked", false);
+    expect(screen.getByRole("button", { name: /Corrido 9 a 19/ })).toBeDefined();
+    expect(screen.getByText(/Lun 9 a 19/)).toBeDefined();
   });
 
   it("debería desconectar todo sin id de negocio",

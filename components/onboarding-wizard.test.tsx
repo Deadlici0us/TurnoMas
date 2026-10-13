@@ -69,6 +69,18 @@ describe("OnboardingWizard",
     expect(document.querySelector('input[name="timezone"]')).not.toBeNull();
   });
 
+  it("debería mostrar el editor visual de horarios en el paso 1",
+  () =>
+  {
+    params();
+
+    render(<OnboardingWizard />);
+
+    expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toHaveProperty("checked", true);
+    expect(screen.getByRole("switch", { name: /Domingo abierto/ })).toHaveProperty("checked", false);
+    expect(screen.getByRole("button", { name: /Corrido 9 a 19/ })).toBeDefined();
+  });
+
   it("debería avanzar y retroceder entre pasos 1 y 2",
   async () =>
   {

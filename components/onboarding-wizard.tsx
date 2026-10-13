@@ -8,6 +8,8 @@ import { useTranslations } from "next-intl";
 import { buildBusinessUrl } from "@/lib/onboarding/slug";
 import { createBusiness } from "@/app/onboarding/actions";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { HORARIOS_POR_DEFECTO } from "@/lib/staff/validation";
+import EditorHorariosSemanales from "./editor-horarios-semanales";
 
 const DEFAULT_COUNTRY = "ar";
 
@@ -107,6 +109,12 @@ export default function OnboardingWizard()
             </p>
             <input type="hidden" name="timezone" value={timezoneDetectada} />
             <p className="text-xs text-slate-400">Zona horaria detectada: {timezoneDetectada}.</p>
+            <div>
+              <p className="block text-sm font-medium text-slate-300 mb-2">
+                Horarios del negocio (podés cambiarlos después)
+              </p>
+              <EditorHorariosSemanales inicial={HORARIOS_POR_DEFECTO} />
+            </div>
             <button
               type="submit"
               className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
@@ -14,32 +15,10 @@ import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templ
 import { destinoDesconexionMp } from "@/lib/dashboard/conexion-mp";
 import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
-import { DAY_ORDER, dayLabel, type DayKey } from "@/lib/staff/schedule";
+import { DAY_ORDER } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio, TIMEZONES_SOPORTADAS } from "@/lib/timezone/timezone";
-
-function franjasDeDia(horarios: unknown, day: DayKey): string
-{
-  if (typeof horarios !== "object" || horarios === null || Array.isArray(horarios))
-  {
-    return "";
-  }
-
-  const raw = (horarios as Record<string, unknown>)[day];
-
-  if (typeof raw === "string")
-  {
-    return raw;
-  }
-
-  if (Array.isArray(raw))
-  {
-    return raw.filter((item): item is string => typeof item === "string").join(", ");
-  }
-
-  return "";
-}
 
 async function guardarPolitica(formData: FormData): Promise<void>
 {
@@ -424,31 +403,10 @@ export default async function ConfigPage(
       <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
         <h2 className="font-semibold text-slate-100">Horarios del negocio</h2>
         <p className="text-xs text-slate-400">
-          Rango más amplio en el que aceptás reservas (ej: lun a sáb 08:00-22:00).
-          Cada profesional ajusta su turno dentro de este marco. Vacío = cerrado.
+          Tocá el interruptor para abrir o cerrar cada día y deslizá las barras para marcar
+          la apertura y el cierre. Cada profesional ajusta su turno dentro de este marco.
         </p>
-        <form action={guardarHorariosNegocio} className="space-y-2">
-          {DAY_ORDER.map((day) => (
-            <label key={day} className="flex items-center gap-2 text-sm text-slate-400">
-              <span className="w-20 shrink-0 font-medium">{dayLabel(day)}</span>
-              <input
-                type="text"
-                name={day}
-                defaultValue={franjasDeDia(negocio.horarios, day)}
-                placeholder="Cerrado"
-                className="flex-1 px-3 py-1.5 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-          ))}
-          <button
-            type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-              hover:bg-blue-700 transition-colors"
-          >
-            Guardar horarios
-          </button>
-        </form>
+        <EditorHorariosSemanales inicial={negocio.horarios} action={guardarHorariosNegocio} />
       </section>
       <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
         <h2 className="font-semibold text-slate-100">Lista negra automática</h2>

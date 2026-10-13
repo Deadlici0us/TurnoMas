@@ -75,6 +75,23 @@ describe("StaffPage",
     expect((document.querySelector('input[name="mié"]') as HTMLInputElement).value).toBe("");
   });
 
+  it("debería mostrar el editor visual por profesional",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([{ id: "s-1", nombre: "Diego", activo: true, horarios: { lun: "09:00-19:00" } }]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await StaffPage());
+
+    expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toHaveProperty("checked", true);
+    expect(screen.getByRole("switch", { name: /Domingo abierto/ })).toHaveProperty("checked", false);
+    expect(screen.getByRole("button", { name: /Copiar lunes a todos/ })).toBeDefined();
+    expect(screen.getByText(/Lun 9 a 19/)).toBeDefined();
+  });
+
   it("debería mostrar inactivos sin horarios",
   async () =>
   {

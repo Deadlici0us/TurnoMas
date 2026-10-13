@@ -117,6 +117,50 @@ describe("createBusiness",
       .rejects.toThrow("NEXT_REDIRECT:/onboarding?error=guardado");
   });
 
+  it("debería persistir los horarios del editor visual",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    const insert = vi.fn(async () => ({ error: null }));
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "a@b.com" } } }) },
+      from: () => ({ insert }),
+    } as never);
+
+    const form = formularioValido();
+
+    form.append("lun", "09:00-13:00, 15:00-20:00");
+    form.append("mar", "");
+    form.append("mié", "");
+    form.append("jue", "");
+    form.append("vie", "");
+    form.append("sáb", "");
+    form.append("dom", "");
+
+    await expect(createBusiness(form)).rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=2");
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      horarios: expect.objectContaining({ lun: ["09:00-13:00", "15:00-20:00"], dom: [] }),
+    }));
+  });
+
+  it("debería pedir corrección con horarios inválidos",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "a@b.com" } } }) },
+      from: () => ({ insert: vi.fn(async () => ({ error: null })) }),
+    } as never);
+
+    const form = formularioValido();
+
+    form.append("lun", "19:00-09:00");
+
+    await expect(createBusiness(form)).rejects.toThrow("NEXT_REDIRECT:/onboarding?error=horarios");
+  });
+
   it("debería crear y seguir al paso 2 (conectar MercadoPago)",
   async () =>
   {

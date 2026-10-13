@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 
 import { resolveAuthMode, buildOnboardingResult } from "@/lib/auth/auth-mode";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
+import { DAY_ORDER } from "@/lib/staff/schedule";
+import { validarHorariosStaff } from "@/lib/staff/validation";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
@@ -56,12 +58,38 @@ export async function createBusiness(formData: FormData): Promise<void>
 
   const slug = url.split("/").pop() ?? "";
 
+  let horarios: Record<string, string[]> | null = null;
+
+  try
+  {
+    const crudos: Record<string, unknown> = {};
+
+    for (const day of DAY_ORDER)
+    {
+      const valor = formData.get(day);
+
+      crudos[day] = typeof valor === "string" ? valor : "";
+    }
+
+    const normalizados = validarHorariosStaff(crudos);
+
+    if (DAY_ORDER.some((day) => normalizados[day].length > 0))
+    {
+      horarios = normalizados;
+    }
+  }
+  catch
+  {
+    redirect("/onboarding?error=horarios");
+  }
+
   const { error } = await supabase.from("negocios").insert({
     duenio_id: user.id,
     nombre,
     pais: pais.toLowerCase(),
     slug,
     timezone,
+    ...(horarios === null ? {} : { horarios }),
   });
 
   if (error)
