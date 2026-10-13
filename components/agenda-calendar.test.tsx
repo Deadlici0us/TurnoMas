@@ -205,4 +205,34 @@ describe("AgendaCalendar",
 
     expect(container.querySelector('[data-hoy="true"]')).not.toBeNull();
   });
+
+  function etiquetasHora(container: HTMLElement): HTMLElement[]
+  {
+    return Array.from(container.querySelectorAll("span")).filter((s) =>
+      /^\d{2}:00$/.test((s.textContent ?? "").trim())) as HTMLElement[];
+  }
+
+  it("debería pintar las etiquetas de hora del día sobre los bloques",
+  () =>
+  {
+    const { container } = render(<AgendaCalendar {...propsBase()} />);
+    const etiquetas = etiquetasHora(container);
+
+    expect(etiquetas.length).toBeGreaterThan(0);
+
+    for (const e of etiquetas)
+    {
+      expect(e.className).toContain("z-10");
+    }
+  });
+
+  it("debería ubicar la primera etiqueta del día debajo de su línea",
+  () =>
+  {
+    const { container } = render(<AgendaCalendar {...propsBase()} />);
+    const etiquetas = etiquetasHora(container);
+    const primera = etiquetas[0] as HTMLElement;
+
+    expect(primera.className).not.toContain("-top-2");
+  });
 });

@@ -90,6 +90,21 @@ function claseEncabezadoSemana(esHoy: boolean): string
   return esHoy ? `${base} bg-violet-500/15 ring-2 ring-inset ring-violet-500` : `${base} bg-white/5`;
 }
 
+/**
+ * Clase de la etiqueta de hora en la vista día: se pinta sobre los
+ * bloques y, para la primera hora, debajo de su línea para que el
+ * recorte redondeado no la corte por arriba.
+ *
+ * @param esPrimera Primera hora del rango visible.
+ * @return Clases de la etiqueta.
+ */
+function claseEtiquetaHora(esPrimera: boolean): string
+{
+  const base = "absolute left-1 z-10 bg-slate-950 px-1 font-mono text-slate-400 tabular-nums";
+
+  return esPrimera ? `${base} top-0 text-[11px]` : `${base} -top-2 text-[11px]`;
+}
+
 function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaCivil): string
 {
   if (dias.length === 0)
@@ -476,13 +491,13 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
             </div>
           </div>
           <div className="bg-slate-950/60 relative" style={{ height: altoDia }}>
-            {horas.map((h) => (
+            {horas.map((h, indice) => (
               <div
                 key={h}
                 className="absolute inset-x-0 border-t border-white/10"
                 style={{ top: (h - rango.horaDesde) * PX_POR_HORA_DIA }}
               >
-                <span className="absolute left-1 -top-2 bg-slate-950 px-1 font-mono text-[11px] text-slate-400 tabular-nums">
+                <span className={claseEtiquetaHora(indice === 0)}>
                   {`${String(h).padStart(2, "0")}:00`}
                 </span>
               </div>
