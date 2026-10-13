@@ -12,7 +12,6 @@ import
   formatearHoraCorta,
   modoDeFranjas,
   normalizarDiaAMaxDos,
-  PASO_STEPPER_MINUTOS,
   PRESET_CORRIDO,
 } from "@/lib/horarios/modelo-ui";
 import SelectorHoraChips from "./selector-hora-chips";
@@ -28,11 +27,12 @@ interface FilaDiaHorarioProps
 const DESCANSO_SUGERIDO: DayRange = { openMinutes: 900, closeMinutes: 1200 };
 
 /**
- * Asistente de un día: switch, modo corrido/cortado y chips de hora.
+ * Asistente de un día: switch, modo corrido/cortado y reloj nativo.
  *
  * Vacío = cerrado. El switch prendido abre con jornada corrida (9 a 19).
  * El modo cortado agrega la 2ª franja (tope: 2 por día, sin botón
- * de agregar). Cada extremo se elige con chips cada 30 min.
+ * de agregar). Cada extremo se elige con el reloj del sistema
+ * (1 control grande por hora, familiar para no tecnológicos).
  *
  * @param dia Clave del día (`lun`...`dom`).
  * @param franjas Franjas actuales en minutos (máx 2).
@@ -162,14 +162,12 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
                 id={`${dia}-abre`}
                 etiqueta="Abrís"
                 valor={primera.openMinutes}
-                max={primera.closeMinutes - PASO_STEPPER_MINUTOS}
                 onChange={(minutos) => cambiarExtremo(0, "openMinutes", minutos)}
               />
               <SelectorHoraChips
                 id={`${dia}-cerras`}
                 etiqueta="Cerrás"
                 valor={primera.closeMinutes}
-                min={primera.openMinutes + PASO_STEPPER_MINUTOS}
                 onChange={(minutos) => cambiarExtremo(0, "closeMinutes", minutos)}
               />
             </div>
@@ -181,15 +179,12 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
                 id={`${dia}-volves`}
                 etiqueta="Volvés"
                 valor={segunda.openMinutes}
-                min={primera === undefined ? undefined : primera.closeMinutes}
-                max={segunda.closeMinutes - PASO_STEPPER_MINUTOS}
                 onChange={(minutos) => cambiarExtremo(1, "openMinutes", minutos)}
               />
               <SelectorHoraChips
                 id={`${dia}-terminas`}
                 etiqueta="Terminás"
                 valor={segunda.closeMinutes}
-                min={segunda.openMinutes + PASO_STEPPER_MINUTOS}
                 onChange={(minutos) => cambiarExtremo(1, "closeMinutes", minutos)}
               />
             </div>

@@ -33,7 +33,7 @@ interface EditorHorariosSemanalesProps
  * Editor visual semanal: asistente por día + presets + resumen.
  *
  * Cada día es un asistente guiado (switch, modo corrido/cortado con
- * máx 2 franjas, chips de hora cada 30 min). Serializa a 7 hidden inputs
+ * máx 2 franjas, reloj nativo del sistema). Serializa a 7 hidden inputs
  * (`lun`...`dom` con `"09:00-13:00, 15:00-20:00"` o `""` = cerrado),
  * el mismo contrato que ya esperan `actualizarHorariosNegocio` y
  * `actualizarHorariosStaff`. Sin cambios de backend: la validación

@@ -10,8 +10,13 @@ async ({ page }) =>
   await page.getByRole("button", { name: "Diego", exact: true }).click();
   await expect(page.getByRole("heading", { name: "2. Elegí tu servicio" })).toBeVisible();
   await page.getByRole("button", { name: /Perfilado de barba/ }).click();
+  await expect(page.getByText("Elegí el día")).toBeVisible();
 
-  const slot = page.locator("section", { hasText: "3. Elegí el horario" }).getByRole("button").first();
+  await page.locator("section", { hasText: "3. Elegí el horario" }).getByRole("button").first().click();
+  await expect(page.getByText("Elegí la hora")).toBeVisible();
+
+  const slot = page.locator("section", { hasText: "3. Elegí el horario" })
+    .getByRole("button", { name: /\d\d:\d\d/ }).first();
 
   await expect(slot).toBeVisible();
   await slot.click();

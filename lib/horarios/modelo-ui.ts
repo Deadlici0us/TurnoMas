@@ -12,7 +12,7 @@ import { DAY_ORDER, formatDayRange, parseDayRanges, type DayKey, type DayRange }
 /** Minuto máximo del día (24:00) para los sliders. */
 export const MAX_MINUTOS_DIA = 1440;
 
-/** Paso de los selectores de hora en minutos (30 min). */
+/** Paso del reloj nativo en segundos (30 min, solo sugerencia visual). */
 export const PASO_STEPPER_MINUTOS = 30;
 
 /** Máximo de franjas por día en el asistente (corrido o cortado). */
@@ -21,7 +21,12 @@ export const MAX_FRANJAS_POR_DIA = 2;
 /** Modo de jornada de un día: cerrado, corrido (1 turno) o cortado (2 turnos). */
 export type ModoJornada = "cerrado" | "corrido" | "cortado";
 
-/** Opciones de hora cada 30 min para los chips (00:00 a 23:30, en minutos). */
+/**
+ * Opciones legacy cada 30 min (00:00 a 23:30, en minutos).
+ *
+ * Obsoleto: el editor ahora usa el reloj nativo del sistema.
+ * Se conserva para no romper imports existentes.
+ */
 export const OPCIONES_HORAS_30: readonly number[] = Array.from(
   { length: 48 },
   (_, indice) => indice * 30,

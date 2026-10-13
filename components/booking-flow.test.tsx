@@ -86,7 +86,7 @@ describe("BookingFlow",
     expect(screen.getByText(/Sin horarios libres los próximos 7 días/)).toBeDefined();
   });
 
-  it("debería mostrar slots cuando el negocio abre más amplio que el profesional",
+  it("debería mostrar días simples y pedir elegir día antes que hora",
   async () =>
   {
     const user = userEvent.setup();
@@ -112,6 +112,37 @@ describe("BookingFlow",
     await user.click(screen.getByRole("button", { name: /Corte/ }));
 
     expect(screen.queryByText(/Sin horarios libres los próximos 7 días/)).toBeNull();
+    expect(screen.getByText(/Elegí el día/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "09:00" })).toBeNull();
+  });
+
+  it("debería mostrar solo las horas del día elegido en grande",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const staff = [{ id: "s1", nombre: "Diego",
+      horarios: { lun: "09:00-12:00", mar: "09:00-12:00" }, activo: true }];
+    const servicios = [{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+      precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }];
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={staff}
+        servicios={servicios}
+        turnos={[]}
+        bloqueos={[]}
+        horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
+
+    expect(screen.getByText(/Elegí la hora/)).toBeDefined();
     expect(screen.getAllByRole("button", { name: "09:00" }).length).toBeGreaterThan(0);
   });
 
@@ -139,6 +170,7 @@ describe("BookingFlow",
 
     await user.click(screen.getByRole("button", { name: "Diego" }));
     await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
     await user.click(screen.getAllByRole("button", { name: "09:00" })[0]!);
 
     await user.type(screen.getByPlaceholderText("Ej: Juan Pérez"), "Juan");

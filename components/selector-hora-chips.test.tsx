@@ -1,58 +1,66 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import SelectorHoraChips from "./selector-hora-chips";
 
 describe("SelectorHoraChips",
 () =>
 {
-  it("debería mostrar las 48 medias horas con la elegida marcada",
+  it("debería mostrar un reloj nativo simple con la hora elegida",
   () =>
   {
     render(<SelectorHoraChips etiqueta="Abrís" valor={540} onChange={() => undefined} />);
 
-    expect(screen.getByText("Abrís")).toBeDefined();
-    expect(screen.getAllByRole("button")).toHaveLength(48);
-    expect(screen.getByRole("button", { name: "09:00" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "09:30" })).toHaveAttribute("aria-pressed", "false");
+    const input = screen.getByLabelText("Abrís");
+
+    expect(input).toHaveAttribute("type", "time");
+    expect(input).toHaveValue("09:00");
   });
 
-  it("debería avisar la hora elegida",
-  async () =>
+  it("debería avisar la hora elegida con el reloj del sistema",
+  () =>
   {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<SelectorHoraChips etiqueta="Cerrás" valor={540} onChange={onChange} />);
 
-    await user.click(screen.getByRole("button", { name: "19:00" }));
+    fireEvent.change(screen.getByLabelText("Cerrás"), { target: { value: "19:00" } });
 
-    expect(onChange).toHaveBeenCalledWith(1140);
+    expect(onChange).toHaveBeenLastCalledWith(1140);
   });
 
-  it("debería deshabilitar horas fuera del rango válido",
+  it("debería avisar aunque el valor salga del rango sugerido",
   () =>
   {
-    render(<SelectorHoraChips etiqueta="Cerrás" valor={1140} min={570} onChange={() => undefined} />);
+    const onChange = vi.fn();
+    render(<SelectorHoraChips etiqueta="Cerrás" valor={1140} onChange={onChange} />);
 
-    expect(screen.getByRole("button", { name: "09:00" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "09:30" })).not.toBeDisabled();
+    const input = screen.getByLabelText("Cerrás");
+
+    expect(input).toHaveAttribute("type", "time");
+    expect(input).not.toHaveAttribute("min");
+    expect(input).not.toHaveAttribute("max");
+
+    fireEvent.change(input, { target: { value: "09:00" } });
+
+    expect(onChange).toHaveBeenCalledWith(540);
   });
 
-  it("debería respetar el tope máximo",
-  () =>
-  {
-    render(<SelectorHoraChips etiqueta="Abrís" valor={540} max={780} onChange={() => undefined} />);
-
-    expect(screen.getByRole("button", { name: "13:00" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "13:30" })).toBeDisabled();
-  });
-
-  it("debería avisar valor personalizado fuera de grilla",
+  it("debería mostrar valores personalizados legacy sin romper",
   () =>
   {
     render(<SelectorHoraChips etiqueta="Abrís" valor={555} onChange={() => undefined} />);
 
-    expect(screen.getByText(/Horario personalizado/)).toBeDefined();
+    expect(screen.getByLabelText("Abrís")).toHaveValue("09:15");
+  });
+
+  it("debería ignorar texto vacío sin avisar",
+  () =>
+  {
+    const onChange = vi.fn();
+    render(<SelectorHoraChips etiqueta="Abrís" valor={540} onChange={onChange} />);
+
+    fireEvent.change(screen.getByLabelText("Abrís"), { target: { value: "" } });
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

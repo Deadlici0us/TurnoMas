@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import FilaDiaHorario from "./fila-dia-horario";
@@ -115,7 +115,7 @@ describe("FilaDiaHorario",
     expect(onChange).toHaveBeenCalledWith([{ openMinutes: 540, closeMinutes: 780 }]);
   });
 
-  it("debería cambiar la apertura con chips",
+  it("debería cambiar la apertura con el reloj nativo",
   async () =>
   {
     const user = userEvent.setup();
@@ -128,11 +128,29 @@ describe("FilaDiaHorario",
 
     await expandir(/Lunes/);
 
-    const grupo = screen.getByRole("group", { name: "Opciones de Abrís" });
+    const input = screen.getByLabelText("Abrís");
 
-    await user.click(within(grupo).getByRole("button", { name: "10:00" }));
+    fireEvent.change(input, { target: { value: "10:00" } });
+    void user;
 
     expect(onChange).toHaveBeenCalledWith([{ openMinutes: 600, closeMinutes: 1140 }]);
+  });
+
+  it("debería cambiar el cierre con el reloj nativo",
+  async () =>
+  {
+    const onChange = vi.fn();
+    render(<FilaDiaHorario
+      dia="lun"
+      franjas={[{ openMinutes: 540, closeMinutes: 1140 }]}
+      onChange={onChange}
+    />);
+
+    await expandir(/Lunes/);
+
+    fireEvent.change(screen.getByLabelText("Cerrás"), { target: { value: "20:00" } });
+
+    expect(onChange).toHaveBeenCalledWith([{ openMinutes: 540, closeMinutes: 1200 }]);
   });
 
   it("debería mostrar error de superposición sin botón de agregar",

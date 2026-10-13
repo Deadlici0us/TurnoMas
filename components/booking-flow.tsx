@@ -47,6 +47,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
+  const [diaISO, setDiaISO] = useState<string | null>(null);
   const [slotISO, setSlotISO] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -99,6 +100,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
   {
     setStaffId(id);
     setServicioId(null);
+    setDiaISO(null);
     setSlotISO(null);
     setConfirmado(false);
     setError(null);
@@ -107,8 +109,32 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
   function elegirServicio(id: string): void
   {
     setServicioId(id);
+    setDiaISO(null);
     setSlotISO(null);
     setConfirmado(false);
+    setError(null);
+  }
+
+  /** Elige el día y limpia la hora anterior. */
+  function elegirDia(iso: string): void
+  {
+    setDiaISO(iso);
+    setSlotISO(null);
+    setError(null);
+  }
+
+  /** Vuelve a la lista de días y limpia día y hora. */
+  function volverADias(): void
+  {
+    setDiaISO(null);
+    setSlotISO(null);
+    setError(null);
+  }
+
+  /** Elige la hora dentro del día ya elegido. */
+  function elegirHora(iso: string): void
+  {
+    setSlotISO(iso);
     setError(null);
   }
 
@@ -282,30 +308,64 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
           <h2 className="font-semibold text-white">3. Elegí el horario</h2>
           {dias.length === 0 ? (
             <p className="text-sm text-slate-400">Sin horarios libres los próximos 7 días. Probá con otro profesional.</p>
+          ) : diaISO === null ? (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-300 font-medium">Elegí el día</p>
+              <div className="grid grid-cols-1 gap-2">
+                {dias.map((dia) => (
+                  <button
+                    key={dia.date.toISOString()}
+                    onClick={() => elegirDia(dia.date.toISOString())}
+                    aria-label={`Elegir día ${dia.date.toLocaleDateString("es-AR",
+                      { weekday: "long", day: "numeric", month: "short" })}`}
+                    className="w-full min-h-[56px] px-4 py-3 border border-white/10 rounded-xl text-left
+                      hover:border-brand-500/60 hover:bg-white/5 transition-all duration-200"
+                  >
+                    <span className="block font-semibold text-white capitalize">
+                      {dia.date.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" })}
+                    </span>
+                    <span className="block text-xs text-slate-400 mt-0.5">
+                      {dia.starts.length === 1 ? "1 horario libre" : `${dia.starts.length} horarios libres`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
-            <div className="space-y-4 max-h-72 overflow-y-auto">
-              {dias.map((dia) => (
-                <div key={dia.date.toISOString()}>
-                  <div className="text-xs font-semibold text-slate-400 mb-2 capitalize">
-                    {dia.date.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" })}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {dia.starts.map((start) => (
-                      <button
-                        key={start.toISOString()}
-                        onClick={() => { setSlotISO(start.toISOString()); setError(null); }}
-                        className={`text-sm px-3 py-1.5 border rounded-lg transition-all duration-200 ${
-                          slotISO === start.toISOString()
-                            ? "border-brand-500 bg-brand-600 text-white"
-                            : "border-white/10 text-slate-300 hover:border-brand-500/60 hover:bg-white/5"
-                        }`}
-                      >
-                        {`${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm text-slate-300 font-medium">
+                  Elegí la hora del{" "}
+                  <span className="font-semibold text-white capitalize">
+                    {dias.find((dia) => dia.date.toISOString() === diaISO)?.date.toLocaleDateString("es-AR",
+                      { weekday: "long", day: "numeric", month: "short" }) ?? ""}
+                  </span>
+                </p>
+                <button
+                  onClick={volverADias}
+                  className="text-xs font-semibold text-slate-300 underline underline-offset-4
+                    hover:text-white min-h-[44px] px-2"
+                >
+                  Cambiar día
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(dias.find((dia) => dia.date.toISOString() === diaISO)?.starts ?? []).map((start) => (
+                  <button
+                    key={start.toISOString()}
+                    onClick={() => elegirHora(start.toISOString())}
+                    aria-pressed={slotISO === start.toISOString()}
+                    className={`min-h-[56px] px-2 py-3 border rounded-xl text-base font-bold tabular-nums
+                      transition-all duration-200 ${
+                        slotISO === start.toISOString()
+                          ? "border-brand-500 bg-brand-600 text-white shadow-lg"
+                          : "border-white/10 text-slate-200 hover:border-brand-500/60 hover:bg-white/5"
+                      }`}
+                  >
+                    {`${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </section>

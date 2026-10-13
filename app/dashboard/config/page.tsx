@@ -403,8 +403,8 @@ export default async function ConfigPage(
       <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
         <h2 className="font-semibold text-slate-100">Horarios del negocio</h2>
         <p className="text-xs text-slate-400">
-          Tocá el interruptor para abrir o cerrar cada día y deslizá las barras para marcar
-          la apertura y el cierre. Cada profesional ajusta su turno dentro de este marco.
+          Tocá el interruptor para abrir o cerrar cada día y elegí la hora con el reloj.
+          Cada profesional ajusta su turno dentro de este marco.
         </p>
         <EditorHorariosSemanales inicial={negocio.horarios} action={guardarHorariosNegocio} />
       </section>

@@ -1,71 +1,82 @@
 "use client";
 
-import { minutosAHora, OPCIONES_HORAS_30 } from "@/lib/horarios/modelo-ui";
+import { horaAMinutos, minutosAHora } from "@/lib/horarios/modelo-ui";
 
 interface SelectorHoraChipsProps
 {
-  /** Título del grupo (ej. `Abrís`, `Cerrás`). */
+  /** Título del campo (ej. `Abrís`, `Cerrás`). */
   readonly etiqueta: string;
   /** Valor actual en minutos. */
   readonly valor: number;
   /** Aviso de cambio con los minutos elegidos. */
   readonly onChange: (minutos: number) => void;
-  /** Mínimo elegible en minutos (inclusive). Las menores quedan deshabilitadas. */
-  readonly min?: number;
-  /** Máximo elegible en minutos (inclusive). Las mayores quedan deshabilitadas. */
-  readonly max?: number;
-  /** ID base para asociar el grupo con su título. */
+  /** ID base para asociar el campo con su etiqueta. */
   readonly id?: string;
 }
 
 /**
- * Grilla de chips de hora cada 30 minutos para elegir un extremo.
+ * Selector de hora simple con el reloj nativo del sistema.
  *
- * Las opciones fuera de `min`/`max` se deshabilitan (ej. el cierre no
- * puede ser anterior a la apertura). Si el valor actual no está en la
- * grilla (ej. legacy `09:15`), se conserva y se avisa como personalizado
- * hasta que se elige un chip.
+ * Un solo control grande (`<input type="time">`) en vez de 48 chips.
+ * Usa el picker familiar del celu/navegador. No limita con `min`/`max`
+ * nativos para no bloquear el envío con burbujas en inglés: la
+ * validación amable en español (`errorDeFranjas`) avisa si el cierre
+ * queda antes de la apertura o si los turnos se superponen. Valores
+ * legacy fuera de 30 min (ej. `09:15`) se muestran igual y se conservan
+ * hasta que se elige otra hora. Texto vacío o inválido se ignora.
  *
- * @param etiqueta Título del grupo.
+ * @param etiqueta Título visible del campo.
  * @param valor Valor actual en minutos.
  * @param onChange Aviso de cambio.
- * @param min Mínimo elegible.
- * @param max Máximo elegible.
- * @param id ID base del grupo.
+ * @param id ID base del campo.
+ * @return Campo de hora nativo.
  */
-export default function SelectorHoraChips({ etiqueta, valor, onChange, min, max, id }: SelectorHoraChipsProps)
+export default function SelectorHoraChips({ etiqueta, valor, onChange, id }: SelectorHoraChipsProps)
 {
-  const tituloId = `${id ?? etiqueta}-titulo`;
-  const personalizado = !OPCIONES_HORAS_30.includes(valor);
+  const inputId: string = `${id ?? etiqueta}-hora`;
+  const valorTexto: string = minutosAHora(Math.min(Math.max(0, valor), 1439));
+
+  /**
+   * Convierte el texto del reloj a minutos y avisa.
+   *
+   * @param crudo Texto `HH:MM` del input nativo.
+   */
+  function manejarCambio(crudo: string): void
+  {
+    if (crudo.length === 0)
+    {
+      return;
+    }
+
+    try
+    {
+      onChange(horaAMinutos(crudo));
+    }
+    catch
+    {
+      return;
+    }
+  }
 
   return (
-    <fieldset className="space-y-2" aria-labelledby={tituloId}>
-      <legend id={tituloId} className="text-xs font-semibold text-slate-300">
+    <div className="space-y-1">
+      <label
+        htmlFor={inputId}
+        className="block text-xs font-semibold text-slate-300"
+      >
         {etiqueta}
-        {personalizado ? (
-          <span className="ml-2 font-normal text-slate-500">
-            Horario personalizado ({minutosAHora(valor)}) — elegí un horario para ajustarlo
-          </span>
-        ) : null}
-      </legend>
-      <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5" role="group" aria-label={`Opciones de ${etiqueta}`}>
-        {OPCIONES_HORAS_30.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            aria-pressed={opcion === valor}
-            disabled={(min !== undefined && opcion < min) || (max !== undefined && opcion > max)}
-            onClick={() => onChange(opcion)}
-            className={`min-h-[44px] px-1 rounded-lg text-sm font-semibold tabular-nums transition-colors
-              disabled:opacity-25 disabled:pointer-events-none
-              ${opcion === valor
-                ? "bg-amber-400 text-slate-900 shadow"
-                : "border border-white/15 text-slate-300 hover:bg-white/10 hover:text-white"}`}
-          >
-            {minutosAHora(opcion)}
-          </button>
-        ))}
-      </div>
-    </fieldset>
+      </label>
+      <input
+        id={inputId}
+        type="time"
+        step={1800}
+        value={valorTexto}
+        onChange={(event) => manejarCambio(event.target.value)}
+        aria-label={etiqueta}
+        className="w-full min-h-[48px] px-4 rounded-xl border border-white/15 bg-white/5 text-slate-100 text-base
+          font-semibold tabular-nums outline-none [color-scheme:dark]
+          focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+      />
+    </div>
   );
 }

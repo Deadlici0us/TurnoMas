@@ -107,7 +107,7 @@ export default async function StaffPage()
             <div className="mt-4 space-y-2">
               <h4 className="text-sm font-semibold text-slate-100">Horarios por día</h4>
               <p className="text-xs text-slate-400">
-                Abrí cada día con el interruptor y deslizá las barras para marcar el turno.
+                Abrí cada día con el interruptor y elegí la hora con el reloj.
                 Podés agregar un segundo turno si corta al mediodía.
               </p>
               <EditorHorariosSemanales

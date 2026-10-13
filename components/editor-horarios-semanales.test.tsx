@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import EditorHorariosSemanales from "./editor-horarios-semanales";
@@ -97,14 +97,31 @@ describe("EditorHorariosSemanales",
 
     await user.click(screen.getByRole("button", { name: /Lunes.*13/ }));
 
-    const grupo = screen.getByRole("group", { name: "Opciones de Cerrás" });
+    const cerras = screen.getAllByLabelText("Cerrás");
 
-    fireEvent.click(within(grupo).getByRole("button", { name: "16:00" }));
+    fireEvent.change(cerras[0]!, { target: { value: "16:00" } });
 
     await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
 
     expect(await screen.findByText(/Revisá los días marcados/)).toBeDefined();
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it("debería cambiar la apertura con el reloj nativo",
+  async () =>
+  {
+    const user = userEvent.setup();
+    render(<EditorHorariosSemanales
+      inicial={{ lun: "09:00-19:00" }}
+      action={async () => undefined}
+    />);
+
+    await user.click(screen.getByRole("button", { name: /Lunes.*9 a 19/ }));
+
+    fireEvent.change(screen.getAllByLabelText("Abrís")[0]!, { target: { value: "10:00" } });
+
+    expect((document.querySelector('input[type="hidden"][name="lun"]') as HTMLInputElement).value)
+      .toBe("10:00-19:00");
   });
 
   it("debería renderizar solo campos embebidos sin form propio",
