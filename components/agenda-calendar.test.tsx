@@ -182,4 +182,27 @@ describe("AgendaCalendar",
     expect(tarjetas).toHaveLength(1);
     expect(tarjetas[0]?.textContent).toContain("Camila Cli");
   });
+
+  it("debería exponer la semana como región scrolleable con etiqueta",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<AgendaCalendar {...propsBase()} />);
+    await user.click(screen.getByRole("button", { name: "Semana" }));
+
+    const region = screen.getByRole("region", { name: /semana/i });
+
+    expect(region.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("debería marcar la columna de hoy en la vista semana",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const { container } = render(<AgendaCalendar {...propsBase()} />);
+    await user.click(screen.getByRole("button", { name: "Semana" }));
+
+    expect(container.querySelector('[data-hoy="true"]')).not.toBeNull();
+  });
 });

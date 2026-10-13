@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import LeyendaEstados from "@/components/leyenda-estados";
 import AgendaCitasDia, { type CitaDia } from "@/components/agenda-citas-dia";
@@ -77,6 +77,19 @@ function etiquetaDiaCorta(dia: DiaCivil): { readonly semana: string; readonly nu
   };
 }
 
+/**
+ * Clase del encabezado de un día en la vista semana.
+ *
+ * @param esHoy Columna del día en curso.
+ * @return Clases del encabezado.
+ */
+function claseEncabezadoSemana(esHoy: boolean): string
+{
+  const base = "px-2 py-1.5 text-center";
+
+  return esHoy ? `${base} bg-violet-500/15 ring-2 ring-inset ring-violet-500` : `${base} bg-white/5`;
+}
+
 function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaCivil): string
 {
   if (dias.length === 0)
@@ -127,6 +140,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
   const [staffId, setStaffId] = useState<string | null>(
     props.staff.length === 1 ? props.staff[0]?.id ?? null : null,
   );
+  const refRegionSemana = useRef<HTMLDivElement | null>(null);
   const hoyCivil = useMemo(() =>
   {
     const ahora = new Date(props.base);
@@ -149,6 +163,30 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
 
     return diasDeMes(base);
   }, [vista, base, props.timeZone]);
+
+  useEffect(() =>
+  {
+    if (vista !== "semana")
+    {
+      return;
+    }
+
+    const region = refRegionSemana.current;
+
+    if (region === null || region.scrollWidth <= region.clientWidth)
+    {
+      return;
+    }
+
+    const hoy = region.querySelector('[data-hoy="true"]');
+
+    if (hoy instanceof HTMLElement)
+    {
+      const delta = hoy.getBoundingClientRect().left - region.getBoundingClientRect().left;
+
+      region.scrollLeft += delta - 56;
+    }
+  }, [vista, dias]);
 
   const turnosFiltrados = staffId === null
     ? props.turnos
@@ -468,23 +506,36 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
         </div>
       ) : null}
       {vista === "semana" ? (
-        <div className="overflow-auto">
+        <div
+          ref={refRegionSemana}
+          role="region"
+          aria-label="Calendario semanal, deslizar horizontalmente para ver todos los días"
+          tabIndex={0}
+          data-testid="agenda-semana-scroll"
+          className="overflow-x-auto"
+        >
           <div className="min-w-[720px]">
             <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
               <div className="bg-white/5" />
-              {dias.map((dia) => (
-                <div
-                  key={claveDeDiaCivil(dia)}
-                  className={`px-2 py-1.5 text-center ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-500/15 ring-2 ring-inset ring-violet-500" : "bg-white/5"}`}
-                >
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase">
-                    {etiquetaDiaCorta(dia).semana}
+              {dias.map((dia) =>
+              {
+                const esHoy = claveDeDiaCivil(dia) === claveHoy;
+
+                return (
+                  <div
+                    key={claveDeDiaCivil(dia)}
+                    data-hoy={esHoy ? "true" : undefined}
+                    className={claseEncabezadoSemana(esHoy)}
+                  >
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase">
+                      {etiquetaDiaCorta(dia).semana}
+                    </div>
+                    <div className="text-sm font-bold text-slate-100">
+                      {etiquetaDiaCorta(dia).fecha}
+                    </div>
                   </div>
-                  <div className="text-sm font-bold text-slate-100">
-                    {etiquetaDiaCorta(dia).fecha}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               <div className="bg-slate-950/60 relative" style={{ height: altoSemana }}>
                 {horas.map((h) => (
                   <div
