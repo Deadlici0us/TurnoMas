@@ -77,6 +77,7 @@ export default function SelectorHoraChips({ etiqueta, valor, onChange, id }: Sel
           font-semibold tabular-nums outline-none [color-scheme:dark]
           focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
       />
+      <p className="text-[11px] text-slate-500">Tocá la hora y elegí con el reloj de tu celu.</p>
     </div>
   );
 }

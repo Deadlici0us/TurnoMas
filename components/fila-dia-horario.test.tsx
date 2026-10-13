@@ -33,7 +33,7 @@ describe("FilaDiaHorario",
 
     await expandir(/Lunes.*9 a 19/);
 
-    expect(screen.getByText("¿Cómo trabajás?")).toBeDefined();
+    expect(screen.getByText("Paso 1: ¿trabajás de corrido o cortás al mediodía?")).toBeDefined();
     expect(screen.getByText("Abrís")).toBeDefined();
     expect(screen.getByText("Cerrás")).toBeDefined();
   });
@@ -44,7 +44,7 @@ describe("FilaDiaHorario",
     render(<FilaDiaHorario dia="dom" franjas={[]} onChange={() => undefined} />);
 
     expect(screen.getByText("Cerrado")).toBeDefined();
-    expect(screen.queryByText("¿Cómo trabajás?")).toBeNull();
+    expect(screen.queryByText("Paso 1: ¿trabajás de corrido o cortás al mediodía?")).toBeNull();
   });
 
   it("debería cerrar el día al apagar el switch",
@@ -87,7 +87,7 @@ describe("FilaDiaHorario",
     />);
 
     await expandir(/Lunes/);
-    await user.click(screen.getByRole("button", { name: /Cortado/ }));
+    await user.click(screen.getByRole("button", { name: /Corto al mediodía/ }));
 
     expect(onChange).toHaveBeenCalledWith([
       { openMinutes: 540, closeMinutes: 1140 },
@@ -110,7 +110,7 @@ describe("FilaDiaHorario",
     />);
 
     await expandir(/Lunes/);
-    await user.click(screen.getByRole("button", { name: /Corrido/ }));
+    await user.click(screen.getByRole("button", { name: /De corrido/ }));
 
     expect(onChange).toHaveBeenCalledWith([{ openMinutes: 540, closeMinutes: 780 }]);
   });

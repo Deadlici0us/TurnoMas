@@ -9,7 +9,7 @@ async ({ page }) =>
   await expect(page.getByText("Horarios del negocio")).toBeVisible();
   await expect(page.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
   await expect(page.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
-  await expect(page.getByRole("button", { name: /Corrido 9 a 19/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Trabajo de corrido 9 a 19/ })).toBeVisible();
 });
 
 test("onboarding permite cerrar un día con el interruptor",

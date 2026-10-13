@@ -48,6 +48,8 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
   const [expandido, setExpandido] = useState(false);
   const primera = diaNormalizado[0];
   const segunda = diaNormalizado[1];
+  const resumen = abierto ? resumirFranjas(diaNormalizado) : "Cerrado";
+  const accion = expandido ? "colapsar" : "editar";
 
   /** Prende/apaga el día completo. */
   function alternar(abrir: boolean): void
@@ -92,7 +94,7 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
         type="button"
         onClick={() => setExpandido((previo) => !previo)}
         aria-expanded={expandido || !abierto ? true : expandido}
-        aria-label={`${nombre}: ${abierto ? resumirFranjas(diaNormalizado) : "Cerrado"}. Tocar para ${expandido ? "colapsar" : "editar"}`}
+        aria-label={`${nombre}: ${resumen}. Tocar para ${accion}`}
         className="w-full flex items-center gap-3 p-4 min-h-[64px] text-left rounded-2xl outline-none
           focus-visible:ring-2 focus-visible:ring-amber-500"
       >
@@ -125,7 +127,9 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
       {abierto && expandido ? (
         <div className="space-y-4 px-4 pb-4">
           <div role="group" aria-label="¿Cómo trabajás este día?">
-            <p className="text-xs font-semibold text-slate-300 mb-2">¿Cómo trabajás?</p>
+            <p className="text-xs font-semibold text-slate-300 mb-2">
+              Paso 1: ¿trabajás de corrido o cortás al mediodía?
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -136,8 +140,8 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
                     ? "bg-amber-400 text-slate-900 shadow"
                     : "border border-white/15 text-slate-300 hover:bg-white/10"}`}
               >
-                Corrido
-                <span className="block font-normal opacity-80">de corrido</span>
+                De corrido
+                <span className="block font-normal opacity-80">ej: 9 a 19 sin parar</span>
               </button>
               <button
                 type="button"
@@ -148,15 +152,15 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
                     ? "bg-amber-400 text-slate-900 shadow"
                     : "border border-white/15 text-slate-300 hover:bg-white/10"}`}
               >
-                Cortado
-                <span className="block font-normal opacity-80">con descanso</span>
+                Corto al mediodía
+                <span className="block font-normal opacity-80">ej: 9 a 13 y 15 a 20</span>
               </button>
             </div>
           </div>
           {primera === undefined ? null : (
             <div className="space-y-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                {modo === "cortado" ? "Primer turno" : "Turno"}
+                {modo === "cortado" ? "Paso 2: primera parte del día" : "Paso 2: elegí tus horas"}
               </p>
               <SelectorHoraChips
                 id={`${dia}-abre`}
@@ -174,7 +178,9 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
           )}
           {segunda === undefined ? null : (
             <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Segundo turno</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Paso 3: segunda parte del día
+              </p>
               <SelectorHoraChips
                 id={`${dia}-volves`}
                 etiqueta="Volvés"

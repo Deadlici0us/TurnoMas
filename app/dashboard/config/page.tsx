@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
+import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
@@ -13,6 +14,14 @@ import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { destinoDesconexionMp } from "@/lib/dashboard/conexion-mp";
+import
+{
+  ejemploFaltas,
+  ejemploSena,
+  etiquetaPenalidad,
+  etiquetaZonaHoraria,
+  PLANTILLAS_AMIGABLES,
+} from "@/lib/config/etiquetas";
 import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER } from "@/lib/staff/schedule";
@@ -335,62 +344,81 @@ export default async function ConfigPage(
     <div className="space-y-4">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-slate-100">Configuración</h1>
-        <p className="text-slate-400 mt-1 text-sm">Parámetros del negocio y lista negra</p>
+        <p className="text-slate-400 mt-1 text-sm">
+          Dejá tu negocio listo en 3 pasos: datos, horarios y cobros. El resto ya viene preparado y es opcional.
+        </p>
+        <ol className="mt-3 grid sm:grid-cols-3 gap-2 text-xs">
+          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
+            <span className="font-bold text-slate-100">1.</span> Contanos de tu negocio
+          </li>
+          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
+            <span className="font-bold text-slate-100">2.</span> Elegí tus horarios
+          </li>
+          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
+            <span className="font-bold text-slate-100">3.</span> Conectá cómo cobrás
+          </li>
+        </ol>
       </div>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Negocio</h2>
+      <SeccionConfig
+        icono="tienda"
+        titulo="Tu negocio"
+        ayuda="Cómo se llama, en qué ciudad mostramos tus turnos y tu link para compartir."
+      >
         <form action={guardarNombre} className="space-y-3">
-          <label className="block text-sm text-slate-400">
-            {"Nombre del negocio"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿Cómo se llama tu negocio?"}
             <input
               type="text"
               name="nombre"
               required
               minLength={2}
               maxLength={80}
+              placeholder="Ej: Barbería Diego"
               defaultValue={negocio.nombre ?? ""}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none placeholder:text-slate-500 [color-scheme:dark]
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
-          <p className="text-xs text-slate-400">País: {negocio.pais ?? "—"} · El link público no cambia.</p>
+          <p className="text-xs text-slate-400">Tu link para compartir no cambia cuando cambiás el nombre.</p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar nombre
           </button>
         </form>
         <form action={guardarTimezone} className="space-y-3">
-          <label className="block text-sm text-slate-400">
-            {"Zona horaria del negocio"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿En qué ciudad mostramos tus turnos?"}
             <select
               name="timezone"
               defaultValue={timezoneActual}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {TIMEZONES_SOPORTADAS.map((zona) => (
-                <option key={zona} value={zona} className="bg-slate-900 text-slate-100">{zona}</option>
+                <option key={zona} value={zona} className="bg-slate-900 text-slate-100">
+                  {etiquetaZonaHoraria(zona)}
+                </option>
               ))}
             </select>
           </label>
           <p className="text-xs text-slate-400">
-            La agenda (lista y calendario) muestra los turnos en esta zona. Importante en países
-            con varios husos (MX, BR, ES, US).
+            Si elegís mal la ciudad, los turnos se ven corridos. La mayoría ya viene bien.
           </p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
-            Guardar zona horaria
+            Guardar ciudad
           </button>
         </form>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
           <p className="text-sm text-slate-400">
-            {"Tu página pública: "}
+            {"Tu link para compartir: "}
             <Link
               href={"/" + negocio.pais + "/" + negocio.slug}
               className="font-mono font-semibold text-blue-400 hover:underline"
@@ -399,142 +427,163 @@ export default async function ConfigPage(
             </Link>
           </p>
         ) : null}
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Horarios del negocio</h2>
-        <p className="text-xs text-slate-400">
-          Tocá el interruptor para abrir o cerrar cada día y elegí la hora con el reloj.
-          Cada profesional ajusta su turno dentro de este marco.
-        </p>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="reloj"
+        titulo="Tus horarios"
+        ayuda="Tocá cada día para abrir o cerrar. Si atendés siempre igual, usá los botones rápidos."
+      >
         <EditorHorariosSemanales inicial={negocio.horarios} action={guardarHorariosNegocio} />
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Lista negra automática</h2>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="escudo"
+        titulo="Si un cliente falta"
+        ayuda="Elegí qué pasa cuando alguien no viene. Ya viene listo con 2 faltas."
+      >
         <form action={guardarPolitica} className="space-y-3">
+          <p
+            className="text-xs rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-blue-200"
+            aria-live="polite"
+          >
+            {ejemploFaltas(umbral, penalidad)}
+          </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <label className="flex-1 text-sm text-slate-400">
-              {"Ausencias que disparan la penalidad"}
-              <input
-                type="number"
-                name="umbral"
-                min={1}
-                max={10}
-                defaultValue={umbral}
-                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-            <label className="flex-1 text-sm text-slate-400">
-              {"Penalidad"}
-              <select
-                name="penalidad"
-                defaultValue={penalidad}
-                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="blocked" className="bg-slate-900 text-slate-100">Bloqueo total</option>
-                <option value="fullDeposit" className="bg-slate-900 text-slate-100">Exigir seña del 100%</option>
+          <label className="flex-1 text-sm font-semibold text-slate-200">
+            {"¿Después de cuántas faltas?"}
+            <input
+              type="number"
+              name="umbral"
+              min={1}
+              max={10}
+              defaultValue={umbral}
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100
+                rounded-xl outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500
+                focus:border-blue-500"
+            />
+          </label>
+          <label className="flex-1 text-sm font-semibold text-slate-200">
+            {"¿Qué hacemos?"}
+            <select
+              name="penalidad"
+              defaultValue={penalidad}
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100
+                rounded-xl outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500
+                focus:border-blue-500"
+            >
+                <option value="blocked" className="bg-slate-900 text-slate-100">
+                  {etiquetaPenalidad("blocked")}
+                </option>
+                <option value="fullDeposit" className="bg-slate-900 text-slate-100">
+                  {etiquetaPenalidad("fullDeposit")}
+                </option>
               </select>
             </label>
           </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar
           </button>
         </form>
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Política de seña</h2>
-        <p className="text-xs text-slate-400">
-          Si se cancela con más anticipación que este umbral, se devuelve la seña.
-          Dentro del umbral, el cliente la pierde.
+      </SeccionConfig>
+      <SeccionConfig
+        icono="alcancia"
+        titulo="Cómo cuidás la seña"
+        ayuda="Si cancela con tiempo, se la devolvemos. Si avisa tarde, la pierde."
+      >
+        <p className="text-xs rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-blue-200" aria-live="polite">
+          {ejemploSena(retencionHs)}
         </p>
         <form action={guardarSena} className="space-y-3">
-          <label className="block text-sm text-slate-400">
-            {"Horas de retención antes del turno"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿Hasta cuántas horas antes devolvemos la seña?"}
             <input
               type="number"
               name="retencionHs"
               min={1}
               max={720}
               defaultValue={retencionHs}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar
           </button>
         </form>
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Recordatorios automáticos</h2>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="campana"
+        titulo="Avisos antes del turno"
+        ayuda="Les recordamos por vos para que nadie se olvide. Recomendado: 24 hs antes."
+      >
         <form action={guardarRecordatorios} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-400">
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
             <input
               type="checkbox"
               name="recordatorioActivo"
               defaultChecked={recordatorioActivo}
-              className="w-4 h-4"
+              className="w-5 h-5"
             />
-            {"Enviar recordatorio antes del turno"}
+            {"Avisar antes del turno"}
           </label>
-          <label className="block text-sm text-slate-400">
-            {"Horas antes del turno"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿Cuántas horas antes avisamos?"}
             <input
               type="number"
               name="recordatorioHs"
               min={1}
               max={72}
               defaultValue={recordatorioHs}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar
           </button>
         </form>
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Reseñas</h2>
-        <p className="text-xs text-slate-400">Solo llega a clientes con email. El email sigue opcional en la reserva.</p>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="estrella"
+        titulo="Pedir opiniones"
+        ayuda="Pedimos una opinión cuando termina el turno. Solo a quienes dejaron email."
+      >
         <form action={guardarResenas} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-400">
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
             <input
               type="checkbox"
               name="resenaActiva"
               defaultChecked={resenaActiva}
-              className="w-4 h-4"
+              className="w-5 h-5"
             />
-            {"Pedir reseña después del turno"}
+            {"Pedir opinión cuando termina"}
           </label>
-          <label className="block text-sm text-slate-400">
-            {"Horas después del fin"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿Cuántas horas después pedimos la opinión?"}
             <input
               type="number"
               name="resenaHs"
               min={1}
               max={72}
               defaultValue={resenaHs}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar
@@ -542,113 +591,119 @@ export default async function ConfigPage(
         </form>
         {resenaActiva ? (
           <form action={guardarMaps} className="space-y-3">
-            <label className="block text-sm text-slate-400">
-              {"Link de Google Maps (4-5 estrellas derivan acá)"}
+            <label className="block text-sm font-semibold text-slate-200">
+              {"¿A dónde van las buenas opiniones?"}
+              <span className="block text-xs font-normal text-slate-400">Pegá tu link de Google</span>
               <input
                 type="url"
                 name="mapsUrl"
                 defaultValue={negocio.google_maps_url ?? ""}
                 placeholder="https://maps.app.goo.gl/..."
-                className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
+                className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
+                  text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
                   focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </label>
             <button
               type="submit"
-              className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
                 hover:bg-blue-700 transition-colors"
             >
               Guardar link
             </button>
           </form>
         ) : null}
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Remarketing</h2>
-        <p className="text-xs text-slate-400">
-          Solo llega a clientes con email. Cada servicio puede tener sus propios días.
-        </p>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="repetir"
+        titulo="Invitar a volver"
+        ayuda="Les escribimos para que vuelvan. Solo a quienes dejaron email."
+        avanzada={true}
+      >
         <form action={guardarRemarketing} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm text-slate-400">
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
             <input
               type="checkbox"
               name="remarketingActivo"
               defaultChecked={remarketingActivo}
-              className="w-4 h-4"
+              className="w-5 h-5"
             />
-            {"Invitar a renovar después del turno"}
+            {"Invitar a volver después de un tiempo"}
           </label>
-          <label className="block text-sm text-slate-400">
-            {"Días por defecto (cada servicio puede overridear)"}
+          <label className="block text-sm font-semibold text-slate-200">
+            {"¿A los cuántos días les escribimos?"}
             <input
               type="number"
               name="remarketingDias"
               min={1}
               max={90}
               defaultValue={remarketingDias}
-              className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
               hover:bg-blue-700 transition-colors"
           >
             Guardar
           </button>
         </form>
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-4">
-        <div>
-          <h2 className="font-semibold text-slate-100">Mensajes</h2>
-          <p className="text-xs text-slate-400">
-            Personalizá subject y cuerpo. Variables: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
-            Vacío = mensaje default. Recomendá el refuerzo por WhatsApp desde Agenda y Clientes.
-          </p>
-        </div>
-        {([
-          { tipo: "confirmacion", titulo: "Confirmación de reserva" },
-          { tipo: "recordatorio", titulo: "Recordatorio" },
-          { tipo: "resena", titulo: "Pedido de reseña" },
-          { tipo: "remarketing", titulo: "Remarketing" },
-        ] as const).map(({ tipo, titulo }) =>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="carta"
+        titulo="Tus mensajes"
+        ayuda="Ya escribimos por vos. Solo cambiá esto si querés usar tus palabras."
+        avanzada={true}
+      >
+        <p className="text-xs text-slate-400">
+          Podés usar estos comodines: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
+          Si lo dejás vacío, usamos nuestro texto.
+        </p>
+        {PLANTILLAS_AMIGABLES.map(({ tipo, titulo, ayuda }) =>
         {
           const key = `msg_${tipo}` as const;
           const subject = negocio[`${key}_subject` as keyof typeof negocio] as string | null | undefined;
           const cuerpo = negocio[`${key}_cuerpo` as keyof typeof negocio] as string | null | undefined;
 
           return (
-            <form key={tipo} action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)} className="space-y-3
-              p-4 border border-white/10 rounded-xl bg-white/5">
+            <form
+              key={tipo}
+              action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)}
+              className="space-y-3 p-4 border border-white/10 rounded-xl bg-white/5"
+            >
               <h3 className="text-sm font-semibold text-slate-100">{titulo}</h3>
-              <label className="block text-sm text-slate-400">
-                {"Asunto"}
+              <p className="text-xs text-slate-400">{ayuda}</p>
+              <label className="block text-sm font-semibold text-slate-200">
+                {"Título del mensaje"}
                 <input
                   type="text"
                   name="subject"
                   maxLength={120}
                   defaultValue={subject ?? ""}
-                  placeholder="Vacío = default"
-                  className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
+                  placeholder="Vacío = usamos el nuestro"
+                  className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
+                    text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </label>
-              <label className="block text-sm text-slate-400">
-                {"Cuerpo"}
+              <label className="block text-sm font-semibold text-slate-200">
+                {"Texto del mensaje"}
                 <textarea
                   name="cuerpo"
                   rows={4}
                   maxLength={2000}
                   defaultValue={cuerpo ?? ""}
-                  placeholder="Vacío = default"
-                  className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500 [color-scheme:dark]
+                  placeholder="Vacío = usamos el nuestro. Ej: Hola {negocio}, te esperamos {fecha}."
+                  className="mt-1 w-full px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                    outline-none placeholder:text-slate-500 [color-scheme:dark]
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </label>
               <button
                 type="submit"
-                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
                   hover:bg-blue-700 transition-colors"
               >
                 Guardar
@@ -656,24 +711,27 @@ export default async function ConfigPage(
             </form>
           );
         })}
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Conexiones</h2>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="billetera"
+        titulo="Cómo cobrás"
+        ayuda="Conectá tu cuenta para cobrar señas directo en tu billetera."
+      >
         {avisoMp !== null && (
           <p className={`text-xs font-semibold px-3 py-2 rounded-lg border ${avisoMp.clase}`}>
             {avisoMp.texto}
           </p>
         )}
-        <div className="p-3 border border-white/10 rounded-xl bg-white/5 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-4 border border-white/10 rounded-xl bg-white/5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-slate-100">MercadoPago</div>
-              <div className="text-xs text-slate-400">Cobro de señas directo en tu billetera</div>
+              <div className="text-xs text-slate-400">Para cobrar señas en tu cuenta</div>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${mpConectado
               ? "bg-green-500/10 text-green-300 border-green-500/30"
               : "bg-white/10 text-slate-400 border-white/10"}`}>
-              {mpConectado ? `Conectado ${maskMpToken(mpToken)}` : "Sin conectar"}
+              {mpConectado ? `Listo ${maskMpToken(mpToken)}` : "Falta conectar"}
             </span>
           </div>
           {demo ? (
@@ -686,7 +744,7 @@ export default async function ConfigPage(
               <button
                 type="submit"
                 className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                  text-slate-400 hover:bg-white/10 transition-colors"
+                  text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
               >
                 Desconectar
               </button>
@@ -694,28 +752,28 @@ export default async function ConfigPage(
           ) : (
             <Link
               href="/api/integrations/mercadopago/authorize"
-              className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+              className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
                 hover:bg-blue-700 transition-colors"
             >
-              Conectar con MercadoPago
+              Conectar MercadoPago
             </Link>
           )}
           <p className="text-xs text-slate-400">
             {mpConectado && mpConectadoAt !== null
-              ? "Notificaciones automáticas activas: los pagos confirman solos tu agenda."
-              : "Al conectar autorizás a TurnoMas a cobrar señas en tu cuenta. Sin tu conexión, las reservas con seña quedan pendientes sin link de pago."}
+              ? "Listo: cuando te pagan, el turno se confirma solo."
+              : "Sin conectar, las reservas con seña quedan esperando el pago."}
           </p>
         </div>
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 border border-white/10 rounded-xl bg-white/5">
+          <div className="flex items-center justify-between gap-3 p-4 border border-white/10 rounded-xl bg-white/5">
             <div>
               <div className="text-sm font-semibold text-slate-100">Google Calendar</div>
-              <div className="text-xs text-slate-400">Tus turnos inyectados en tu calendario</div>
+              <div className="text-xs text-slate-400">Ver tus turnos en tu calendario</div>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${gcalConectado
               ? "bg-green-500/10 text-green-300 border-green-500/30"
               : "bg-white/10 text-slate-400 border-white/10"}`}>
-              {gcalConectado ? "Conectado" : "Sin conectar"}
+              {gcalConectado ? "Listo" : "Falta conectar"}
             </span>
           </div>
           {gcalConectado ? (
@@ -723,7 +781,7 @@ export default async function ConfigPage(
               <button
                 type="submit"
                 className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                  text-slate-400 hover:bg-white/10 transition-colors"
+                  text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
               >
                 Desconectar Google
               </button>
@@ -731,34 +789,34 @@ export default async function ConfigPage(
           ) : (
             <Link
               href="/api/integrations/google/authorize"
-              className="inline-block bg-white/10 text-slate-100 text-sm font-semibold px-6 py-2 rounded-lg
-                border border-white/15 hover:bg-white/10 transition-colors"
+              className="inline-block bg-white/10 text-slate-100 text-sm font-semibold px-6 py-3 rounded-xl
+                border border-white/15 hover:bg-white/10 transition-colors min-h-[48px]"
             >
-              Conectar con Google
+              Conectar Google
             </Link>
           )}
-          <p className="text-xs text-slate-400">
-            Si conectaste antes del bloqueo por eventos, desconectá y conectá de nuevo
-            para otorgar el permiso de lectura.
-          </p>
           <div
-            className="flex items-center justify-between p-3 border border-white/10 rounded-xl bg-white/5"
+            className="flex items-center justify-between gap-3 p-4 border border-white/10 rounded-xl bg-white/5"
           >
             <div>
               <div className="text-sm font-semibold text-slate-100">WhatsApp</div>
-              <div className="text-xs text-slate-400">Recordatorios 24hs antes por WhatsApp</div>
+              <div className="text-xs text-slate-400">Te avisamos cómo mandarlo desde Agenda</div>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/10
               text-slate-400 border border-white/10">
-              Manual en esta versión
+              Lo hacés vos
             </span>
           </div>
         </div>
-      </section>
-      <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 space-y-3">
-        <h2 className="font-semibold text-slate-100">Zona de peligro</h2>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="peligro"
+        titulo="Borrar todo"
+        ayuda="Ojo: esto borra turnos, clientes y tu cuenta. No se puede deshacer."
+        avanzada={true}
+      >
         <ZonaPeligroEliminar />
-      </section>
+      </SeccionConfig>
     </div>
   );
 }

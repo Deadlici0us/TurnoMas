@@ -78,7 +78,7 @@ describe("OnboardingWizard",
 
     expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
     expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: /Corrido 9 a 19/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Trabajo de corrido 9 a 19/ })).toBeDefined();
   });
 
   it("debería avanzar y retroceder entre pasos 1 y 2",

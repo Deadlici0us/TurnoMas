@@ -108,11 +108,13 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
   const cuerpo = (
     <div className="space-y-4">
       <div className="rounded-2xl border border-blue-500/25 bg-blue-500/10 p-4" aria-live="polite">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-blue-300">Tu semana</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-blue-300">Cómo queda tu semana</p>
         <p className="text-base font-semibold text-slate-100 mt-0.5">{resumenSemana(semana)}</p>
       </div>
       <div className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Atajos rápidos</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          Si atendés siempre igual, tocá un botón
+        </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -120,7 +122,7 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
             className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
               hover:bg-white/10 transition-colors min-h-[44px]"
           >
-            Corrido 9 a 19 (Lun a Sáb)
+            Trabajo de corrido 9 a 19
           </button>
           <button
             type="button"
@@ -128,7 +130,7 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
             className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
               hover:bg-white/10 transition-colors min-h-[44px]"
           >
-            Cortado 9 a 13 y 15 a 20 (Lun a Vie)
+            Corto al mediodía 9 a 13 y 15 a 20
           </button>
           <button
             type="button"
@@ -136,9 +138,12 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
             className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
               hover:bg-white/10 transition-colors min-h-[44px]"
           >
-            Copiar lunes a todos
+            Copiar el lunes a todos los días
           </button>
         </div>
+        <p className="text-xs text-slate-400">
+          Consejo: primero tocá un botón rápido y después ajustá solo el día que sea distinto.
+        </p>
       </div>
       {campos}
       {errorSemana !== null ? (

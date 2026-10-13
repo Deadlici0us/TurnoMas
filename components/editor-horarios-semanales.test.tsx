@@ -42,7 +42,7 @@ describe("EditorHorariosSemanales",
     const user = userEvent.setup();
     render(<EditorHorariosSemanales inicial={{}} action={async () => undefined} />);
 
-    await user.click(screen.getByRole("button", { name: /Corrido 9 a 19/ }));
+    await user.click(screen.getByRole("button", { name: /Trabajo de corrido 9 a 19/ }));
 
     expect((document.querySelector('input[type="hidden"][name="lun"]') as HTMLInputElement).value)
       .toBe("09:00-19:00");
@@ -59,7 +59,7 @@ describe("EditorHorariosSemanales",
       action={async () => undefined}
     />);
 
-    await user.click(screen.getByRole("button", { name: /Copiar lunes/ }));
+    await user.click(screen.getByRole("button", { name: /Copiar el lunes/ }));
 
     expect((document.querySelector('input[type="hidden"][name="mar"]') as HTMLInputElement).value)
       .toBe("10:00-20:00");

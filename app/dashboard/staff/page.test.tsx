@@ -88,7 +88,7 @@ describe("StaffPage",
 
     expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
     expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: /Copiar lunes a todos/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Copiar el lunes/ })).toBeDefined();
     expect(screen.getByText(/Lun 9 a 19/)).toBeDefined();
   });
 

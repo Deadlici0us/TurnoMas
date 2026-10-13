@@ -128,14 +128,16 @@ describe("ConfigPage",
     render(await ConfigPage());
 
     expect(screen.getByRole("heading", { name: "Configuración" })).toBeDefined();
-    expect(screen.getByText("Lista negra automática")).toBeDefined();
-    expect(screen.getByText("Política de seña")).toBeDefined();
-    expect(screen.getByText("Recordatorios automáticos")).toBeDefined();
-    expect(screen.getByText("Reseñas")).toBeDefined();
-    expect(screen.getAllByText("Remarketing").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Mensajes")).toBeDefined();
-    expect(screen.getByText("Conexiones")).toBeDefined();
-    expect(screen.getByText("Zona de peligro")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Tu negocio" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Tus horarios" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Si un cliente falta" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Cómo cuidás la seña" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Avisos antes del turno" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Pedir opiniones" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Cómo cobrás" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Borrar todo" })).toBeDefined();
+    expect(screen.getByText("Si un cliente falta 3 veces, no lo dejamos reservar más.")).toBeDefined();
+    expect(screen.getByText(/Si cancela faltando más de 48 hs/)).toBeDefined();
     expect((document.querySelector('input[name="umbral"]') as HTMLInputElement).value).toBe("3");
   });
 
@@ -167,7 +169,7 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    expect(screen.getByText("Conectado ••••5678")).toBeDefined();
+    expect(screen.getByText("Listo ••••5678")).toBeDefined();
     expect(screen.getByRole("button", { name: "Desconectar" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Desconectar Google" })).toBeDefined();
   });
@@ -179,10 +181,10 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    expect(screen.getAllByText("Sin conectar").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("link", { name: "Conectar con MercadoPago" }))
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("link", { name: "Conectar MercadoPago" }))
       .toHaveAttribute("href", "/api/integrations/mercadopago/authorize");
-    expect(screen.getByRole("link", { name: "Conectar con Google" }))
+    expect(screen.getByRole("link", { name: "Conectar Google" }))
       .toHaveAttribute("href", "/api/integrations/google/authorize");
   });
 
@@ -231,9 +233,8 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    expect(screen.queryByRole("link", { name: "Conectar con MercadoPago" })).toBeNull();
-    expect(screen.getByText("La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas con tu MercadoPago."))
-      .toBeDefined();
+    expect(screen.queryByRole("link", { name: "Conectar MercadoPago" })).toBeNull();
+    expect(screen.getByText(/La demo no conecta cuentas reales/)).toBeDefined();
   });
 
   it("debería tolerar negocio sin id y base caída",
@@ -248,8 +249,8 @@ describe("ConfigPage",
     render(await ConfigPage());
 
     expect(screen.getByRole("heading", { name: "Configuración" })).toBeDefined();
-    expect(screen.getAllByText("Sin conectar").length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryByText("Tu página pública:")).toBeNull();
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("Tu link para compartir:")).toBeNull();
   });
 
   it("debería invocar las acciones al guardar cada sección",
@@ -264,7 +265,7 @@ describe("ConfigPage",
 
     expect(vi.mocked(actualizarNombreNegocio)).toHaveBeenCalledWith("Barbería");
 
-    await user.click(screen.getByRole("button", { name: "Guardar zona horaria" }));
+    await user.click(screen.getByRole("button", { name: "Guardar ciudad" }));
 
     expect(vi.mocked(actualizarTimezoneNegocio)).toHaveBeenCalledWith("America/Mexico_City");
 
@@ -318,7 +319,7 @@ describe("ConfigPage",
 
     expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
     expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: /Corrido 9 a 19/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Trabajo de corrido 9 a 19/ })).toBeDefined();
     expect(screen.getByText(/Lun 9 a 19/)).toBeDefined();
   });
 
@@ -329,7 +330,7 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    expect(screen.getAllByText("Sin conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
   });
 
   it("debería mostrar las 4 plantillas de mensajes",
@@ -339,12 +340,12 @@ describe("ConfigPage",
 
     render(await ConfigPage());
 
-    for (const titulo of ["Confirmación de reserva", "Pedido de reseña"])
+    for (const titulo of ["Cuando alguien reserva", "Después del turno: pedir opinión"])
     {
       expect(screen.getByText(titulo)).toBeDefined();
     }
 
-    expect(screen.getAllByText("Recordatorio").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Remarketing").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Un día antes del turno")).toBeDefined();
+    expect(screen.getByText("Mensaje para invitar a volver")).toBeDefined();
   });
 });
