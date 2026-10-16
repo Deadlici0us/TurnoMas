@@ -77,7 +77,7 @@ describe("DashboardLayout",
       expect(screen.getByText("contenido")).toBeDefined();
     });
 
-    it("no debería mostrar el paywall en la demo",
+    it("debería mostrar el paywall también en la demo bloqueada",
     async () =>
     {
       stubDashboard({
@@ -89,6 +89,7 @@ describe("DashboardLayout",
 
       render(await DashboardLayout({ children: <div>contenido</div> }));
 
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByRole("dialog")).toBeDefined();
+      expect(screen.getByRole("heading", { name: "Tu plan venció" })).toBeDefined();
     });
   });

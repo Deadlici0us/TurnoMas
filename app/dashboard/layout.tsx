@@ -46,7 +46,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </div>
-      {bloqueado && !isDemo ? (
+      {bloqueado ? (
         <PaywallPlanVencido etiquetaPlan={plan.etiqueta} activar={activarPlan} logout={logout} />
       ) : null}
     </>
