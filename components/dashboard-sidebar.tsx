@@ -47,8 +47,10 @@ const SECCIONES: readonly Seccion[] =
  */
 export default function DashboardSidebar({
   pendientesRemarketing,
+  bloqueado = false,
 }: {
   readonly pendientesRemarketing?: number;
+  readonly bloqueado?: boolean;
 } = {})
 {
   const ruta = usePathname();
@@ -74,6 +76,11 @@ export default function DashboardSidebar({
     }
 
     return `${base} text-slate-400 hover:bg-white/5 hover:text-white`;
+  }
+
+  function claseDeshabilitada(): string
+  {
+    return "flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold text-slate-500 cursor-not-allowed";
   }
 
   return (
@@ -114,23 +121,43 @@ export default function DashboardSidebar({
           </button>
         </div>
         <nav className="flex flex-col gap-1">
-          {SECCIONES.map(({ href, etiqueta, Icono }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setAbierto(false)}
-              aria-current={esActiva(href) ? "page" : undefined}
-              className={claseLink(href)}
-            >
-              <Icono className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-              {etiqueta}
-              {href === "/dashboard/remarketing" && pendientesRemarketing !== undefined && pendientesRemarketing > 0 ? (
-                <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300 ring-1 ring-red-500/40">
-                  {pendientesRemarketing}
+          {SECCIONES.map(({ href, etiqueta, Icono }) =>
+          {
+            const deshabilitada = bloqueado && href !== "/dashboard/facturacion";
+
+            const contenido = (
+              <>
+                <Icono className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                {etiqueta}
+                {href === "/dashboard/remarketing" && pendientesRemarketing !== undefined && pendientesRemarketing > 0 ? (
+                  <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300 ring-1 ring-red-500/40">
+                    {pendientesRemarketing}
+                  </span>
+                ) : null}
+              </>
+            );
+
+            if (deshabilitada)
+            {
+              return (
+                <span key={href} aria-disabled="true" className={claseDeshabilitada()}>
+                  {contenido}
                 </span>
-              ) : null}
-            </Link>
-          ))}
+              );
+            }
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setAbierto(false)}
+                aria-current={esActiva(href) ? "page" : undefined}
+                className={claseLink(href)}
+              >
+                {contenido}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
     </>

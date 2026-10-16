@@ -35,6 +35,16 @@ describe("DashboardSidebar",
     expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute("aria-current");
   });
 
+  it("debería deshabilitar las secciones que no son Facturación con plan vencido",
+  () =>
+  {
+    render(<DashboardSidebar bloqueado />);
+
+    expect(screen.queryByRole("link", { name: "Agenda" })).toBeNull();
+    expect(screen.getByText("Agenda")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Facturación" })).toBeDefined();
+  });
+
   it("debería abrir y cerrar el menú móvil",
   async () =>
   {
