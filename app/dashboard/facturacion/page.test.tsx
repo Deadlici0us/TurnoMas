@@ -152,24 +152,6 @@ describe("FacturacionPage",
     expect(screen.getByRole("button", { name: "Copiar nro de comprobante" })).toBeDefined();
   });
 
-  it("debería mostrar el paywall cuando el plan está vencido",
-  async () =>
-  {
-    stubFacturacion({
-      created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
-      pais: "ar",
-      suscripcion_estado: null,
-      suscripcion_mp_id: null,
-    });
-
-    render(await FacturacionPage());
-
-    expect(screen.getByRole("heading", { name: "Tu plan venció" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Activar plan $ 14.999 ARS/mes" })).toBeDefined();
-    expect(screen.queryByRole("heading", { name: "Facturación" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Cancelar plan" })).toBeNull();
-  });
-
   it("debería ocultar el comprobante sin suscripción",
   async () =>
   {

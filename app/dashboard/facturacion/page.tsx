@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { activarPlan, cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
-import PaywallPlanVencido from "@/components/paywall-plan-vencido";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
@@ -50,12 +49,6 @@ export default async function FacturacionPage(
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
   });
   const demo = await esDuenoDemo();
-
-  if (!demo && estado === "blocked")
-  {
-    return <PaywallPlanVencido etiquetaPlan={plan.etiqueta} activar={activarPlan} />;
-  }
-
   const params = props?.searchParams === undefined ? undefined : await props.searchParams;
   const diasRestantes = diasTrialRestantes(creado);
   const suscripcionId = typeof negocio.suscripcion_mp_id === "string"
