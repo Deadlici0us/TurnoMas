@@ -182,9 +182,16 @@ export async function POST(request: Request)
 
   resultado.preapprovalGet = await llamar("GET", `/preapproval/${preId}`, token);
 
-  resultado.preapprovalPutSecundario = await llamar("PUT", `/preapproval/${preId}`, token, {
+  resultado.preapprovalPutCompleto = await llamar("PUT", `/preapproval/${preId}`, token, {
+    reason: "TurnoMas - Diagnostico",
+    external_reference: "negocio-diagnostico",
+    back_url: BACK_URL,
+    auto_recurring: { transaction_amount: 14999, currency_id: "ARS" },
+    card_token_id: cardTokenId,
     card_token_id_secondary: cardTokenId,
     payment_method_id_secondary: "master",
+    payment_method_id: "account_money",
+    status: "authorized",
   });
 
   resultado.preapprovalGetFinal = await llamar("GET", `/preapproval/${preId}`, token);
