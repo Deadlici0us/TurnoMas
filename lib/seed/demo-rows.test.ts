@@ -16,7 +16,7 @@ describe("buildDemoSeed",
     expect(seed.staff).toHaveLength(2);
     expect(seed.servicios).toHaveLength(3);
     expect(seed.clientes).toHaveLength(3);
-    expect(seed.turnos).toHaveLength(3);
+    expect(seed.turnos).toHaveLength(4);
   });
 
   it("debería cablear las claves foráneas contra el negocio y el staff",

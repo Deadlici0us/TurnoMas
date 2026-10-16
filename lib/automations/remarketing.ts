@@ -60,3 +60,36 @@ export function shouldSendRemarketing(
 
   return ahora.getTime() - turno.fin.getTime() >= diasEspera * MS_PER_DAY;
 }
+
+/** Calcula la fecha límite para ofrecer remarketing: fin del turno + días de espera. */
+export function fechaObjetivoRemarketing(fin: Date, diasEspera: number): Date
+{
+  if (!Number.isInteger(diasEspera) || diasEspera <= 0)
+  {
+    throw new RangeError("Los días de espera deben ser un entero positivo.");
+  }
+
+  return new Date(fin.getTime() + diasEspera * MS_PER_DAY);
+}
+
+/**
+ * Clasifica un turno terminado según cuándo venció su fecha límite de remarketing.
+ * Devuelve null si todavía no toca contactar. atrasoDias >= 0 significa que ya venció:
+ * 0 toca hoy, 1 o más está atrasado esa cantidad de días.
+ */
+export function clasificarRemarketing(
+  fin: Date,
+  diasEspera: number,
+  ahora: Date,
+): { readonly atrasoDias: number } | null
+{
+  if (!Number.isInteger(diasEspera) || diasEspera <= 0)
+  {
+    throw new RangeError("Los días de espera deben ser un entero positivo.");
+  }
+
+  const objetivo = fechaObjetivoRemarketing(fin, diasEspera).getTime();
+  const atrasoDias = Math.max(0, Math.floor((ahora.getTime() - objetivo) / MS_PER_DAY));
+
+  return ahora.getTime() >= objetivo ? { atrasoDias } : null;
+}

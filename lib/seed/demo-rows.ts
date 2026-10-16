@@ -243,6 +243,18 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         sena_monto: null,
         sena_porcentaje: 50,
       },
+      {
+        id: "d0e6b000-0000-4000-8000-000000000044",
+        negocio_id: NEGOCIO_ID,
+        staff_id: STAFF_CAMILA,
+        servicio_id: SERV_CORTE,
+        cliente_id: CLI_FALTA,
+        inicio: new Date(now - 40 * DAY_MS).toISOString(),
+        estado: "completado",
+        monto_total: 1500000,
+        sena_monto: null,
+        sena_porcentaje: 50,
+      },
     ],
   };
 }

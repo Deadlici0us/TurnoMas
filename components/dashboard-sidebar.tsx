@@ -5,14 +5,15 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import
 {
+  BookUser,
   CalendarDays,
   LayoutDashboard,
   Menu,
+  Repeat,
   ReceiptText,
   Scissors,
   Settings,
   Users,
-  BookUser,
   Wallet,
   X,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const SECCIONES: readonly Seccion[] =
   { href: "/dashboard/staff", etiqueta: "Equipo", Icono: Users },
   { href: "/dashboard/servicios", etiqueta: "Servicios", Icono: Scissors },
   { href: "/dashboard/clientes", etiqueta: "Clientes", Icono: BookUser },
+  { href: "/dashboard/recuperar", etiqueta: "Recuperar", Icono: Repeat },
   { href: "/dashboard/pagos", etiqueta: "Pagos", Icono: Wallet },
   { href: "/dashboard/config", etiqueta: "Configuración", Icono: Settings },
   { href: "/dashboard/facturacion", etiqueta: "Facturación", Icono: ReceiptText },
@@ -43,7 +45,11 @@ const SECCIONES: readonly Seccion[] =
  *
  * @return Navegación de las ocho secciones del panel.
  */
-export default function DashboardSidebar()
+export default function DashboardSidebar({
+  pendientesRecuperar,
+}: {
+  readonly pendientesRecuperar?: number;
+} = {})
 {
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
@@ -118,6 +124,11 @@ export default function DashboardSidebar()
             >
               <Icono className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
               {etiqueta}
+              {href === "/dashboard/recuperar" && pendientesRecuperar !== undefined && pendientesRecuperar > 0 ? (
+                <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300 ring-1 ring-red-500/40">
+                  {pendientesRecuperar}
+                </span>
+              ) : null}
             </Link>
           ))}
         </nav>

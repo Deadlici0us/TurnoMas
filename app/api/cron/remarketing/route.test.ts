@@ -41,9 +41,11 @@ function turnoCompletado(diasAtras: number, overrides: Record<string, unknown> =
 
   return {
     id: "t-1",
+    cliente_id: "c-1",
     inicio: fin,
     fin,
     remarketing_enviado: false,
+    remarketing_manual_at: null,
     negocio: {
       nombre: "Barbería",
       pais: "ar",
@@ -55,19 +57,32 @@ function turnoCompletado(diasAtras: number, overrides: Record<string, unknown> =
     },
     servicio: { nombre: "Corte", remarketing: true, remarketing_dias: null },
     staff: { nombre: "Diego" },
-    cliente: { email: "cli@ejemplo.com" },
+    cliente: { email: "cli@ejemplo.com", bloqueado: false },
     ...overrides,
   };
+}
+
+/** Turno vecino (sibling) para el barrido por cliente. */
+function vecino(overrides: Record<string, unknown> = {})
+{
+  const fin = new Date(Date.now() - 40 * 86_400_000).toISOString();
+
+  return { id: "t-1", cliente_id: "c-1", inicio: fin, fin, estado: "completado", ...overrides };
 }
 
 /**
  * Stub del admin para el barrido de remarketing.
  *
- * @param filas Turnos devueltos por el barrido.
+ * @param filas Turnos devueltos por el barrido principal.
  * @param updates Flags actualizados capturados.
+ * @param vecinos Turnos vecinos por cliente (default: la propia fila completada).
  */
-function stubBarrido(filas: unknown[], updates: unknown[] = [])
+function stubBarrido(filas: unknown[], updates: unknown[] = [], vecinos?: unknown[])
 {
+  const hermanos = vecinos ?? (filas as Array<Record<string, unknown>>).map((f) =>
+  {
+    return { id: f.id, cliente_id: f.cliente_id, inicio: f.inicio, fin: f.fin, estado: "completado" };
+  });
   const admin = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -76,6 +91,7 @@ function stubBarrido(filas: unknown[], updates: unknown[] = [])
             limit: vi.fn(async () => ({ data: filas })),
           })),
         })),
+        in: vi.fn(async () => ({ data: hermanos })),
       })),
       update: vi.fn((values: unknown) =>
       {
@@ -250,7 +266,59 @@ describe("POST /api/cron/remarketing",
   it("debería omitir clientes sin email",
   async () =>
   {
-    stubBarrido([turnoCompletado(40, { cliente: { email: null } })]);
+    stubBarrido([turnoCompletado(40, { cliente: { email: null, bloqueado: false } })]);
+
+    const response = await POST(requestWith({}));
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+  });
+
+  it("debería omitir clientes bloqueados",
+  async () =>
+  {
+    stubBarrido([turnoCompletado(40, { cliente: { email: "cli@ejemplo.com", bloqueado: true } })]);
+
+    const response = await POST(requestWith({}));
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+  });
+
+  it("debería omitir si ya tiene marca manual de WhatsApp",
+  async () =>
+  {
+    stubBarrido([turnoCompletado(40, { remarketing_manual_at: new Date().toISOString() })]);
+
+    const response = await POST(requestWith({}));
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+  });
+
+  it("debería omitir si hay una visita completada más nueva",
+  async () =>
+  {
+    const nuevo = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    stubBarrido([turnoCompletado(40)], [], [
+      vecino(),
+      { id: "t-2", cliente_id: "c-1", inicio: nuevo, fin: nuevo, estado: "completado" },
+    ]);
+
+    const response = await POST(requestWith({}));
+    const body = await response.json() as { enviados: number };
+
+    expect(body).toMatchObject({ enviados: 0 });
+  });
+
+  it("debería omitir si el cliente tiene un turno futuro",
+  async () =>
+  {
+    const futuro = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    stubBarrido([turnoCompletado(40)], [], [
+      vecino(),
+      { id: "t-2", cliente_id: "c-1", inicio: futuro, fin: null, estado: "confirmado" },
+    ]);
 
     const response = await POST(requestWith({}));
     const body = await response.json() as { enviados: number };

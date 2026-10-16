@@ -3,8 +3,7 @@ import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
-import { textoWhatsapp } from "@/lib/notifications/custom-templates";
-import { linkWhatsapp } from "@/lib/notifications/whatsapp";
+import { linkRemarketingWhatsapp } from "@/lib/remarketing/link";
 
 interface ClienteRow
 {
@@ -80,22 +79,18 @@ export default async function ClientesPage({
   /** Link wa.me de remarketing manual para un cliente (null sin portal). */
   function linkRemarketing(cliente: ClienteRow, ultimoServicio: string): string | null
   {
-    if (portalUrl === null)
-    {
-      return null;
-    }
-
-    return linkWhatsapp(cliente.whatsapp, textoWhatsapp("remarketing", {
-      subject: typeof negocioRow.msg_remarketing_subject === "string"
+    return linkRemarketingWhatsapp({
+      whatsapp: cliente.whatsapp,
+      portalUrl,
+      negocioNombre,
+      msg_remarketing_subject: typeof negocioRow.msg_remarketing_subject === "string"
         ? negocioRow.msg_remarketing_subject
         : null,
-      cuerpo: typeof negocioRow.msg_remarketing_cuerpo === "string" ? negocioRow.msg_remarketing_cuerpo : null,
-    }, {
-      negocio: negocioNombre,
-      servicio: ultimoServicio,
-      profesional: "",
-      fecha: "",
-    }, portalUrl));
+      msg_remarketing_cuerpo: typeof negocioRow.msg_remarketing_cuerpo === "string"
+        ? negocioRow.msg_remarketing_cuerpo
+        : null,
+      servicioNombre: ultimoServicio,
+    });
   }
   const turnosPorCliente = new Map<string, TurnoRow[]>();
 

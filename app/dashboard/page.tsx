@@ -6,6 +6,7 @@ import { BadgeCheck, CalendarClock, CircleDollarSign, TriangleAlert } from "luci
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
 import { debeAvisarConexionMp } from "@/lib/dashboard/conexion-mp";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
+import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { avisoSuscripcion } from "@/lib/onboarding/trial";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -96,6 +97,23 @@ export default async function DashboardPage()
         cta: "Conectar MercadoPago",
       }
       : null,
+    (() =>
+    {
+      const pendientesRecuperar = candidatosDesdeDashboard(dashboard).length;
+
+      if (pendientesRecuperar === 0)
+      {
+        return null;
+      }
+
+      return {
+        texto: pendientesRecuperar === 1
+          ? "Tenés 1 cliente para recuperar."
+          : `Tenés ${pendientesRecuperar} clientes para recuperar.`,
+        href: "/dashboard/recuperar",
+        cta: "Ver lista",
+      };
+    })(),
   ].filter((a): a is { texto: string; href: string; cta: string } => a !== null);
 
   const indicadores = [
