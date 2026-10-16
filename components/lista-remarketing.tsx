@@ -156,7 +156,7 @@ export default function ListaRemarketing({
                     className="inline-flex h-9 items-center rounded-lg border border-green-500/40 px-3 text-xs font-semibold
                       text-green-300 hover:bg-green-500/20"
                   >
-                    Enviar por WhatsApp
+                    Recordarle por WhatsApp
                   </a>
                 ) : null}
                 <button
