@@ -1,7 +1,7 @@
 /**
  * Provisiona (una sola vez) el plan de suscripción en MercadoPago.
  *
- * Operación de administración protegida por `ADMIN_SECRET`: crea el
+ * Operación de administración protegida por `MP_PLAN_ADMIN_SECRET`: crea el
  * `preapproval_plan` de AR y devuelve su `id` para guardarlo en
  * `MP_PLAN_ID_AR`. No es un endpoint público atado al comprador.
  */
@@ -14,7 +14,7 @@ import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export async function POST(request: Request)
 {
-  const secret = readEnv("ADMIN_SECRET");
+  const secret = readEnv("MP_PLAN_ADMIN_SECRET");
 
   if (secret === null)
   {

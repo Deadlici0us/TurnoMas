@@ -28,7 +28,7 @@ beforeEach(() =>
 describe("POST /api/suscripcion/plan",
 () =>
 {
-  it("debería responder 503 sin ADMIN_SECRET configurado",
+  it("debería responder 503 sin MP_PLAN_ADMIN_SECRET configurado",
   async () =>
   {
     const response = await POST(solicitud("x"));
@@ -40,7 +40,7 @@ describe("POST /api/suscripcion/plan",
   it("debería rechazar un bearer inválido",
   async () =>
   {
-    vi.stubEnv("ADMIN_SECRET", "secreto");
+    vi.stubEnv("MP_PLAN_ADMIN_SECRET", "secreto");
 
     const response = await POST(solicitud("otro"));
 
@@ -51,7 +51,7 @@ describe("POST /api/suscripcion/plan",
   it("debería crear el plan y devolver su id",
   async () =>
   {
-    vi.stubEnv("ADMIN_SECRET", "secreto");
+    vi.stubEnv("MP_PLAN_ADMIN_SECRET", "secreto");
     vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
     mockCrearPlan.mockResolvedValueOnce({ id: "plan-ar-1" });
@@ -73,7 +73,7 @@ describe("POST /api/suscripcion/plan",
   it("debería devolver 502 si MP falla",
   async () =>
   {
-    vi.stubEnv("ADMIN_SECRET", "secreto");
+    vi.stubEnv("MP_PLAN_ADMIN_SECRET", "secreto");
     vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
     mockCrearPlan.mockRejectedValueOnce(new Error("boom"));
