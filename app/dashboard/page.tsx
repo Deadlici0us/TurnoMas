@@ -99,18 +99,18 @@ export default async function DashboardPage()
       : null,
     (() =>
     {
-      const pendientesRecuperar = candidatosDesdeDashboard(dashboard).length;
+      const pendientesRemarketing = candidatosDesdeDashboard(dashboard).length;
 
-      if (pendientesRecuperar === 0)
+      if (pendientesRemarketing === 0)
       {
         return null;
       }
 
       return {
-        texto: pendientesRecuperar === 1
-          ? "Tenés 1 cliente para recuperar."
-          : `Tenés ${pendientesRecuperar} clientes para recuperar.`,
-        href: "/dashboard/recuperar",
+        texto: pendientesRemarketing === 1
+          ? "Tenés 1 cliente para remarketing."
+          : `Tenés ${pendientesRemarketing} clientes para remarketing.`,
+        href: "/dashboard/remarketing",
         cta: "Ver lista",
       };
     })(),

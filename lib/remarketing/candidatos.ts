@@ -1,5 +1,5 @@
 /**
- * Candidatos de recuperación (panel "Recuperar" y barrido de email).
+ * Candidatos de remarketing (panel "Remarketing" y barrido de email).
  *
  * La regla es por cliente, no por turno: se toma la última visita completada
  * y los días de espera del servicio de esa visita. El cliente entra cuando
@@ -10,7 +10,7 @@
 
 import { clasificarRemarketing, resolverRemarketingDias } from "@/lib/automations/remarketing";
 
-export interface TurnoParaRecuperacion
+export interface TurnoParaRemarketing
 {
   readonly id: string;
   readonly cliente_id: string;
@@ -21,7 +21,7 @@ export interface TurnoParaRecuperacion
   readonly remarketing_manual_at?: string | null;
 }
 
-export interface ClienteParaRecuperacion
+export interface ClienteParaRemarketing
 {
   readonly id: string;
   readonly nombre: string;
@@ -29,7 +29,7 @@ export interface ClienteParaRecuperacion
   readonly bloqueado: boolean | null;
 }
 
-export interface ServicioParaRecuperacion
+export interface ServicioParaRemarketing
 {
   readonly id: string;
   readonly nombre: string;
@@ -37,7 +37,7 @@ export interface ServicioParaRecuperacion
   readonly remarketing_dias: number | null;
 }
 
-export interface NegocioParaRecuperacion
+export interface NegocioParaRemarketing
 {
   readonly nombre: string | null;
   readonly pais: string | null;
@@ -46,7 +46,7 @@ export interface NegocioParaRecuperacion
   readonly remarketing_dias: number | null;
 }
 
-export interface CandidatoRecuperacion
+export interface CandidatoRemarketing
 {
   readonly turnoId: string;
   readonly clienteId: string;
@@ -147,15 +147,15 @@ function fechaValida(valor: string | null): Date | null
  *
  * @return Candidatos ordenados de más atrasado a menos.
  */
-export function armarCandidatosRecuperar(
+export function armarCandidatosRemarketing(
   props: {
-    readonly turnos: readonly TurnoParaRecuperacion[];
-    readonly clientes: readonly ClienteParaRecuperacion[];
-    readonly servicios: readonly ServicioParaRecuperacion[];
-    readonly negocio: NegocioParaRecuperacion;
+    readonly turnos: readonly TurnoParaRemarketing[];
+    readonly clientes: readonly ClienteParaRemarketing[];
+    readonly servicios: readonly ServicioParaRemarketing[];
+    readonly negocio: NegocioParaRemarketing;
     readonly ahora: Date;
   },
-): CandidatoRecuperacion[]
+): CandidatoRemarketing[]
 {
   if (props.negocio.remarketing_activo === false)
   {
@@ -165,11 +165,11 @@ export function armarCandidatosRecuperar(
   const nombrePorServicio = new Map<string, string>(
     props.servicios.map((s) => [s.id, s.nombre]),
   );
-  const servicioPorId = new Map<string, ServicioParaRecuperacion>(
+  const servicioPorId = new Map<string, ServicioParaRemarketing>(
     props.servicios.map((s) => [s.id, s]),
   );
 
-  const turnosPorCliente = new Map<string, TurnoParaRecuperacion[]>();
+  const turnosPorCliente = new Map<string, TurnoParaRemarketing[]>();
 
   for (const turno of props.turnos)
   {
@@ -178,7 +178,7 @@ export function armarCandidatosRecuperar(
     turnosPorCliente.set(turno.cliente_id, lista);
   }
 
-  const candidatos: CandidatoRecuperacion[] = [];
+  const candidatos: CandidatoRemarketing[] = [];
 
   for (const cliente of props.clientes)
   {

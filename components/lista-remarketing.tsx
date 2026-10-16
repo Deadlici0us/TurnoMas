@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 
-import { deshacerRemarketingManual, marcarRemarketingManual } from "@/app/dashboard/recuperar/actions";
+import { deshacerRemarketingManual, marcarRemarketingManual } from "@/app/dashboard/remarketing/actions";
 
 export interface ListaItemProps
 {
@@ -21,11 +21,11 @@ interface Toast
 }
 
 /**
- * Lista de clientes a recuperar con marca manual y deshacer.
+ * Lista de clientes para hacer remarketing con marca manual y deshacer.
  *
  * @return Filas con acciones de WhatsApp/Omitir y aviso temporal.
  */
-export default function ListaRecuperar({
+export default function ListaRemarketing({
   items,
   portalUrl,
 }: {
@@ -68,7 +68,7 @@ export default function ListaRecuperar({
     {
       await marcarRemarketingManual(turnoId);
       setToast({
-        mensaje: "Marcado como hecho.",
+        mensaje: "Marcado como contactado.",
         onDeshacer: () =>
         {
           setToast(null);
@@ -92,7 +92,7 @@ export default function ListaRecuperar({
 
     const telefono = item.whatsapp.replace(/\D/g, "");
     const texto = encodeURIComponent(
-      `Hola! Pasó un tiempo desde tu última visita (${item.servicioNombre}). ¿Querés que te reserve un turno? ${portalUrl}`,
+      `¡Hola! Ya pasó el tiempo para volver a hacerte tu ${item.servicioNombre}. ¿Querés que te reserve un turno? ${portalUrl}`,
     );
 
     return `https://wa.me/${telefono}?text=${texto}`;
@@ -174,7 +174,7 @@ export default function ListaRecuperar({
       </ul>
       {aMostrar.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-slate-900/70 p-8 text-center text-sm text-slate-400">
-          No hay nadie más para recuperar. Buen trabajo.
+          No hay nadie más para hacer remarketing. Buen trabajo.
         </p>
       ) : null}
     </>

@@ -118,7 +118,7 @@ export const PLANTILLAS_AMIGABLES: readonly PlantillaAmigable[] =
   },
   {
     tipo: "remarketing",
-    titulo: "Mensaje para invitar a volver",
-    ayuda: "Invitación para que el cliente vuelva después de un tiempo.",
+    titulo: "Mensaje de remarketing",
+    ayuda: "Invita a repetir el servicio (corte, uñas, depilación…).",
   },
 ];

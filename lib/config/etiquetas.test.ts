@@ -62,7 +62,7 @@ describe("etiquetas amigables de configuración",
     expect(ejemploSena(24)).toContain("24 hs");
   });
 
-  it("debería describir las 4 plantillas sin decir subject ni remarketing",
+  it("debería describir las 4 plantillas sin tecnicismos internos",
   () =>
   {
     expect(PLANTILLAS_AMIGABLES).toHaveLength(4);
@@ -70,7 +70,6 @@ describe("etiquetas amigables de configuración",
     const titulos = PLANTILLAS_AMIGABLES.map((p) => p.titulo).join(" ");
 
     expect(titulos).not.toMatch(/subject/i);
-    expect(titulos).not.toMatch(/remarketing/i);
 
     for (const plantilla of PLANTILLAS_AMIGABLES)
     {

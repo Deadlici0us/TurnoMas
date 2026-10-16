@@ -2,7 +2,7 @@
  * Link de WhatsApp prellenado para contacto manual de remarketing.
  *
  * Reusa `textoWhatsapp` y `linkWhatsapp`; se usa tanto en el panel
- * "Recuperar" como en la página Clientes.
+ * "Remarketing" como en la página Clientes.
  */
 
 import { textoWhatsapp } from "@/lib/notifications/custom-templates";

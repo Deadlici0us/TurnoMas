@@ -1,9 +1,9 @@
 /**
  * Puente entre los datos crudos del dashboard (`select("*")`) y el armador
- * de candidatos de recuperación.
+ * de candidatos de remarketing.
  */
 
-import { armarCandidatosRecuperar, type CandidatoRecuperacion } from "./candidatos";
+import { armarCandidatosRemarketing, type CandidatoRemarketing } from "./candidatos";
 
 export interface DashboardLike
 {
@@ -13,11 +13,11 @@ export interface DashboardLike
   readonly negocio: unknown;
 }
 
-/** Arma los candidatos de recuperación a partir de `getDashboardData()`. */
+/** Arma los candidatos de remarketing a partir de `getDashboardData()`. */
 export function candidatosDesdeDashboard(
   dashboard: DashboardLike,
   ahora: Date = new Date(),
-): CandidatoRecuperacion[]
+): CandidatoRemarketing[]
 {
   const negocio = dashboard.negocio as {
     readonly nombre?: unknown;
@@ -27,7 +27,7 @@ export function candidatosDesdeDashboard(
     readonly remarketing_dias?: unknown;
   };
 
-  return armarCandidatosRecuperar({
+  return armarCandidatosRemarketing({
     turnos: dashboard.turnos as Array<{
       readonly id: string;
       readonly cliente_id: string;

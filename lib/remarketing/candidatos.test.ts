@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { armarCandidatosRecuperar, filtrarCandidatosVigentes } from "./candidatos";
+import { armarCandidatosRemarketing, filtrarCandidatosVigentes } from "./candidatos";
 
 const AHORA = new Date("2026-10-01T12:00:00Z");
 
@@ -40,13 +40,13 @@ function turno(overrides: Record<string, unknown> = {})
 
 const CLIENTE = { id: "c-1", nombre: "Juan", whatsapp: "+5491112345678", bloqueado: false };
 
-describe("armarCandidatosRecuperar",
+describe("armarCandidatosRemarketing",
 () =>
 {
   it("debería incluir al cliente cuando pasaron los días del servicio",
   () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno()],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -61,7 +61,7 @@ describe("armarCandidatosRecuperar",
   it("debería excluir cuando aún no pasaron los días",
   () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno({ inicio: hace(20), fin: hace(20) })],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -77,7 +77,7 @@ describe("armarCandidatosRecuperar",
   {
     const candidato40 = turno({ servicio_id: "s-color", inicio: hace(40), fin: hace(40) });
 
-    expect(armarCandidatosRecuperar({
+    expect(armarCandidatosRemarketing({
       turnos: [candidato40],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -85,7 +85,7 @@ describe("armarCandidatosRecuperar",
       ahora: AHORA,
     })).toHaveLength(0);
 
-    expect(armarCandidatosRecuperar({
+    expect(armarCandidatosRemarketing({
       turnos: [turno({ servicio_id: "s-color", inicio: hace(50), fin: hace(50) })],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -97,7 +97,7 @@ describe("armarCandidatosRecuperar",
   it("debería tomar solo la última visita del cliente",
   () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [
         turno({ id: "viejo", inicio: hace(60), fin: hace(60) }),
         turno({ id: "nuevo", inicio: hace(40), fin: hace(40) }),
@@ -115,7 +115,7 @@ describe("armarCandidatosRecuperar",
   it("debería excluir si el cliente reservó de nuevo (visita reciente)",
   () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [
         turno({ id: "viejo", inicio: hace(60), fin: hace(60) }),
         turno({ id: "nuevo", inicio: hace(5), fin: hace(5) }),
@@ -132,7 +132,7 @@ describe("armarCandidatosRecuperar",
   it("debería excluir si tiene un turno futuro agendado",
   () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [
         turno(),
         turno({ id: "futuro", estado: "confirmado", inicio: hace(-3) }),
@@ -148,7 +148,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería excluir servicios con remarketing desactivado", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno({ servicio_id: "s-barba" })],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -161,7 +161,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería excluir contacto manual ya marcado", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno({ remarketing_manual_at: hace(2) })],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -174,7 +174,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería excluir clientes bloqueados", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno()],
       clientes: [{ ...CLIENTE, bloqueado: true }],
       servicios: SERVICIOS,
@@ -187,7 +187,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería devolver vacío si el negocio desactivó el remarketing", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno()],
       clientes: [CLIENTE],
       servicios: SERVICIOS,
@@ -200,7 +200,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería ordenar primero los más atrasados", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [
         turno({ id: "a", cliente_id: "c-1", inicio: hace(35), fin: hace(35) }),
         turno({ id: "b", cliente_id: "c-2", inicio: hace(70), fin: hace(70) }),
@@ -216,7 +216,7 @@ describe("armarCandidatosRecuperar",
 
   it("debería usar `inicio` cuando `fin` es null", () =>
   {
-    const candidatos = armarCandidatosRecuperar({
+    const candidatos = armarCandidatosRemarketing({
       turnos: [turno({ fin: null, inicio: hace(40) })],
       clientes: [CLIENTE],
       servicios: SERVICIOS,

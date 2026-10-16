@@ -347,6 +347,6 @@ describe("ConfigPage",
     }
 
     expect(screen.getByText("Un día antes del turno")).toBeDefined();
-    expect(screen.getByText("Mensaje para invitar a volver")).toBeDefined();
+    expect(screen.getByText("Mensaje de remarketing")).toBeDefined();
   });
 });

@@ -45,7 +45,7 @@ export async function marcarRemarketingManual(turnoId: string): Promise<void>
     throw new Error("No se pudo marcar el contacto manual.");
   }
 
-  revalidatePath("/dashboard/recuperar");
+  revalidatePath("/dashboard/remarketing");
   revalidatePath("/dashboard");
 }
 
@@ -65,6 +65,6 @@ export async function deshacerRemarketingManual(turnoId: string): Promise<void>
     throw new Error("No se pudo deshacer la marca.");
   }
 
-  revalidatePath("/dashboard/recuperar");
+  revalidatePath("/dashboard/remarketing");
   revalidatePath("/dashboard");
 }

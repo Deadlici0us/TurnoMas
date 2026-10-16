@@ -641,8 +641,8 @@ export default async function ConfigPage(
       </SeccionConfig>
       <SeccionConfig
         icono="repetir"
-        titulo="Invitar a volver"
-        ayuda="Les escribimos para que vuelvan. Solo a quienes dejaron email."
+        titulo="Remarketing"
+        ayuda="Avisamos a cada cliente cuando ya es hora de repetir su servicio. Solo a quienes dejaron email."
         avanzada={true}
       >
         <form action={guardarRemarketing} className="space-y-3">
@@ -653,7 +653,7 @@ export default async function ConfigPage(
               defaultChecked={remarketingActivo}
               className="w-5 h-5"
             />
-            {"Invitar a volver después de un tiempo"}
+            {"Hacer remarketing por email"}
           </label>
           <label className="block text-sm font-semibold text-slate-200">
             {"¿A los cuántos días les escribimos?"}
@@ -667,6 +667,9 @@ export default async function ConfigPage(
                 outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
+          <p className="text-xs text-slate-400">
+            {"Cada servicio puede tener su propio ritmo; esto es el valor por defecto."}
+          </p>
           <button
             type="submit"
             className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
