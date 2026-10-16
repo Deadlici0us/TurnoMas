@@ -13,8 +13,7 @@ export default async function RemarketingPage()
     <div className="mb-4">
       <h1 className="text-2xl font-bold tracking-tight text-slate-100">Remarketing</h1>
       <p className="text-slate-400 mt-1 text-sm">
-        Acá ves los clientes que ya cumplieron el tiempo para repetir su servicio.
-        Cada servicio tiene su ritmo: corte de pelo, uñas, depilación o el que sea.
+        Acá ves a quién ya le toca volver a hacerse el servicio. Se calcula solo, según cuánto dura el efecto de cada uno.
       </p>
     </div>
   );
