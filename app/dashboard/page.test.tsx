@@ -10,16 +10,6 @@ vi.mock("next-intl/server", () =>
   return { getTranslations: async () => (key: string) => key };
 });
 
-vi.mock("next/navigation", () =>
-{
-  return {
-    redirect: (url: string) =>
-    {
-      throw new Error(`NEXT_REDIRECT:${url}`);
-    },
-  };
-});
-
 vi.mock("@/lib/dashboard/queries", () =>
 {
   return { getDashboardData: vi.fn(), getDashboardStats: vi.fn() };
@@ -91,17 +81,6 @@ beforeEach(() =>
 describe("DashboardPage",
 () =>
 {
-  it("debería redirigir a pricing cuando está bloqueado",
-  async () =>
-  {
-    const { getNegocioSubscriptionStatus } =
-      await import("@/lib/onboarding/subscription-gate");
-    vi.mocked(getNegocioSubscriptionStatus).mockReturnValueOnce("blocked" as never);
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
-
-    await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT:/pricing?blocked=1");
-  });
-
   it("debería avisar mora con link a facturación",
   async () =>
   {

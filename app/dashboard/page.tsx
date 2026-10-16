@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { BadgeCheck, CalendarClock, CircleDollarSign, TriangleAlert } from "lucide-react";
 
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
@@ -40,11 +39,6 @@ export default async function DashboardPage()
     suscripcion_mora_desde:
       typeof negocioRow.suscripcion_mora_desde === "string" ? negocioRow.suscripcion_mora_desde : null,
   });
-
-  if (subscription === "blocked")
-  {
-    redirect("/pricing?blocked=1");
-  }
 
   const aviso = avisoSuscripcion(subscription,
     typeof negocioRow.created_at === "string" ? negocioRow.created_at : null);

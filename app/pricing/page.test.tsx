@@ -20,22 +20,4 @@ describe("PricingPage",
     expect(screen.getByRole("link", { name: "pricing.cta" }))
       .toHaveAttribute("href", "/dashboard/facturacion");
   });
-
-  it("debería avisar bloqueo con ?blocked=1",
-  async () =>
-  {
-    render(await PricingPage({ searchParams: Promise.resolve({ blocked: "1" }) }));
-
-    expect(screen.getByText("Tu acceso está bloqueado por falta de pago. Activá el plan para continuar."))
-      .toBeDefined();
-  });
-
-  it("debería callar sin blocked",
-  async () =>
-  {
-    render(await PricingPage());
-
-    expect(screen.queryByText("Tu acceso está bloqueado por falta de pago. Activá el plan para continuar."))
-      .toBeNull();
-  });
 });

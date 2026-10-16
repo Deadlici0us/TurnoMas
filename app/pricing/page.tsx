@@ -5,12 +5,8 @@ import Link from "next/link";
 // contexto de request y revienta con ENVIRONMENT_FALLBACK. On-demand.
 export const dynamic = "force-dynamic";
 
-export default async function PricingPage(
-  props?: { readonly searchParams?: Promise<{ blocked?: string }> },
-) {
+export default async function PricingPage() {
   const t = await getTranslations("common");
-  const params = props?.searchParams === undefined ? undefined : await props.searchParams;
-  const bloqueado = params?.blocked === "1";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-transparent">
@@ -18,12 +14,6 @@ export default async function PricingPage(
         <h1 className="animate-reveal-up text-3xl font-bold text-white mb-2 text-center">{t("pricing.title")}</h1>
         <p className="animate-reveal-up text-lg text-slate-400 text-center mb-8"
           style={{ animationDelay: "80ms" }}>{t("pricing.subtitle")}</p>
-        {bloqueado && (
-          <p className="text-sm font-semibold px-4 py-3 rounded-xl border mb-6 max-w-lg mx-auto
-            bg-rose-500/10 text-rose-300 border-rose-500/30 text-center">
-            Tu acceso está bloqueado por falta de pago. Activá el plan para continuar.
-          </p>
-        )}
         <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 max-w-lg mx-auto
           backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
           style={{ animationDelay: "160ms" }}>
