@@ -4,6 +4,7 @@ import
   BellRing,
   Clock,
   Mail,
+  MessageCircle,
   PiggyBank,
   Repeat,
   ShieldAlert,
@@ -24,6 +25,7 @@ export type IconoSeccion =
   | "estrella"
   | "repetir"
   | "carta"
+  | "whatsapp"
   | "billetera"
   | "peligro";
 
@@ -37,6 +39,7 @@ const ICONOS: Readonly<Record<IconoSeccion, LucideIcon>> =
   estrella: Star,
   repetir: Repeat,
   carta: Mail,
+  whatsapp: MessageCircle,
   billetera: Wallet,
   peligro: Trash2,
 };

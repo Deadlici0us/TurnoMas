@@ -106,7 +106,7 @@ export function resolverPlantilla(
 
     if (tipo === "recordatorio")
     {
-      return plantillaRecordatorio(datos);
+      return plantillaRecordatorio({ ...datos, cancelacionUrl: link });
     }
 
     if (tipo === "resena")

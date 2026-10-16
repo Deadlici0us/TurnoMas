@@ -42,14 +42,16 @@ export function plantillaConfirmacion(input: DatosTurno): EmailTemplate
   return { subject: `Reserva confirmada en ${input.negocio}`, html };
 }
 
-/** Recordatorio 24h antes del turno. */
-export function plantillaRecordatorio(input: DatosTurno): EmailTemplate
+/** Recordatorio 24h antes del turno (con link de cancelación si está disponible). */
+export function plantillaRecordatorio(input: DatosTurno & { cancelacionUrl?: string }): EmailTemplate
 {
+  const cancelar = typeof input.cancelacionUrl === "string" && input.cancelacionUrl.length > 0
+    ? `<p>Si no podés venir, <a href="${escapeHtml(input.cancelacionUrl)}">cancelá tu turno acá</a>.</p>`
+    : "<p>Si no podés venir, cancelá tu turno para liberar el lugar.</p>";
   const html = layout("Te recordamos tu turno de mañana",
     `<p>Hola, te esperamos mañana ${escapeHtml(input.fecha)} para ` +
     `<strong>${escapeHtml(input.servicio)}</strong> con ${escapeHtml(input.profesional)} ` +
-    `en ${escapeHtml(input.negocio)}.</p>` +
-    `<p>Si no podés venir, cancelá tu turno para liberar el lugar.</p>`);
+    `en ${escapeHtml(input.negocio)}.</p>` + cancelar);
 
   return { subject: `Recordatorio: tu turno en ${input.negocio} es mañana`, html };
 }

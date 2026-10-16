@@ -12,6 +12,7 @@ import
   actualizarPoliticaResenas,
   actualizarPoliticaSena,
   actualizarTimezoneNegocio,
+  actualizarWhatsappNegocio,
 } from "./actions";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
@@ -611,5 +612,63 @@ describe("actualizarNombreNegocio",
 
     await expect(actualizarNombreNegocio("Barbería"))
       .rejects.toThrow("No pudimos guardar el nombre. Probá de nuevo.");
+  });
+});
+
+describe("actualizarWhatsappNegocio",
+() =>
+{
+  it("debería guardar el WhatsApp recortado",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarWhatsappNegocio("  +54 9 11 1234-5678  ");
+
+    expect(updates).toEqual([{ whatsapp: "+54 9 11 1234-5678" }]);
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/config");
+  });
+
+  it("debería guardar null cuando queda vacío",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarWhatsappNegocio("   ");
+
+    expect(updates).toEqual([{ whatsapp: null }]);
+  });
+
+  it("debería rechazar números inválidos",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig();
+
+    await expect(actualizarWhatsappNegocio("123")).rejects.toThrow(RangeError);
+  });
+
+  it("debería exigir sesión iniciada",
+  async () =>
+  {
+    sesionAnonima();
+    stubConfig();
+
+    await expect(actualizarWhatsappNegocio("+54 9 11 1234-5678"))
+      .rejects.toThrow("Tenés que iniciar sesión para cambiar el WhatsApp.");
+  });
+
+  it("debería lanzar cuando Supabase falla",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig({});
+
+    await expect(actualizarWhatsappNegocio("+54 9 11 1234-5678"))
+      .rejects.toThrow("No pudimos guardar el WhatsApp. Probá de nuevo.");
   });
 });

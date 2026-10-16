@@ -35,6 +35,7 @@ function turnoCandidato(horasFuturo: number, overrides: Record<string, unknown> 
 {
   return {
     id: "t-1",
+    cliente_id: "c-1",
     inicio: new Date(Date.now() + horasFuturo * 3_600_000).toISOString(),
     notificacion_enviada: false,
     negocio: {
@@ -236,5 +237,28 @@ describe("POST /api/cron/recordatorios",
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, enviados: 0 });
+  });
+
+  it("debería incluir el link de cancelación cuando hay secreto y base",
+  async () =>
+  {
+    stubBarrido([turnoCandidato(12)]);
+    mockEmailSend.mockResolvedValueOnce("email-1");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
+    vi.stubEnv("CANCELACION_SECRET", "secreto-de-test-suficiente");
+
+    try
+    {
+      const response = await POST(requestSinFirma());
+      const body = await response.json() as { enviados: number };
+
+      expect(body).toMatchObject({ enviados: 1 });
+      const html = (mockEmailSend.mock.calls[0][0] as { html: string }).html;
+      expect(html).toContain("https://turnomas.com/cancelar/t-1?token=");
+    }
+    finally
+    {
+      vi.unstubAllEnvs();
+    }
   });
 });

@@ -35,6 +35,7 @@ vi.mock("./actions", () =>
     actualizarPoliticaRecordatorios: vi.fn(),
     actualizarPoliticaSena: vi.fn(),
     actualizarTimezoneNegocio: vi.fn(),
+    actualizarWhatsappNegocio: vi.fn(),
     desconectarGoogleCalendar: vi.fn(),
     desconectarMercadoPago: vi.fn(),
     solicitarEliminacionNegocio: vi.fn(),

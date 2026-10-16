@@ -45,6 +45,15 @@ describe("plantillaRecordatorio",
     expect(t.html.toLowerCase()).toContain("te esperamos");
     expect(t.html).toContain("28/09/2026 10:00");
   });
+
+  it("debería incluir el link de cancelación cuando está disponible",
+  () =>
+  {
+    const t = plantillaRecordatorio({ ...base, cancelacionUrl: "https://app/cancelar/t-1?token=abc" });
+
+    expect(t.html).toContain("https://app/cancelar/t-1?token=abc");
+    expect(t.html.toLowerCase()).toContain("cancelá tu turno acá");
+  });
 });
 
 describe("plantillaRemarketing",

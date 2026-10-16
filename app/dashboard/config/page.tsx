@@ -2,17 +2,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
+import GuiaWhatsapp from "@/components/guia-whatsapp";
 import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
-  actualizarTimezoneNegocio, desconectarGoogleCalendar,
+  actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
+import { readEnv } from "@/lib/env/env";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
+import { guiaWhatsapp } from "@/lib/notifications/guia-whatsapp";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 import { destinoDesconexionMp } from "@/lib/dashboard/conexion-mp";
 import
 {
@@ -90,6 +94,15 @@ async function guardarMaps(formData: FormData): Promise<void>
   const url = formData.get("mapsUrl");
 
   await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
+}
+
+async function guardarWhatsapp(formData: FormData): Promise<void>
+{
+  "use server";
+
+  const crudo = formData.get("whatsapp");
+
+  await actualizarWhatsappNegocio(typeof crudo === "string" ? crudo : null);
 }
 
 async function quitarTokenMp(): Promise<void>
@@ -317,6 +330,7 @@ export default async function ConfigPage(
     msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
     msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
     google_maps_url?: string | null;
+    whatsapp?: string | null;
   };
   const {
     umbral,
@@ -339,6 +353,17 @@ export default async function ConfigPage(
     : (await props.searchParams)?.mp);
 
   const mpConectado = mpToken !== null;
+
+  const rutaPortal = typeof negocio.pais === "string" && typeof negocio.slug === "string"
+    ? `/${negocio.pais}/${negocio.slug}`
+    : "/";
+  const basePublica = readEnv("NEXT_PUBLIC_APP_URL")
+    ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : "");
+  const portalUrl = basePublica.length > 0 ? `${stripTrailingSlashes(basePublica)}${rutaPortal}` : rutaPortal;
+  const whatsappGuia = guiaWhatsapp({
+    negocioNombre: typeof negocio.nombre === "string" ? negocio.nombre : "",
+    portalUrl,
+  });
 
   return (
     <div className="space-y-4">
@@ -795,19 +820,43 @@ export default async function ConfigPage(
               Conectar Google
             </Link>
           )}
-          <div
-            className="flex items-center justify-between gap-3 p-4 border border-white/10 rounded-xl bg-white/5"
-          >
-            <div>
-              <div className="text-sm font-semibold text-slate-100">WhatsApp</div>
-              <div className="text-xs text-slate-400">Te avisamos cómo mandarlo desde Agenda</div>
-            </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/10
-              text-slate-400 border border-white/10">
-              Lo hacés vos
-            </span>
-          </div>
         </div>
+      </SeccionConfig>
+      <SeccionConfig
+        icono="whatsapp"
+        titulo="Tu WhatsApp"
+        ayuda="Poné tu número y copiá los mensajes listos para pegar en tu app."
+        avanzada={true}
+      >
+        <form action={guardarWhatsapp} className="space-y-3">
+          <label className="block text-sm font-semibold text-slate-200">
+            {"Tu número de WhatsApp"}
+            <input
+              type="tel"
+              name="whatsapp"
+              maxLength={25}
+              placeholder="Ej: +54 9 11 1234-5678"
+              defaultValue={typeof negocio.whatsapp === "string" ? negocio.whatsapp : ""}
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none placeholder:text-slate-500 [color-scheme:dark]
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <p className="text-xs text-slate-400">
+            Lo usamos para mostrar tu contacto. Seguís respondiendo con tu propia app de WhatsApp.
+          </p>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar WhatsApp
+          </button>
+        </form>
+        <p className="text-xs text-slate-400">
+          Copiá estos mensajes y pegalos en tu app (Mensajes rápidos). Así respondés en segundos.
+        </p>
+        <GuiaWhatsapp items={whatsappGuia} />
       </SeccionConfig>
       <SeccionConfig
         icono="peligro"

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { validarNombreNegocio } from "@/lib/negocios/validation";
+import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
 import { validarTimezone } from "@/lib/timezone/timezone";
 import
 {
@@ -279,6 +280,37 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
   if (error !== null)
   {
     throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/**
+ * Guarda el WhatsApp propio del negocio (la línea que ve el cliente).
+ *
+ * Plan app-only: es solo un dato de contacto, no conecta Meta API.
+ */
+export async function actualizarWhatsappNegocio(valor: string | null): Promise<void>
+{
+  const whatsapp = validarWhatsappNegocio(valor);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar el WhatsApp.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ whatsapp }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar el WhatsApp. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");

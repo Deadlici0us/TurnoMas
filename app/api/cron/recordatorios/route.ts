@@ -5,6 +5,8 @@
  * en las próximas 24h y `notificacion_enviada = false` cuyo cliente
  * tenga email. `confirmado` = sin seña ($0 cobrado) también avisa;
  * `pendiente` espera pago y lo libera el antifantasma.
+ * Incluye el link mágico de cancelación (CANCELACION_SECRET) para que el
+ * cliente libere el lugar sin escribir.
  * Envía por Resend y marca el flag para no repetir.
  *
  * Programar en QStash Schedules cada hora:
@@ -19,6 +21,7 @@ import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
 
 const LIMITE_BARRIDO = 100;
@@ -26,6 +29,7 @@ const LIMITE_BARRIDO = 100;
 interface TurnoCandidato
 {
   readonly id: string;
+  readonly cliente_id: string;
   readonly inicio: string;
   readonly notificacion_enviada: boolean;
   readonly negocio: {
@@ -82,7 +86,7 @@ export async function POST(request: Request)
   const ahora = new Date();
   const ventanaMax = new Date(ahora.getTime() + 72 * 3_600_000).toISOString();
   const { data } = await admin.from("turnos")
-    .select("id, inicio, notificacion_enviada," +
+    .select("id, cliente_id, inicio, notificacion_enviada," +
       " negocio:negocios(nombre, timezone, pais, recordatorio_activo, recordatorio_hs," +
       " msg_recordatorio_subject, msg_recordatorio_cuerpo)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
@@ -100,6 +104,11 @@ export async function POST(request: Request)
   const email = new ResendAdapter();
   let enviados = 0;
 
+  const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
+    ? `https://${readEnv("VERCEL_URL") as string}` : null);
+  const secreto = readEnv("CANCELACION_SECRET");
+  const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
+
   for (const turno of candidatos)
   {
     try
@@ -111,10 +120,29 @@ export async function POST(request: Request)
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
       };
+
+      let cancelacionUrl = "";
+
+      if (base !== null && secreto !== null && secreto.trim().length >= 16)
+      {
+        const token = firmarTokenCancelacion({
+          turnoId: turno.id,
+          clienteId: turno.cliente_id,
+          inicio: new Date(turno.inicio),
+        }, secreto);
+
+        cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), turno.id, token);
+      }
+
+      const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
+      const cuerpoCustom = typeof turno.negocio?.msg_recordatorio_cuerpo === "string"
+        && turno.negocio.msg_recordatorio_cuerpo.trim().length > 0
+        ? `${turno.negocio.msg_recordatorio_cuerpo}${cancelaLinea}`
+        : null;
       const plantilla = resolverPlantilla("recordatorio", {
         subject: turno.negocio?.msg_recordatorio_subject ?? null,
-        cuerpo: turno.negocio?.msg_recordatorio_cuerpo ?? null,
-      }, datos);
+        cuerpo: cuerpoCustom,
+      }, datos, cancelacionUrl);
 
       await email.send({
         to: turno.cliente?.email as string,
