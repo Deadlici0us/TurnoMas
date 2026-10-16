@@ -145,7 +145,7 @@ describe("crearPreapproval",
         platformToken: "APP_USR-platform",
       },
       fetchMock,
-    )).rejects.toThrow("No se pudo crear la suscripción en MercadoPago.");
+    )).rejects.toThrow(/No se pudo crear la suscripción en MercadoPago \(HTTP 400\)/);
   });
 });
 

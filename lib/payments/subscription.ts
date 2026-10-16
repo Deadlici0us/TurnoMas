@@ -141,7 +141,20 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
 
   if (!response.ok)
   {
-    throw new Error("No se pudo crear la suscripción en MercadoPago.");
+    let detalle = "";
+
+    try
+    {
+      detalle = (await response.text()).slice(0, 300);
+    }
+    catch
+    {
+      detalle = "";
+    }
+
+    throw new Error(
+      `No se pudo crear la suscripción en MercadoPago (HTTP ${response.status})${detalle.length > 0 ? `: ${detalle}` : ""}.`,
+    );
   }
 
   const data = (await response.json()) as { id?: unknown; init_point?: unknown };
