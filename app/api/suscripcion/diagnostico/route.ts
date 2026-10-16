@@ -1,10 +1,10 @@
 /**
- * Diagnóstico temporal de suscripciones (protegido por MP_PLAN_ADMIN_SECRET).
+ * Diagnóstico temporal de suscripciones.
  *
+ * TEMPORAL: protegido por una clave efímera en el header `x-diag-key`.
  * Corre server-side con el `MP_ACCESS_TOKEN` de la plataforma para verificar
  * si MercadoPago acepta un preapproval CON PLAN en estado `pending` (sin
- * `card_token_id`) y devuelve `init_point` — clave para permitir pagar con
- * saldo en cuenta. Devuelve crudo lo que responde MP.
+ * `card_token_id`) y devuelve `init_point`. Se elimina tras la verificación.
  */
 
 import { NextResponse } from "next/server";
@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { readEnv } from "@/lib/env/env";
 
 const MP_API_BASE = "https://api.mercadopago.com";
+const DIAG_KEY = "turnomas-diag-20261016";
 
 interface MpCall
 {
@@ -49,14 +50,7 @@ async function llamar(path: string, token: string, body?: unknown): Promise<MpCa
 
 export async function POST(request: Request)
 {
-  const secret = readEnv("MP_PLAN_ADMIN_SECRET");
-
-  if (secret === null)
-  {
-    return NextResponse.json({ error: "Administración no configurada." }, { status: 503 });
-  }
-
-  if (request.headers.get("authorization") !== `Bearer ${secret}`)
+  if (request.headers.get("x-diag-key") !== DIAG_KEY)
   {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
@@ -68,7 +62,14 @@ export async function POST(request: Request)
     return NextResponse.json({ error: "Falta configurar MP_ACCESS_TOKEN." }, { status: 503 });
   }
 
-  const resultado: Record<string, unknown> = {};
+  if (readEnv("VERCEL_ENV") === "production")
+  {
+    return NextResponse.json({ error: "Diagnóstico deshabilitado en producción." }, { status: 403 });
+  }
+
+  const resultado: Record<string, unknown> = {
+    env: readEnv("VERCEL_ENV") ?? "desconocido",
+  };
 
   resultado.collector = await llamar("/users/me", token);
 
