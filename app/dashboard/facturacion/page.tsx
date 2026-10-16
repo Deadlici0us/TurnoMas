@@ -26,7 +26,7 @@ async function esDuenoDemo(): Promise<boolean>
 }
 
 export default async function FacturacionPage(
-  props?: { readonly searchParams?: Promise<{ suscripcion?: string }> },
+  props?: { readonly searchParams?: Promise<{ suscripcion?: string; error?: string }> },
 )
 {
   const { data: dashboard } = await getDashboardData();
@@ -75,6 +75,13 @@ export default async function FacturacionPage(
         <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
           bg-green-500/10 text-green-300 border-green-500/30">
           Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
+        </p>
+      )}
+
+      {params?.error !== undefined && params.error.length > 0 && (
+        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
+          bg-rose-500/10 text-rose-300 border-rose-500/30">
+          {`No pudimos iniciar la activación: ${params.error}`}
         </p>
       )}
 

@@ -92,7 +92,7 @@ describe("activarPlan",
     expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com", null);
   });
 
-  it("debería bloquear al dueño demo",
+  it("debería redirigir a facturación con el error del dueño demo",
   async () =>
   {
     sesionDueno();
@@ -101,11 +101,11 @@ describe("activarPlan",
       throw new Error("La cuenta demo es de solo lectura.");
     });
 
-    await expect(activarPlan()).rejects.toThrow("La cuenta demo es de solo lectura.");
+    await expect(activarPlan()).rejects.toThrow(/NEXT_REDIRECT:\/dashboard\/facturacion\?error=/);
     expect(mockCrear).not.toHaveBeenCalled();
   });
 
-  it("debería exigir email para el débito",
+  it("debería redirigir a facturación si falta el email",
   async () =>
   {
     mockAssertModo.mockResolvedValue(undefined);
@@ -114,7 +114,7 @@ describe("activarPlan",
       auth: { getUser: async () => ({ data: { user: { id: "user-1", email: null } } }) },
     } as never);
 
-    await expect(activarPlan()).rejects.toThrow("Necesitamos tu email para el débito mensual.");
+    await expect(activarPlan()).rejects.toThrow(/NEXT_REDIRECT:\/dashboard\/facturacion\?error=/);
   });
 });
 

@@ -136,6 +136,23 @@ describe("FacturacionPage",
       .toBeDefined();
   });
 
+  it("debería avisar el error de activación",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage({
+      searchParams: Promise.resolve({ error: "Falta configurar MP_ACCESS_TOKEN en el entorno." }),
+    }));
+
+    expect(screen.getByText("No pudimos iniciar la activación: Falta configurar MP_ACCESS_TOKEN en el entorno."))
+      .toBeDefined();
+  });
+
   it("debería mostrar el comprobante de la suscripción con botón para copiar",
   async () =>
   {

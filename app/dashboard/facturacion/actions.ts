@@ -54,10 +54,27 @@ async function negocioDelDueno(): Promise<{
 /** Crea el preapproval y redirige al checkout de MercadoPago. */
 export async function activarPlan(): Promise<void>
 {
-  const { id, email, pais } = await negocioDelDueno();
-  const preapproval = await subscriptionService.crearParaNegocio(id, email, pais);
+  let initPoint: string | null = null;
+  let error: string | null = null;
 
-  redirect(preapproval.initPoint);
+  try
+  {
+    const { id, email, pais } = await negocioDelDueno();
+    const preapproval = await subscriptionService.crearParaNegocio(id, email, pais);
+    initPoint = preapproval.initPoint;
+  }
+  catch (e)
+  {
+    error = e instanceof Error ? e.message : "No pudimos iniciar la activación.";
+    console.error("[activarPlan]", error);
+  }
+
+  if (initPoint === null)
+  {
+    redirect(`/dashboard/facturacion?error=${encodeURIComponent(error ?? "activacion")}`);
+  }
+
+  redirect(initPoint);
 }
 
 /** Cancela el plan en MP y limpia el plan local. */
