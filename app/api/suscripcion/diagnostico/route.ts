@@ -182,14 +182,26 @@ export async function POST(request: Request)
 
   resultado.preapprovalGet = await llamar("GET", `/preapproval/${preId}`, token);
 
-  resultado.preapprovalPutSaldo = await llamar("PUT", `/preapproval/${preId}`, token, {
-    payment_method_id: "account_money",
+  resultado.preapprovalPutSecundario = await llamar("PUT", `/preapproval/${preId}`, token, {
     card_token_id_secondary: cardTokenId,
     payment_method_id_secondary: "master",
-    status: "authorized",
   });
 
   resultado.preapprovalGetFinal = await llamar("GET", `/preapproval/${preId}`, token);
+
+  resultado.preapprovalSinPlanPending = await llamar("POST", "/preapproval", token, {
+    reason: "TurnoMas - Diagnostico sin plan",
+    external_reference: "negocio-diagnostico-sinplan",
+    payer_email: BUYER_EMAIL,
+    back_url: BACK_URL,
+    status: "pending",
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: "months",
+      transaction_amount: 14999,
+      currency_id: "ARS",
+    },
+  });
 
   return NextResponse.json(resultado, { status: 200 });
 }
