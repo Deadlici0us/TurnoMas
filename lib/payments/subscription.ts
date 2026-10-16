@@ -182,8 +182,7 @@ export async function crearPlanPreapproval(input: PlanInput, fetchFn: FetchFn = 
         currency_id: input.currency,
       },
       payment_methods_allowed: {
-        payment_types: [{}],
-        payment_methods: [{}],
+        payment_types: [{ id: "account_money" }, { id: "credit_card" }, { id: "debit_card" }],
       },
     }),
   });

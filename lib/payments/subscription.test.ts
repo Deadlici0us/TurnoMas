@@ -134,6 +134,9 @@ describe("crearPlanPreapproval",
         transaction_amount: 14999,
         currency_id: "ARS",
       },
+      payment_methods_allowed: {
+        payment_types: [{ id: "account_money" }, { id: "credit_card" }, { id: "debit_card" }],
+      },
     });
   });
 
