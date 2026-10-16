@@ -1,7 +1,9 @@
 /**
- * Crea la suscripción SaaS (Preapproval 14.999 ARS/mes) para el negocio
- * del dueño y devuelve el link de autorización de MercadoPago.
- * La demo nunca suscribe (403).
+ * Crea la suscripción SaaS (plan de MercadoPago) para el negocio del dueño.
+ *
+ * Recibe el token de tarjeta generado por el Card Brick y el email del
+ * pagador; con eso crea el preapproval autorizado sobre el plan AR. La demo
+ * nunca suscribe (403).
  */
 
 import { NextResponse } from "next/server";
@@ -11,7 +13,13 @@ import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-export async function POST()
+interface CrearBody
+{
+  readonly cardTokenId?: unknown;
+  readonly payerEmail?: unknown;
+}
+
+export async function POST(request: Request)
 {
   try
   {
@@ -23,6 +31,25 @@ export async function POST()
       { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
       { status: 403 },
     );
+  }
+
+  let body: CrearBody | null = null;
+
+  try
+  {
+    body = (await request.json()) as CrearBody;
+  }
+  catch
+  {
+    body = null;
+  }
+
+  const cardTokenId = typeof body?.cardTokenId === "string" ? body.cardTokenId.trim() : "";
+  const emailPagador = typeof body?.payerEmail === "string" ? body.payerEmail.trim() : "";
+
+  if (cardTokenId.length === 0)
+  {
+    return NextResponse.json({ error: "Falta el token de la tarjeta." }, { status: 400 });
   }
 
   try
@@ -50,10 +77,14 @@ export async function POST()
       );
     }
 
-    if (typeof user.email !== "string" || user.email.trim().length === 0)
+    const payerEmail = emailPagador.length > 0
+      ? emailPagador
+      : (typeof user.email === "string" ? user.email : "");
+
+    if (payerEmail.length === 0)
     {
       return NextResponse.json(
-        { error: "Necesitamos tu email para el débito mensual." },
+        { error: "Necesitamos el email del pagador para el débito mensual." },
         { status: 400 },
       );
     }
@@ -73,19 +104,27 @@ export async function POST()
     const fila = negocio as { id: string; pais?: unknown };
     const preapproval = await subscriptionService.crearParaNegocio(
       fila.id,
-      user.email,
+      payerEmail,
       typeof fila.pais === "string" ? fila.pais : null,
+      cardTokenId,
     );
 
+    if (preapproval.status === "authorized")
+    {
+      await subscriptionService.activarSuscripcion(fila.id, preapproval.id);
+    }
+
     return NextResponse.json(
-      { success: true, preapprovalId: preapproval.id, initPoint: preapproval.initPoint },
+      { success: true, preapprovalId: preapproval.id, status: preapproval.status },
       { status: 200 },
     );
   }
   catch (error)
   {
+    console.error("[suscripcion/crear]", error);
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No pudimos crear la suscripción." },
+      { error: "No pudimos activar el plan. Probá de nuevo." },
       { status: 502 },
     );
   }

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
@@ -49,32 +48,6 @@ async function negocioDelDueno(): Promise<{
       ? row.suscripcion_mp_id
       : null,
   };
-}
-
-/** Crea el preapproval y redirige al checkout de MercadoPago. */
-export async function activarPlan(): Promise<void>
-{
-  let initPoint: string | null = null;
-  let error: string | null = null;
-
-  try
-  {
-    const { id, email, pais } = await negocioDelDueno();
-    const preapproval = await subscriptionService.crearParaNegocio(id, email, pais);
-    initPoint = preapproval.initPoint;
-  }
-  catch (e)
-  {
-    error = e instanceof Error ? e.message : "No pudimos iniciar la activación.";
-    console.error("[activarPlan]", error);
-  }
-
-  if (initPoint === null)
-  {
-    redirect(`/dashboard/facturacion?error=${encodeURIComponent(error ?? "activacion")}`);
-  }
-
-  redirect(initPoint);
 }
 
 /** Cancela el plan en MP y limpia el plan local. */

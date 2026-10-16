@@ -1,16 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { activarPlan, cancelarPlan } from "./actions";
+import { cancelarPlan } from "./actions";
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-
-vi.mock("next/navigation", () =>
-{
-  return { redirect: vi.fn() };
-});
 
 vi.mock("next/cache", () =>
 {
@@ -24,12 +18,7 @@ vi.mock("@/lib/auth/demo-guard", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return {
-    subscriptionService: {
-      crearParaNegocio: vi.fn(),
-      cancelarParaNegocio: vi.fn(),
-    },
-  };
+  return { subscriptionService: { cancelarParaNegocio: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -42,10 +31,8 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-const mockRedirect = vi.mocked(redirect);
 const mockAssertModo = vi.mocked(assertModoEditable);
 const mockAssertDueno = vi.mocked(assertDuenoEditable);
-const mockCrear = vi.mocked(subscriptionService.crearParaNegocio);
 const mockCancelar = vi.mocked(subscriptionService.cancelarParaNegocio);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
@@ -73,49 +60,6 @@ beforeEach(() =>
 {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
-  mockRedirect.mockImplementation((url) =>
-  {
-    throw new Error(`NEXT_REDIRECT:${url as string}`);
-  });
-});
-
-describe("activarPlan",
-() =>
-{
-  it("debería redirigir al checkout de MercadoPago",
-  async () =>
-  {
-    sesionDueno({ id: "neg-1" });
-    mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/sus/1" });
-
-    await expect(activarPlan()).rejects.toThrow("NEXT_REDIRECT:https://mp/sus/1");
-    expect(mockCrear).toHaveBeenCalledWith("neg-1", "dueno@negocio.com", null);
-  });
-
-  it("debería redirigir a facturación con el error del dueño demo",
-  async () =>
-  {
-    sesionDueno();
-    mockAssertDueno.mockImplementationOnce(() =>
-    {
-      throw new Error("La cuenta demo es de solo lectura.");
-    });
-
-    await expect(activarPlan()).rejects.toThrow(/NEXT_REDIRECT:\/dashboard\/facturacion\?error=/);
-    expect(mockCrear).not.toHaveBeenCalled();
-  });
-
-  it("debería redirigir a facturación si falta el email",
-  async () =>
-  {
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockReturnValue(undefined);
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: null } } }) },
-    } as never);
-
-    await expect(activarPlan()).rejects.toThrow(/NEXT_REDIRECT:\/dashboard\/facturacion\?error=/);
-  });
 });
 
 describe("cancelarPlan",

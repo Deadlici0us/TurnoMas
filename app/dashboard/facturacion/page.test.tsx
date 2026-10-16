@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import FacturacionPage from "./page";
@@ -7,7 +7,12 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("./actions", () =>
 {
-  return { activarPlan: vi.fn(), cancelarPlan: vi.fn() };
+  return { cancelarPlan: vi.fn() };
+});
+
+vi.mock("@/components/suscripcion-card-form", () =>
+{
+  return { default: () => <div data-testid="card-form" /> };
 });
 
 vi.mock("@/lib/dashboard/queries", () =>
@@ -22,6 +27,12 @@ vi.mock("@/lib/supabase/server", () =>
 
 const mockData = vi.mocked(getDashboardData);
 const mockServer = vi.mocked(getSupabaseServer);
+
+beforeEach(() =>
+{
+  vi.unstubAllEnvs();
+  vi.stubEnv("NEXT_MP_PUBLIC_KEY", "pk-test");
+});
 
 /** Negocio con estado de suscripción dado. */
 function stubFacturacion(negocio: unknown, demo = false): void
@@ -56,7 +67,7 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByRole("heading", { name: "Facturación" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Activar plan $ 14.999 ARS/mes" })).toBeDefined();
+    expect(screen.getByTestId("card-form")).toBeDefined();
   });
 
   it("debería mostrar activar en USD para México",
@@ -71,7 +82,7 @@ describe("FacturacionPage",
 
     render(await FacturacionPage());
 
-    expect(screen.getByRole("button", { name: "Activar plan U$S 15 USD/mes" })).toBeDefined();
+    expect(screen.getByTestId("card-form")).toBeDefined();
   });
 
   it("debería mostrar cancelar con plan activo",
@@ -102,7 +113,7 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Activar plan U$S 15 USD/mes" })).toBeDefined();
+    expect(screen.getByTestId("card-form")).toBeDefined();
   });
 
   it("debería ocultar acciones en la demo",

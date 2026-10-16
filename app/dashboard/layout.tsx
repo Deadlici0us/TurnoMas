@@ -2,11 +2,11 @@ import { getDashboardData } from "@/lib/dashboard/queries";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import DemoEditableBanner from "@/components/demo-editable-banner";
 import PaywallPlanVencido from "@/components/paywall-plan-vencido";
-import { activarPlan } from "@/app/dashboard/facturacion/actions";
 import { logout } from "@/app/login/actions";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { resolverPlanPais } from "@/lib/payments/subscription";
+import { readEnv } from "@/lib/env/env";
 
 /** Shell del dashboard: banner demo, navegación lateral y paywall si venció el plan. */
 export default async function DashboardLayout({
@@ -34,6 +34,7 @@ export default async function DashboardLayout({
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
   }) === "blocked";
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
+  const publicKey = readEnv("NEXT_MP_PUBLIC_KEY");
 
   return (
     <>
@@ -47,7 +48,12 @@ export default async function DashboardLayout({
         </div>
       </div>
       {bloqueado ? (
-        <PaywallPlanVencido etiquetaPlan={plan.etiqueta} activar={activarPlan} logout={logout} />
+        <PaywallPlanVencido
+          etiquetaPlan={plan.etiqueta}
+          monto={plan.monto}
+          publicKey={publicKey}
+          logout={logout}
+        />
       ) : null}
     </>
   );

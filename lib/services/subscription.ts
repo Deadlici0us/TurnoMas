@@ -12,18 +12,26 @@ import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 export class SubscriptionService
 {
-  /** Crea el preapproval mensual para el negocio y devuelve el link de MP. */
+  /** Crea la suscripción del negocio sobre el plan AR y con la tarjeta tokenizada. */
   async crearParaNegocio(
     negocioId: string,
     payerEmail: string,
     pais: string | null,
-  ): Promise<{ id: string; initPoint: string }>
+    cardTokenId: string,
+  ): Promise<{ id: string; status: string }>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
 
     if (platformToken === null)
     {
       throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
+    }
+
+    const plan = resolverPlanPais(pais);
+
+    if (plan.planId === null)
+    {
+      throw new Error("El plan de pago no está configurado para este país.");
     }
 
     const publicUrl = readEnv("NEXT_PUBLIC_APP_URL");
@@ -35,14 +43,12 @@ export class SubscriptionService
       throw new Error("No pudimos resolver la URL pública para la suscripción.");
     }
 
-    const plan = resolverPlanPais(pais);
-
     return crearPreapproval({
       negocioId,
       payerEmail,
+      cardTokenId,
+      planId: plan.planId,
       backUrl: `${stripTrailingSlashes(base)}/dashboard/facturacion?suscripcion=ok`,
-      monto: plan.monto,
-      currency: plan.currency,
       platformToken,
     });
   }

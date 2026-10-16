@@ -14,11 +14,6 @@ vi.mock("@/lib/dashboard/queries", () =>
   return { getDashboardData: vi.fn() };
 });
 
-vi.mock("@/app/dashboard/facturacion/actions", () =>
-{
-  return { activarPlan: vi.fn() };
-});
-
 vi.mock("@/app/login/actions", () =>
 {
   return { logout: vi.fn() };
@@ -27,6 +22,11 @@ vi.mock("@/app/login/actions", () =>
 vi.mock("@/app/dashboard/demo/actions", () =>
 {
   return { resetDemoData: vi.fn() };
+});
+
+vi.mock("@/components/suscripcion-card-form", () =>
+{
+  return { default: () => <div data-testid="card-form" /> };
 });
 
 const mockData = vi.mocked(getDashboardData);
@@ -58,7 +58,6 @@ describe("DashboardLayout",
 
       expect(screen.getByRole("dialog")).toBeDefined();
       expect(screen.getByRole("heading", { name: "Tu plan venció" })).toBeDefined();
-      expect(screen.getByRole("button", { name: "Activar plan $ 14.999 ARS/mes" })).toBeDefined();
     });
 
     it("no debería mostrar el paywall con el plan activo",

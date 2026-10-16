@@ -1,9 +1,11 @@
 import Link from "next/link";
 
-import { activarPlan, cancelarPlan } from "./actions";
+import { cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
+import SuscripcionCardForm from "@/components/suscripcion-card-form";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { readEnv } from "@/lib/env/env";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
 import { resolverPlanPais } from "@/lib/payments/subscription";
@@ -38,6 +40,7 @@ export default async function FacturacionPage(
     suscripcion_mora_desde?: unknown;
   };
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
+  const publicKey = readEnv("NEXT_MP_PUBLIC_KEY");
   const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
   const estado = getNegocioSubscriptionStatus({
     created_at: creado,
@@ -119,16 +122,12 @@ export default async function FacturacionPage(
                 Cancelar plan
               </button>
             </form>
+          ) : publicKey === null ? (
+            <p className="text-xs font-semibold text-rose-300">
+              El pago con tarjeta no está disponible en este momento.
+            </p>
           ) : (
-            <form action={activarPlan}>
-              <button
-                type="submit"
-                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                  hover:bg-blue-700 transition-colors"
-              >
-                Activar plan {plan.etiqueta}
-              </button>
-            </form>
+            <SuscripcionCardForm publicKey={publicKey} monto={plan.monto} emailPagador="" />
           )}
           {suscripcionId !== null && !demo ? (
             <p className="text-xs text-slate-400 mt-4">

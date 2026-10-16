@@ -1,9 +1,11 @@
+import SuscripcionCardForm from "@/components/suscripcion-card-form";
+
 /**
  * Paywall a pantalla completa para negocios con el plan vencido.
  *
- * Cubre todo el dashboard (sidebar incluido) cuando el negocio está
- * bloqueado por falta de pago: muestra el plan, sus beneficios y ofrece
- * reactivarlo. No es descartable; la única salida es activar el plan.
+ * Cubre todo el dashboard cuando el negocio está bloqueado: muestra el plan
+ * y ofrece reactivarlo con el formulario de tarjeta de MercadoPago. No es
+ * descartable; la única acción es activar el plan (o cerrar sesión).
  */
 const BENEFICIOS = [
   "Reservas ilimitadas",
@@ -14,17 +16,20 @@ const BENEFICIOS = [
   "Soporte prioritario",
 ] as const;
 
-export default function PaywallPlanVencido(
-  {
-    etiquetaPlan,
-    activar,
-    logout,
-  }: {
-    readonly etiquetaPlan: string;
-    readonly activar: () => Promise<void>;
-    readonly logout: () => Promise<void>;
-  },
-)
+export interface PaywallPlanVencidoProps
+{
+  readonly etiquetaPlan: string;
+  readonly monto: number;
+  readonly publicKey: string | null;
+  readonly logout: () => Promise<void>;
+}
+
+export default function PaywallPlanVencido({
+  etiquetaPlan,
+  monto,
+  publicKey,
+  logout,
+}: PaywallPlanVencidoProps)
 {
   return (
     <div
@@ -60,18 +65,13 @@ export default function PaywallPlanVencido(
           ))}
         </ul>
         <div className="mt-8">
-          <form action={activar}>
-            <button
-              type="submit"
-              className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-                rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
-                transition-all duration-300 hover:-translate-y-0.5"
-            >
-              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-              {`Activar plan ${etiquetaPlan}`}
-            </button>
-          </form>
+          {publicKey === null ? (
+            <p className="text-xs font-semibold text-rose-300 text-center">
+              El pago con tarjeta no está disponible en este momento.
+            </p>
+          ) : (
+            <SuscripcionCardForm publicKey={publicKey} monto={monto} emailPagador="" />
+          )}
           <form action={logout} className="mt-3 text-center">
             <button
               type="submit"

@@ -19,5 +19,4 @@ async ({ page }) =>
   await expect(page).toHaveURL(/\/dashboard\/facturacion/);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tu plan venció" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Activar plan/ })).toBeVisible();
 });

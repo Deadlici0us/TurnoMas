@@ -5,6 +5,7 @@ import {
   cancelarPreapproval,
   consultarCobroSuscripcion,
   consultarPreapproval,
+  crearPlanPreapproval,
   crearPreapproval,
   MONTO_PLAN_PESOS,
   resolverMontoPlan,
@@ -80,7 +81,7 @@ describe("resolverPlanPais",
   () =>
   {
     expect(resolverPlanPais("ar", {})).toEqual(
-      { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes" });
+      { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes", planId: null });
     expect(resolverPlanPais("mx", {}).currency).toBe("USD");
     expect(resolverPlanPais("mx", {}).monto).toBe(15);
     expect(resolverPlanPais(null, {}).currency).toBe("USD");
@@ -94,20 +95,27 @@ describe("resolverPlanPais",
     expect(resolverPlanPais("mx", { MP_PLAN_USD: "20" }).monto).toBe(20);
     expect(() => resolverPlanPais("ar", { MP_PLAN_ARS: "cero" })).toThrow("MP_PLAN_ARS");
   });
+
+  it("debería resolver el planId del plan de MP por país",
+  () =>
+  {
+    expect(resolverPlanPais("ar", { MP_PLAN_ID_AR: "plan-ar-1" }).planId).toBe("plan-ar-1");
+    expect(resolverPlanPais("ar", {}).planId).toBeNull();
+    expect(resolverPlanPais("mx", { MP_PLAN_ID_USD: "plan-usd-1" }).planId).toBe("plan-usd-1");
+  });
 });
 
-describe("crearPreapproval",
+describe("crearPlanPreapproval",
 () =>
 {
-  it("debería crear la suscripción mensual de 14999 ARS",
+  it("debería crear el plan reutilizable y devolver su id",
   async () =>
   {
-    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", init_point: "https://mp/sus/1" }));
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "plan-ar-1" }));
 
-    const result = await crearPreapproval(
+    const result = await crearPlanPreapproval(
       {
-        negocioId: "neg-1",
-        payerEmail: "dueno@negocio.com",
+        reason: "TurnoMas - Plan mensual",
         backUrl: "https://turnomas.com/dashboard/facturacion",
         monto: 14999,
         currency: "ARS",
@@ -116,10 +124,9 @@ describe("crearPreapproval",
       fetchMock,
     );
 
-    expect(result).toEqual({ id: "pre-1", initPoint: "https://mp/sus/1" });
+    expect(result).toEqual({ id: "plan-ar-1" });
     expect(ultimoBody(cuerpos)).toMatchObject({
-      payer_email: "dueno@negocio.com",
-      external_reference: "neg-1",
+      reason: "TurnoMas - Plan mensual",
       back_url: "https://turnomas.com/dashboard/facturacion",
       auto_recurring: {
         frequency: 1,
@@ -130,6 +137,56 @@ describe("crearPreapproval",
     });
   });
 
+  it("debería lanzar cuando MP rechaza el plan",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaError(401));
+
+    await expect(crearPlanPreapproval(
+      {
+        reason: "x",
+        backUrl: "https://x/y",
+        monto: 14999,
+        currency: "ARS",
+        platformToken: "APP_USR-platform",
+      },
+      fetchMock,
+    )).rejects.toThrow(/No se pudo crear el plan en MercadoPago \(HTTP 401\)/);
+  });
+});
+
+describe("crearPreapproval",
+() =>
+{
+  it("debería crear la suscripción sobre el plan con la tarjeta tokenizada",
+  async () =>
+  {
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "authorized" }));
+
+    const result = await crearPreapproval(
+      {
+        negocioId: "neg-1",
+        payerEmail: "pagador@mp.com",
+        cardTokenId: "card-tok-1",
+        planId: "plan-ar-1",
+        backUrl: "https://turnomas.com/dashboard/facturacion",
+        platformToken: "APP_USR-platform",
+      },
+      fetchMock,
+    );
+
+    expect(result).toEqual({ id: "pre-1", status: "authorized" });
+    expect(ultimoBody(cuerpos)).toMatchObject({
+      preapproval_plan_id: "plan-ar-1",
+      payer_email: "pagador@mp.com",
+      card_token_id: "card-tok-1",
+      external_reference: "neg-1",
+      back_url: "https://turnomas.com/dashboard/facturacion",
+      status: "authorized",
+    });
+    expect(ultimoBody(cuerpos)).not.toHaveProperty("auto_recurring");
+  });
+
   it("debería lanzar cuando MP rechaza",
   async () =>
   {
@@ -138,10 +195,10 @@ describe("crearPreapproval",
     await expect(crearPreapproval(
       {
         negocioId: "neg-1",
-        payerEmail: "dueno@negocio.com",
+        payerEmail: "pagador@mp.com",
+        cardTokenId: "card-tok-1",
+        planId: "plan-ar-1",
         backUrl: "https://turnomas.com/dashboard/facturacion",
-        monto: 14999,
-        currency: "ARS",
         platformToken: "APP_USR-platform",
       },
       fetchMock,
