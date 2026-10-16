@@ -13,14 +13,21 @@ vi.mock("@/lib/auth/session", () =>
   return { getSessionState: vi.fn() };
 });
 
+vi.mock("@/lib/dashboard/negocio-header", () =>
+{
+  return { getNegocioHeader: vi.fn() };
+});
+
 vi.mock("@/app/login/actions", () =>
 {
   return { logout: vi.fn(async () => undefined) };
 });
 
 import { getSessionState } from "@/lib/auth/session";
+import { getNegocioHeader } from "@/lib/dashboard/negocio-header";
 
 const mockSession = vi.mocked(getSessionState);
+const mockNegocio = vi.mocked(getNegocioHeader);
 
 describe("SiteHeader",
 () =>
@@ -37,15 +44,28 @@ describe("SiteHeader",
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("debería mostrar cerrar sesión autenticado",
+  it("debería mostrar el perfil del negocio autenticado",
   async () =>
   {
     mockSession.mockResolvedValueOnce("authenticated" as never);
+    mockNegocio.mockResolvedValueOnce({ nombre: "Barbería Diego", logoUrl: null });
 
     render(await SiteHeader());
 
-    expect(screen.getByRole("button", { name: "auth.logoutCta" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "nav.menu" })).toBeDefined();
+    expect(screen.getByText("Barbería Diego")).toBeDefined();
     expect(screen.queryByRole("link", { name: "nav.login" })).toBeNull();
+  });
+
+  it("debería usar 'Mi cuenta' autenticado sin negocio",
+  async () =>
+  {
+    mockSession.mockResolvedValueOnce("authenticated" as never);
+    mockNegocio.mockResolvedValueOnce(null);
+
+    render(await SiteHeader());
+
+    expect(screen.getByText("nav.account")).toBeDefined();
   });
 
   it("debería mostrar el nombre de la app",
@@ -55,6 +75,6 @@ describe("SiteHeader",
 
     render(await SiteHeader());
 
-    expect(screen.getByRole("link", { name: "appName" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /appName/ })).toHaveAttribute("href", "/");
   });
 });

@@ -2,28 +2,39 @@ import { getTranslations } from "next-intl/server";
 
 import SiteHeaderNav from "@/components/site-header-nav";
 import { logout } from "@/app/login/actions";
+import { getNegocioHeader } from "@/lib/dashboard/negocio-header";
 import { getSessionState } from "@/lib/auth/session";
 
 /**
  * Header global del sitio (Server Component).
  *
- * Lee la sesión y delega el render a `SiteHeaderNav`.
+ * Resuelve sesión e identidad del negocio y delega el render a
+ * `SiteHeaderNav`. La consulta de negocio solo ocurre con sesión activa.
  *
- * @return Barra de navegación con login/registro o cerrar sesión.
+ * @return Barra de navegación con cuenta o login/registro.
  */
 export default async function SiteHeader()
 {
   const t = await getTranslations("common");
   const state = await getSessionState();
+  const isAuthenticated = state === "authenticated";
+  const negocio = isAuthenticated ? await getNegocioHeader() : null;
 
   return (
     <SiteHeaderNav
-      isAuthenticated={state === "authenticated"}
+      isAuthenticated={isAuthenticated}
+      businessName={negocio?.nombre ?? null}
+      logoUrl={negocio?.logoUrl ?? null}
       appName={t("appName")}
       homeLabel={t("nav.home")}
       loginLabel={t("nav.login")}
       registerLabel={t("nav.register")}
       logoutLabel={t("auth.logoutCta")}
+      menuLabel={t("nav.menu")}
+      dashboardLabel={t("nav.dashboard")}
+      configLabel={t("nav.config")}
+      billingLabel={t("nav.billing")}
+      accountLabel={t("nav.account")}
       logoutAction={logout}
     />
   );

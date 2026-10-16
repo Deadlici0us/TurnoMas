@@ -1,49 +1,85 @@
 import Link from "next/link";
+import { Scissors } from "lucide-react";
+
+import ProfileMenu from "@/components/profile-menu";
 
 export interface SiteHeaderNavProps
 {
   readonly isAuthenticated: boolean;
+  readonly businessName: string | null;
+  readonly logoUrl: string | null;
   readonly appName: string;
   readonly homeLabel: string;
   readonly loginLabel: string;
   readonly registerLabel: string;
   readonly logoutLabel: string;
+  readonly menuLabel: string;
+  readonly dashboardLabel: string;
+  readonly configLabel: string;
+  readonly billingLabel: string;
+  readonly accountLabel: string;
   readonly logoutAction: () => void | Promise<void>;
 }
 
 /**
- * Barra de navegación global presentacional (server-compatible).
+ * Barra de navegación global presentacional.
  *
- * @param props autenticación, etiquetas i18n y Server Action de logout.
- * @return Header con links de login/registro o botón de cerrar sesión.
+ * Invitados ven login/registro; autenticados, el perfil del negocio con su
+ * menú de cuenta (panel, configuración, facturación y cerrar sesión).
+ *
+ * @param props autenticación, identidad del negocio, etiquetas i18n y logout.
+ * @return Header con marca y acción de cuenta según sesión.
  */
 export default function SiteHeaderNav(props: SiteHeaderNavProps)
 {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between" aria-label="Principal">
-        <Link href="/" className="font-bold text-white">
-          {props.appName}
+    <header
+      className="sticky top-0 z-40 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur-xl"
+    >
+      <nav
+        className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8"
+        aria-label="Principal"
+      >
+        <Link
+          href={props.isAuthenticated ? "/dashboard" : "/"}
+          className="flex items-center gap-2 font-bold text-white"
+        >
+          <span
+            className="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-br
+              from-brand-500 to-cyan-400 text-slate-950 shadow-[0_0_20px_-4px_var(--brand-500)]"
+          >
+            <Scissors className="size-4" aria-hidden="true" />
+          </span>
+          <span>{props.appName}</span>
         </Link>
         <div className="flex items-center gap-3 text-sm">
-          <Link href="/" className="text-slate-300 hover:text-white">
-            {props.homeLabel}
-          </Link>
           {props.isAuthenticated ? (
-            <form action={props.logoutAction}>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-white/20 rounded-lg text-slate-200 hover:bg-white/10"
-              >
-                {props.logoutLabel}
-              </button>
-            </form>
+            <ProfileMenu
+              businessName={props.businessName ?? props.accountLabel}
+              logoUrl={props.logoUrl}
+              logoutAction={props.logoutAction}
+              menuLabel={props.menuLabel}
+              dashboardLabel={props.dashboardLabel}
+              configLabel={props.configLabel}
+              billingLabel={props.billingLabel}
+              logoutLabel={props.logoutLabel}
+            />
           ) : (
             <>
-              <Link href="/login" className="text-slate-300 hover:text-white">
+              <Link
+                href="/"
+                className="hidden text-slate-300 transition-colors hover:text-white sm:block"
+              >
+                {props.homeLabel}
+              </Link>
+              <Link href="/login" className="text-slate-300 transition-colors hover:text-white">
                 {props.loginLabel}
               </Link>
-              <Link href="/register" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-500">
+              <Link
+                href="/register"
+                className="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white
+                  shadow-[0_0_28px_-8px_var(--brand-500)] transition-colors hover:bg-brand-500"
+              >
                 {props.registerLabel}
               </Link>
             </>

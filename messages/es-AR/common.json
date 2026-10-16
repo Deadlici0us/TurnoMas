@@ -5,7 +5,12 @@
     "features": "Características",
     "pricing": "Precios",
     "login": "Iniciar sesión",
-    "register": "Registrarse"
+    "register": "Registrarse",
+    "dashboard": "Panel",
+    "config": "Configuración",
+    "billing": "Facturación",
+    "account": "Mi cuenta",
+    "menu": "Abrir menú de cuenta"
   },
   "hero": {
     "title": "Eliminá las inasistencias en tu negocio",
