@@ -181,16 +181,35 @@ function calcularFirma(
   const id = params.get("id");
   const rid = params.get("rid");
   const ts = params.get("ts");
+  const v1 = params.get("v1");
 
   if (id === null || ts === null || secret === null)
   {
     return;
   }
 
-  const manifest = construirManifestMp(id, rid, ts);
+  const idLow = id.toLowerCase();
+  const variantes: Record<string, string> = {
+    oficial: `id:${idLow};request-id:${rid ?? ""};ts:${ts};`,
+    sinRequestId: `id:${idLow};ts:${ts};`,
+    sinPuntoYComa: `id:${idLow};request-id:${rid ?? ""};ts:${ts}`,
+    idOriginal: `id:${id};request-id:${rid ?? ""};ts:${ts};`,
+    ordenInvertido: `request-id:${rid ?? ""};id:${idLow};ts:${ts};`,
+  };
 
-  resultado.manifest = manifest;
-  resultado.hmac = createHmac("sha256", secret).update(manifest).digest("hex");
+  resultado.manifiestos = Object.fromEntries(
+    Object.entries(variantes).map(([k, m]) => [k, createHmac("sha256", secret).update(m).digest("hex")]),
+  );
+  resultado.v1Recibido = v1;
+
+  if (v1 !== null)
+  {
+    const coincide = Object.entries(resultado.manifiestos as Record<string, string>)
+      .filter(([, h]) => h === v1.toLowerCase())
+      .map(([k]) => k);
+
+    resultado.manifiestoQueCoincide = coincide.length > 0 ? coincide : null;
+  }
 }
 
 /** Devuelve un fingerprint no reversible (primeros 16 hex de sha256). */
