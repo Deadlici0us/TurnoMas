@@ -264,18 +264,64 @@ describe("cancelarPreapproval",
 describe("consultarCobroSuscripcion",
 () =>
 {
-  it("debería devolver estado y email del pagador",
+  it("debería consultar el authorized payment (no /v1/payments) y mapear la cuota",
+  async () =>
+  {
+    const urls: string[] = [];
+    const fetchMock = vi.fn(async (url: string) =>
+    {
+      urls.push(url);
+
+      return respuestaOk({
+        id: 7033036606,
+        status: "processed",
+        external_reference: "neg-1",
+        preapproval_id: "pre-1",
+        payment: { id: 183627913945, status: "approved", status_detail: "accredited" },
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await consultarCobroSuscripcion("7033036606", "APP_USR-platform", fetchMock);
+
+    expect(urls[0]).toBe("https://api.mercadopago.com/authorized_payments/7033036606");
+    expect(result).toEqual({
+      id: "7033036606",
+      status: "processed",
+      payerEmail: null,
+      preapprovalId: "pre-1",
+      externalReference: "neg-1",
+      paymentId: "183627913945",
+      paymentStatus: "approved",
+    });
+  });
+
+  it("debería devolver el email del pagador cuando MP lo expone",
   async () =>
   {
     const { fetchMock } = instalarMpFetch(respuestaOk({
       id: 999,
-      status: "approved",
+      status: "recycling",
+      external_reference: "neg-1",
       payer: { email: "dueno@negocio.com" },
     }));
 
     const result = await consultarCobroSuscripcion("999", "APP_USR-platform", fetchMock);
 
-    expect(result).toEqual({ id: "999", status: "approved", payerEmail: "dueno@negocio.com" });
+    expect(result.payerEmail).toBe("dueno@negocio.com");
+    expect(result.paymentId).toBeNull();
+    expect(result.paymentStatus).toBeNull();
+  });
+
+  it("debería lanzar MpHttpError con 404",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaError(404));
+
+    const error = await consultarCobroSuscripcion("999", "APP_USR-platform", fetchMock)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(MpHttpError);
+    expect((error as MpHttpError).status).toBe(404);
   });
 });
 

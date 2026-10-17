@@ -219,3 +219,79 @@ describe("subscriptionService.cancelarSuscripcionLocal",
     }]);
   });
 });
+
+describe("subscriptionService.resolverNegocioDeCobro",
+() =>
+{
+  it("debería mapear por external_reference/preapproval_id del authorized payment",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+    const urls: string[] = [];
+
+    vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    {
+      urls.push(url);
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 7033036606,
+          status: "processed",
+          external_reference: "neg-1",
+          preapproval_id: "pre-1",
+          payment: { id: 183627913945, status: "approved" },
+        }),
+      };
+    }));
+
+    const result = await subscriptionService.resolverNegocioDeCobro("7033036606");
+
+    expect(result).toEqual({ negocioId: "neg-1", preapprovalId: "pre-1", status: "approved" });
+    expect(urls[0]).toContain("/authorized_payments/7033036606");
+    expect(urls.some((url) => url.includes("/preapproval/search"))).toBe(false);
+  });
+
+  it("debería caer al email del pagador sin external_reference",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+
+    vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    {
+      if (url.includes("/authorized_payments/"))
+      {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "999", status: "recycling", payer: { email: "dueno@negocio.com" } }),
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [{ id: "pre-9", external_reference: "neg-9" }] }),
+      };
+    }));
+
+    const result = await subscriptionService.resolverNegocioDeCobro("999");
+
+    expect(result).toEqual({ negocioId: "neg-9", preapprovalId: "pre-9", status: "rejected" });
+  });
+
+  it("debería devolver null sin negocio ni email",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: "999", status: "scheduled" }),
+    })));
+
+    await expect(subscriptionService.resolverNegocioDeCobro("999")).resolves.toBeNull();
+  });
+});

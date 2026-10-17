@@ -189,8 +189,11 @@ export class SubscriptionService
   /**
    * Resuelve el negocio dueño de un cobro recurrente.
    *
-   * Cadena: pago (cuenta plataforma) → email del pagador → preapproval
-   * → `external_reference` (negocio). Null si algún eslabón falla.
+   * El `data.id` del tópico `subscription_authorized_payment` es un pago
+   * autorizado (cuota). Se consulta con `GET /authorized_payments/{id}`, que
+   * ya trae `external_reference` (negocio) y `preapproval_id`, así que el
+   * mapeo no depende del email del pagador. El email queda como respaldo
+   * para cuotas sin `external_reference`. Null si ningún eslabón resuelve.
    */
   async resolverNegocioDeCobro(paymentId: string): Promise<{
     readonly negocioId: string;
@@ -208,6 +211,16 @@ export class SubscriptionService
     try
     {
       const cobro = await consultarCobroSuscripcion(paymentId, platformToken);
+      const status = normalizarEstadoCobro(cobro.status, cobro.paymentStatus);
+
+      if (cobro.externalReference !== null && cobro.preapprovalId !== null)
+      {
+        return {
+          negocioId: cobro.externalReference,
+          preapprovalId: cobro.preapprovalId,
+          status,
+        };
+      }
 
       if (cobro.payerEmail === null)
       {
@@ -223,8 +236,8 @@ export class SubscriptionService
 
       return {
         negocioId: preapproval.externalReference,
-        preapprovalId: preapproval.id,
-        status: cobro.status,
+        preapprovalId: cobro.preapprovalId ?? preapproval.id,
+        status,
       };
     }
     catch
@@ -232,6 +245,36 @@ export class SubscriptionService
       return null;
     }
   }
+}
+
+/**
+ * Normaliza el estado de un cobro recurrente.
+ *
+ * Prioriza el estado del pago real (`approved`/`rejected`…) cuando existe;
+ * si no, traduce el estado de la cuota (`recycling` → mora).
+ *
+ * @param estadoCuota Estado de la cuota autorizada (`processed`, `recycling`…).
+ * @param estadoPago Estado del pago asociado, si MP lo expone.
+ * @return Estado normalizado para decidir activación o mora.
+ */
+function normalizarEstadoCobro(estadoCuota: string, estadoPago: string | null): string
+{
+  if (estadoPago !== null)
+  {
+    return estadoPago;
+  }
+
+  if (estadoCuota === "recycling")
+  {
+    return "rejected";
+  }
+
+  if (estadoCuota === "canceled")
+  {
+    return "cancelled";
+  }
+
+  return estadoCuota;
 }
 
 export const subscriptionService = new SubscriptionService();

@@ -104,6 +104,15 @@ async function aplicarResultadoPago(
   const existente = await bookingService.getBookingById(bookingId);
   const estadoActual = (existente as { estado?: unknown } | null)?.estado;
 
+  // MercadoPago también emite el tópico `payment` para los cobros de la
+  // suscripción SaaS, cuyo `external_reference` es el UUID del negocio (no un
+  // turno). Sin reserva existente no hay nada que confirmar: se ignora en vez
+  // de intentar confirmar una reserva inexistente.
+  if (existente === null)
+  {
+    return NextResponse.json({ success: true, status: paymentStatus.status, sinReserva: true });
+  }
+
   if (existente !== null && estadoActual === "pagado" && paymentStatus.status === "approved")
   {
     return NextResponse.json({ success: true, status: paymentStatus.status, idempotente: true });

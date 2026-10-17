@@ -487,4 +487,26 @@ describe("POST /api/webhooks integración",
     expect(mockConfirm).toHaveBeenCalledWith("book-int", "999");
     expect(mockCrearEvento).toHaveBeenCalledWith("book-int");
   });
+
+  it("no debería confirmar reserva con un cobro de suscripción (external_reference = negocio)",
+  async () =>
+  {
+    // MP también emite el tópico `payment` para cobros de suscripción, cuyo
+    // external_reference es el UUID del negocio (no de un turno). Sin un turno
+    // existente no debe confirmarse nada.
+    mockGetStatus.mockResolvedValueOnce({
+      id: "183627913945",
+      status: "approved",
+      externalReference: "c12b7829-b60a-4e91-9a86-ff87017c3a60",
+    });
+    mockById.mockResolvedValueOnce(null);
+
+    const response = await POST(requestWith({ type: "payment", data: { id: 183627913945 } }));
+    const body = await response.json() as { success: boolean; sinReserva: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, sinReserva: true });
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockCrearEvento).not.toHaveBeenCalled();
+  });
 });

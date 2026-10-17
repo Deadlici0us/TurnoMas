@@ -120,6 +120,10 @@ export interface CobroSuscripcion
   readonly id: string;
   readonly status: string;
   readonly payerEmail: string | null;
+  readonly preapprovalId: string | null;
+  readonly externalReference: string | null;
+  readonly paymentId: string | null;
+  readonly paymentStatus: string | null;
 }
 
 export interface PreapprovalPorEmail
@@ -330,11 +334,13 @@ export async function cancelarPreapproval(
 }
 
 /**
- * Consulta un cobro recurrente como pago normal.
+ * Consulta una cuota recurrente (authorized payment) de la suscripción.
  *
- * Los cargos de la suscripción viven en la cuenta plataforma, así que el
- * ID del webhook `subscription_authorized_payment` se consulta igual que
- * un pago de seña. Si MP lo modela distinto (404), el llamador lo ignora.
+ * El `data.id` del webhook `subscription_authorized_payment` es el ID de un
+ * pago autorizado (cuota), no un pago normal: se consulta con
+ * `GET /authorized_payments/{id}` (el mismo ID con `/v1/payments/{id}`
+ * responde 404). La respuesta trae `preapproval_id` y `external_reference`
+ * para mapear el cobro al negocio, más el `payment` real con su estado.
  */
 export async function consultarCobroSuscripcion(
   paymentId: string,
@@ -342,7 +348,7 @@ export async function consultarCobroSuscripcion(
   fetchFn: FetchFn = fetch,
 ): Promise<CobroSuscripcion>
 {
-  const response = await fetchFn(`${MP_API_BASE}/v1/payments/${paymentId}`, {
+  const response = await fetchFn(`${MP_API_BASE}/authorized_payments/${paymentId}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${platformToken}` },
   });
@@ -353,13 +359,28 @@ export async function consultarCobroSuscripcion(
   }
 
   const data = (await response.json()) as {
-    id?: unknown; status?: unknown; payer?: { email?: unknown } | null;
+    id?: unknown;
+    status?: unknown;
+    external_reference?: unknown;
+    preapproval_id?: unknown;
+    payer?: { email?: unknown } | null;
+    payment?: { id?: unknown; status?: unknown } | null;
   };
 
+  const pago = data.payment ?? null;
+  const pagoId = pago?.id;
+  const pagoStatus = pago?.status;
+
   return {
-    id: String(data.id ?? paymentId),
+    id: data.id !== undefined && data.id !== null ? String(data.id) : paymentId,
     status: typeof data.status === "string" ? data.status : "unknown",
-    payerEmail: typeof data.payer?.email === "string" ? data.payer.email : null,
+    payerEmail: typeof data.payer?.email === "string" && data.payer.email.length > 0
+      ? data.payer.email
+      : null,
+    preapprovalId: typeof data.preapproval_id === "string" ? data.preapproval_id : null,
+    externalReference: typeof data.external_reference === "string" ? data.external_reference : null,
+    paymentId: pagoId !== undefined && pagoId !== null ? String(pagoId) : null,
+    paymentStatus: typeof pagoStatus === "string" ? pagoStatus : null,
   };
 }
 
