@@ -35,6 +35,7 @@ export async function GET(request: Request): Promise<ReturnType<typeof NextRespo
   };
 
   await probarSupabase(resultado);
+  await probarToken(token, resultado);
   calcularFirma(params, secret, resultado);
 
   if (preapprovalId !== null && preapprovalId.length > 0)
@@ -117,6 +118,50 @@ async function reproducirWebhook(
   catch (error)
   {
     resultado.webhookThrow = error instanceof Error ? error.message : String(error);
+  }
+}
+
+/** Identifica la app dueña del token del deploy y su acceso a cada app. */
+async function probarToken(token: string | null, resultado: Record<string, unknown>): Promise<void>
+{
+  if (token === null)
+  {
+    return;
+  }
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  try
+  {
+    const me = await fetch("https://api.mercadopago.com/users/me", { headers });
+    const cuerpo = await me.json() as { id?: unknown; nickname?: unknown };
+
+    resultado.meId = cuerpo.id ?? null;
+    resultado.meNick = cuerpo.nickname ?? null;
+  }
+  catch (error)
+  {
+    resultado.meError = error instanceof Error ? error.message : String(error);
+  }
+
+  const apps: ReadonlyArray<readonly [string, string]> = [
+    ["app5282", "5282452571447268"],
+    ["app8240", "8240978704835778"],
+  ];
+
+  for (const [clave, id] of apps)
+  {
+    try
+    {
+      const r = await fetch(`https://api.mercadopago.com/applications/${id}`, { headers });
+      const propio = r.status === 200 ? await r.json() as { name?: unknown } : null;
+
+      resultado[clave] = propio !== null ? `200:${String(propio.name)}` : r.status;
+    }
+    catch (error)
+    {
+      resultado[clave] = error instanceof Error ? error.message : String(error);
+    }
   }
 }
 
