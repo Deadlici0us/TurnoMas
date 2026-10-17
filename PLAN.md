@@ -16,7 +16,6 @@ SUPABASE_SECRET_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 MP_ACCESS_TOKEN
-NEXT_MP_PUBLIC_KEY
 MP_WEBHOOK_SECRET
 MP_CLIENT_ID
 MP_CLIENT_SECRET
@@ -79,7 +78,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
   2. Creación del perfil del negocio (Generación de URL dinámica `/:pais/:slug`).
   3. Conexión de MercadoPago (OAuth) para cobro de señas.
   4. Conexión de Meta WhatsApp (Opcional - Embedded Signup).
-- **Paywall / Suscripción:** Bloqueo de la cuenta a los 14 días de prueba si no hay un plan de $15/mes activo en MercadoPago (verificable vía `suscripcion_mp_id`).
+- **Paywall / Suscripción:** Bloqueo de la cuenta a los 14 días de prueba si no hay un plan de $15/mes activo en MercadoPago (verificable vía `suscripcion_mp_id`). El pago se inicia desde el cliente (`SuscripcionForm` → `POST /api/suscripcion/crear`), que crea un Preapproval sin plan en `pending` con `external_reference` = negocio y devuelve `init_point` (el pagador elige saldo en cuenta o tarjeta); el webhook activa la suscripción por `external_reference`.
 
 ### Módulo 2: Portal Público de Reservas (Client-Facing)
 - **URL Dinámica:** `/:pais/:slug` (Ej: `/ar/barberia-diego`). Diseño mobile-first estilo Link-in-bio.

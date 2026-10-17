@@ -3,6 +3,11 @@ import { render, screen } from "@testing-library/react";
 
 import PaywallPlanVencido from "./paywall-plan-vencido";
 
+vi.mock("next/navigation", () =>
+{
+  return { useSearchParams: vi.fn(() => new URLSearchParams()) };
+});
+
 const FEATURES = [
   "Reservas ilimitadas",
   "Cobro de señas vía MercadoPago",
@@ -19,7 +24,7 @@ describe("PaywallPlanVencido",
     () =>
     {
       render(
-        <PaywallPlanVencido etiquetaPlan="$ 14.999 ARS/mes" activar={vi.fn()} logout={vi.fn()} />,
+        <PaywallPlanVencido etiquetaPlan="$ 14.999 ARS/mes" logout={vi.fn()} />,
       );
 
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -33,7 +38,7 @@ describe("PaywallPlanVencido",
     () =>
     {
       render(
-        <PaywallPlanVencido etiquetaPlan="U$S 15 USD/mes" activar={vi.fn()} logout={vi.fn()} />,
+        <PaywallPlanVencido etiquetaPlan="U$S 15 USD/mes" logout={vi.fn()} />,
       );
 
       expect(screen.getByText("U$S 15 USD/mes")).toBeDefined();
@@ -48,7 +53,7 @@ describe("PaywallPlanVencido",
     () =>
     {
       render(
-        <PaywallPlanVencido etiquetaPlan="U$S 15 USD/mes" activar={vi.fn()} logout={vi.fn()} />,
+        <PaywallPlanVencido etiquetaPlan="U$S 15 USD/mes" logout={vi.fn()} />,
       );
 
       expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeDefined();

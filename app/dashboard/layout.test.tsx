@@ -6,7 +6,10 @@ import { getDashboardData } from "@/lib/dashboard/queries";
 
 vi.mock("next/navigation", () =>
 {
-  return { usePathname: vi.fn(() => "/dashboard") };
+  return {
+    usePathname: vi.fn(() => "/dashboard"),
+    useSearchParams: vi.fn(() => new URLSearchParams()),
+  };
 });
 
 vi.mock("@/lib/dashboard/queries", () =>
@@ -22,11 +25,6 @@ vi.mock("@/app/login/actions", () =>
 vi.mock("@/app/dashboard/demo/actions", () =>
 {
   return { resetDemoData: vi.fn() };
-});
-
-vi.mock("@/app/dashboard/facturacion/actions", () =>
-{
-  return { activarPlan: vi.fn() };
 });
 
 const mockData = vi.mocked(getDashboardData);

@@ -18,6 +18,27 @@ interface CrearBody
   readonly payerEmail?: unknown;
 }
 
+/** Indica si corre en el despliegue de producción real. */
+function esProduccion(): boolean
+{
+  return process.env.VERCEL_ENV === "production";
+}
+
+/** Traduce los rechazos frecuentes de MercadoPago a un mensaje accionable. */
+function mensajeDeError(detalle: string): string
+{
+  const texto = detalle.toLowerCase();
+
+  if (texto.includes("both payer and collector")
+    || texto.includes("payer and collector")
+    || texto.includes("payer_email"))
+  {
+    return "Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.";
+  }
+
+  return "No pudimos activar el plan. Probá de nuevo.";
+}
+
 export async function POST(request: Request)
 {
   try
@@ -112,10 +133,19 @@ export async function POST(request: Request)
   }
   catch (error)
   {
-    console.error("[suscripcion/crear]", error);
+    const detalle = error instanceof Error ? error.message : "";
+    console.error("[suscripcion/crear]", detalle);
+
+    if (esProduccion())
+    {
+      return NextResponse.json(
+        { error: "No pudimos activar el plan. Probá de nuevo." },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json(
-      { error: "No pudimos activar el plan. Probá de nuevo." },
+      { error: mensajeDeError(detalle), detalle: detalle.slice(0, 300) },
       { status: 502 },
     );
   }

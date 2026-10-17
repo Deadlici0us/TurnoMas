@@ -7,7 +7,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("./actions", () =>
 {
-  return { activarPlan: vi.fn(), cancelarPlan: vi.fn() };
+  return { cancelarPlan: vi.fn() };
 });
 
 vi.mock("@/lib/dashboard/queries", () =>
@@ -106,6 +106,23 @@ describe("FacturacionPage",
     expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
     expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
     expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
+  });
+
+  it("debería ocultar el formulario cuando el acceso está bloqueado",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      pais: "ar",
+      suscripcion_estado: null,
+      suscripcion_mp_id: null,
+    });
+
+    render(await FacturacionPage());
+
+    expect(screen.getByText("Bloqueado")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Pagar con MercadoPago" })).toBeNull();
+    expect(screen.getByText("Completá el pago en el aviso para reactivar tu plan.")).toBeDefined();
   });
 
   it("debería ocultar acciones en la demo",

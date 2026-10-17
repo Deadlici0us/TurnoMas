@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-import { activarPlan, cancelarPlan } from "./actions";
+import { cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
+import SuscripcionForm from "@/components/suscripcion-form";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
@@ -119,29 +120,12 @@ export default async function FacturacionPage(
                 Cancelar plan
               </button>
             </form>
+          ) : estado === "blocked" ? (
+            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+              Completá el pago en el aviso para reactivar tu plan.
+            </p>
           ) : (
-            <form action={activarPlan} className="space-y-3">
-              <label htmlFor="payer-email" className="block text-sm font-medium text-slate-300">
-                Email de tu cuenta de MercadoPago
-              </label>
-              <input
-                id="payer-email"
-                type="email"
-                name="payerEmail"
-                required
-                placeholder="tu-cuenta@ejemplo.com"
-                autoComplete="email"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-                  placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                  hover:bg-blue-700 transition-colors"
-              >
-                Pagar con MercadoPago
-              </button>
-            </form>
+            <SuscripcionForm idPrefix="facturacion" />
           )}
           {suscripcionId !== null && !demo ? (
             <p className="text-xs text-slate-400 mt-4">

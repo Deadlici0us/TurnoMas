@@ -169,16 +169,46 @@ describe("POST /api/suscripcion/crear",
     });
   });
 
-  it("debería devolver 502 cuando MP falla",
+  it("debería devolver 502 con detalle fuera de producción",
   async () =>
   {
     sesionDueno();
     mockCrear.mockRejectedValueOnce(new Error("No se pudo crear la suscripción en MercadoPago."));
 
     const response = await POST(solicitud());
-    const body = await response.json() as { error: string };
+    const body = await response.json() as { error: string; detalle: string };
 
     expect(response.status).toBe(502);
     expect(body.error).toBe("No pudimos activar el plan. Probá de nuevo.");
+    expect(body.detalle).toBe("No se pudo crear la suscripción en MercadoPago.");
+  });
+
+  it("debería ocultar el detalle en producción",
+  async () =>
+  {
+    vi.stubEnv("VERCEL_ENV", "production");
+    sesionDueno();
+    mockCrear.mockRejectedValueOnce(new Error("No se pudo crear la suscripción en MercadoPago."));
+
+    const response = await POST(solicitud());
+    const body = await response.json() as { error: string; detalle?: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("No pudimos activar el plan. Probá de nuevo.");
+    expect(body.detalle).toBeUndefined();
+  });
+
+  it("debería explicar el rechazo por email de MercadoPago",
+  async () =>
+  {
+    sesionDueno();
+    mockCrear.mockRejectedValueOnce(
+      new Error("Both payer and collector must be real or test users."));
+
+    const response = await POST(solicitud());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.");
   });
 });

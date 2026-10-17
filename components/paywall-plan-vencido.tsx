@@ -1,3 +1,8 @@
+import { Suspense } from "react";
+
+import AvisoSuscripcion from "@/components/aviso-suscripcion";
+import SuscripcionForm from "@/components/suscripcion-form";
+
 /**
  * Paywall a pantalla completa para negocios con el plan vencido.
  *
@@ -17,13 +22,11 @@ const BENEFICIOS = [
 export interface PaywallPlanVencidoProps
 {
   readonly etiquetaPlan: string;
-  readonly activar: (formData: FormData) => Promise<void>;
   readonly logout: () => Promise<void>;
 }
 
 export default function PaywallPlanVencido({
   etiquetaPlan,
-  activar,
   logout,
 }: PaywallPlanVencidoProps)
 {
@@ -43,6 +46,9 @@ export default function PaywallPlanVencido({
         <p className="mt-2 text-lg text-slate-400 text-center">
           Un solo plan para profesionales que quieren crecer sin complicaciones
         </p>
+        <Suspense fallback={null}>
+          <AvisoSuscripcion />
+        </Suspense>
         <div className="mt-6 text-center">
           <div className="text-3xl font-bold bg-gradient-to-r from-brand-400 to-cyan-300
             bg-clip-text text-transparent">
@@ -60,31 +66,9 @@ export default function PaywallPlanVencido({
             </li>
           ))}
         </ul>
-        <form action={activar} className="mt-8 space-y-3">
-          <label htmlFor="payer-email" className="block text-sm font-medium text-slate-300">
-            Email de tu cuenta de MercadoPago
-          </label>
-          <input
-            id="payer-email"
-            type="email"
-            name="payerEmail"
-            required
-            placeholder="tu-cuenta@ejemplo.com"
-            autoComplete="email"
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-              placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
-          />
-          <button
-            type="submit"
-            className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-              rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
-              transition-all duration-300 hover:-translate-y-0.5"
-          >
-            <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-              bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-            Pagar con MercadoPago
-          </button>
-        </form>
+        <div className="mt-8">
+          <SuscripcionForm idPrefix="paywall" />
+        </div>
         <form action={logout} className="mt-3 text-center">
           <button
             type="submit"

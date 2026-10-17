@@ -2,7 +2,6 @@ import { getDashboardData } from "@/lib/dashboard/queries";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import DemoEditableBanner from "@/components/demo-editable-banner";
 import PaywallPlanVencido from "@/components/paywall-plan-vencido";
-import { activarPlan } from "@/app/dashboard/facturacion/actions";
 import { logout } from "@/app/login/actions";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
@@ -49,7 +48,6 @@ export default async function DashboardLayout({
       {bloqueado ? (
         <PaywallPlanVencido
           etiquetaPlan={plan.etiqueta}
-          activar={activarPlan}
           logout={logout}
         />
       ) : null}
