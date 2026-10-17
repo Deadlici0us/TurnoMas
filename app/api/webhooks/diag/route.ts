@@ -1,9 +1,12 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { POST as webhookPost } from "@/app/api/webhooks/route";
 import { readEnv } from "@/lib/env/env";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { subscriptionService } from "@/lib/services/subscription";
+import { construirManifestMp } from "@/lib/webhooks/mercadopago";
 
 /**
  * Endpoint temporal de diagnóstico para webhooks de suscripción.
@@ -29,20 +32,89 @@ export async function GET(request: Request): Promise<ReturnType<typeof NextRespo
     secretFp: fingerprint(secret),
   };
 
+  await probarSupabase(resultado);
+
   if (preapprovalId !== null && preapprovalId.length > 0)
   {
-    try
-    {
-      resultado.estado = await subscriptionService.consultarEstado(preapprovalId);
-    }
-    catch (error)
-    {
-      resultado.error = error instanceof Error ? error.message : String(error);
-      resultado.errorNombre = error instanceof Error ? error.name : null;
-    }
+    await probarConsultar(preapprovalId, resultado);
+    await reproducirWebhook(preapprovalId, secret, resultado);
   }
 
   return NextResponse.json(resultado);
+}
+
+/** Prueba lectura mínima a Supabase (tabla `negocios`). */
+async function probarSupabase(resultado: Record<string, unknown>): Promise<void>
+{
+  try
+  {
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("negocios").select("id").limit(1);
+
+    resultado.supabase = error === null ? "ok" : "error";
+    resultado.supabaseError = error !== null ? error.message : null;
+  }
+  catch (error)
+  {
+    resultado.supabase = "throw";
+    resultado.supabaseError = error instanceof Error ? error.message : String(error);
+  }
+}
+
+/** Consulta el preapproval con el token de plataforma del deploy. */
+async function probarConsultar(preapprovalId: string, resultado: Record<string, unknown>): Promise<void>
+{
+  try
+  {
+    resultado.estado = await subscriptionService.consultarEstado(preapprovalId);
+  }
+  catch (error)
+  {
+    resultado.error = error instanceof Error ? error.message : String(error);
+    resultado.errorNombre = error instanceof Error ? error.name : null;
+  }
+}
+
+/** Reproduce el POST del webhook firmado con el secreto del deploy. */
+async function reproducirWebhook(
+  preapprovalId: string,
+  secret: string | null,
+  resultado: Record<string, unknown>,
+): Promise<void>
+{
+  if (secret === null)
+  {
+    resultado.webhookStatus = "sin-secreto";
+
+    return;
+  }
+
+  const ts = String(Date.now());
+  const requestId = `diag-${randomUUID()}`;
+  const manifest = construirManifestMp(preapprovalId, requestId, ts);
+  const v1 = createHmac("sha256", secret).update(manifest).digest("hex");
+  const url = `https://turno-mas.vercel.app/api/webhooks?data.id=${preapprovalId}&type=subscription_preapproval`;
+  const request = new Request(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-signature": `ts=${ts},v1=${v1}`,
+      "x-request-id": requestId,
+    },
+    body: JSON.stringify({ type: "subscription_preapproval", action: "updated", data: { id: preapprovalId } }),
+  });
+
+  try
+  {
+    const response = await webhookPost(request);
+
+    resultado.webhookStatus = response.status;
+    resultado.webhookBody = await response.json().catch(() => "<no-json>");
+  }
+  catch (error)
+  {
+    resultado.webhookThrow = error instanceof Error ? error.message : String(error);
+  }
 }
 
 /** Devuelve un fingerprint no reversible (primeros 16 hex de sha256). */
