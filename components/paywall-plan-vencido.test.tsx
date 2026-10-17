@@ -32,6 +32,7 @@ describe("PaywallPlanVencido",
       expect(screen.getByText("14 días gratis")).toBeDefined();
       expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
       expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
+      expect(screen.getByRole("button", { name: "Ya pagué, verificar ahora" })).toBeDefined();
     });
 
     it("debería listar el precio y los beneficios del plan",

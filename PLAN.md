@@ -78,7 +78,9 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
   2. Creación del perfil del negocio (Generación de URL dinámica `/:pais/:slug`).
   3. Conexión de MercadoPago (OAuth) para cobro de señas.
   4. Conexión de Meta WhatsApp (Opcional - Embedded Signup).
-- **Paywall / Suscripción:** Bloqueo de la cuenta a los 14 días de prueba si no hay un plan de $15/mes activo en MercadoPago (verificable vía `suscripcion_mp_id`). El pago se inicia desde el cliente (`SuscripcionForm` → `POST /api/suscripcion/crear`), que crea un Preapproval sin plan en `pending` con `external_reference` = negocio y devuelve `init_point` (el pagador elige saldo en cuenta o tarjeta); el webhook activa la suscripción por `external_reference`.
+- **Paywall / Suscripción:** Bloqueo de la cuenta a los 14 días de prueba si no hay un plan de $15/mes activo en MercadoPago (verificable vía `suscripcion_mp_id`). El pago se inicia desde el cliente (`SuscripcionForm` → `POST /api/suscripcion/crear`), que crea un Preapproval sin plan en `pending` con `external_reference` = negocio, `notification_url` = `/api/webhooks` y devuelve `init_point` (el pagador elige saldo en cuenta o tarjeta).
+  - **Activación:** el webhook `subscription_preapproval` activa la suscripción por `external_reference`. Como respaldo (webhook no configurado, `MP_WEBHOOK_SECRET` ausente/incoherente o notificación perdida), al volver del checkout (`?suscripcion=ok`) y con el botón "Ya pagué, verificar ahora" (`VerificarPago` → `POST /api/suscripcion/verificar`) se reconcilia contra MP: si hay un Preapproval `authorized` se activa el plan y se cancelan los duplicados; si sólo hay `pending` se reutiliza su `init_point`.
+  - **Config MP:** en "Tus integraciones" → Webhooks, cargar `https://<host>/api/webhooks` con los topics `subscription_preapproval`, `subscription_authorized_payment` y `payment`, usando como secret el valor de `MP_WEBHOOK_SECRET`.
 
 ### Módulo 2: Portal Público de Reservas (Client-Facing)
 - **URL Dinámica:** `/:pais/:slug` (Ej: `/ar/barberia-diego`). Diseño mobile-first estilo Link-in-bio.

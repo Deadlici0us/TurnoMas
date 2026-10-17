@@ -86,6 +86,7 @@ export interface PreapprovalInput
   readonly monto: number;
   readonly currency: string;
   readonly platformToken: string;
+  readonly notificationUrl?: string | null;
 }
 
 export interface PreapprovalCreada
@@ -101,6 +102,17 @@ export interface PreapprovalEstado
   readonly status: string;
   readonly externalReference: string | null;
   readonly payerEmail: string | null;
+  readonly initPoint: string | null;
+}
+
+/** Resumen de un preapproval listado por búsqueda (para reconciliación). */
+export interface PreapprovalResumen
+{
+  readonly id: string;
+  readonly status: string;
+  readonly externalReference: string | null;
+  readonly initPoint: string | null;
+  readonly lastModified: string | null;
 }
 
 export interface CobroSuscripcion
@@ -163,6 +175,7 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
         currency_id: input.currency,
       },
       back_url: input.backUrl,
+      notification_url: input.notificationUrl ?? undefined,
       status: "pending",
     }),
   });
@@ -204,7 +217,8 @@ export async function consultarPreapproval(
   }
 
   const data = (await response.json()) as {
-    id?: unknown; status?: unknown; external_reference?: unknown; payer_email?: unknown;
+    id?: unknown; status?: unknown; external_reference?: unknown;
+    payer_email?: unknown; init_point?: unknown;
   };
 
   return {
@@ -212,7 +226,61 @@ export async function consultarPreapproval(
     status: typeof data.status === "string" ? data.status : "unknown",
     externalReference: typeof data.external_reference === "string" ? data.external_reference : null,
     payerEmail: typeof data.payer_email === "string" ? data.payer_email : null,
+    initPoint: typeof data.init_point === "string" ? data.init_point : null,
   };
+}
+
+/**
+ * Lista los preapprovals de la cuenta plataforma filtrando por estado.
+ *
+ * `external_reference` no es un parámetro de búsqueda de MP, así que el
+ * llamador filtra en memoria por negocio. Pensado para reconciliación.
+ */
+export async function buscarPreapprovalsPorEstado(
+  status: string,
+  platformToken: string,
+  fetchFn: FetchFn = fetch,
+): Promise<PreapprovalResumen[]>
+{
+  const params = new URLSearchParams({ status, limit: "50" });
+  const response = await fetchFn(`${MP_API_BASE}/preapproval/search?${params.toString()}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${platformToken}` },
+  });
+
+  if (!response.ok)
+  {
+    throw new Error(`No se pudieron listar las suscripciones: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { results?: unknown };
+  const results = Array.isArray(data.results) ? data.results : [];
+
+  return results.flatMap((raw) =>
+  {
+    if (typeof raw !== "object" || raw === null)
+    {
+      return [];
+    }
+
+    const fila = raw as Record<string, unknown>;
+
+    if (typeof fila.id !== "string")
+    {
+      return [];
+    }
+
+    const modificado = typeof fila.last_modified === "string" ? fila.last_modified : null;
+    const creado = typeof fila.date_created === "string" ? fila.date_created : null;
+
+    return [{
+      id: fila.id,
+      status: typeof fila.status === "string" ? fila.status : "unknown",
+      externalReference: typeof fila.external_reference === "string" ? fila.external_reference : null,
+      initPoint: typeof fila.init_point === "string" ? fila.init_point : null,
+      lastModified: modificado ?? creado,
+    }];
+  });
 }
 
 /** Cancela un preapproval con el token de plataforma. */

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   buscarPreapprovalPorEmail,
+  buscarPreapprovalsPorEstado,
   cancelarPreapproval,
   consultarCobroSuscripcion,
   consultarPreapproval,
@@ -136,6 +137,34 @@ describe("crearPreapproval",
     });
     expect(ultimoBody(cuerpos)).not.toHaveProperty("preapproval_plan_id");
     expect(ultimoBody(cuerpos)).not.toHaveProperty("card_token_id");
+    expect(ultimoBody(cuerpos)).not.toHaveProperty("notification_url");
+  });
+
+  it("debería incluir notification_url cuando se provee",
+  async () =>
+  {
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({
+      id: "pre-2",
+      status: "pending",
+      init_point: "https://mp/checkout/pre-2",
+    }));
+
+    await crearPreapproval(
+      {
+        negocioId: "neg-1",
+        payerEmail: "pagador@mp.com",
+        backUrl: "https://turnomas.com/dashboard/facturacion?suscripcion=ok",
+        notificationUrl: "https://turnomas.com/api/webhooks",
+        monto: 14999,
+        currency: "ARS",
+        platformToken: "APP_USR-platform",
+      },
+      fetchMock,
+    );
+
+    expect(ultimoBody(cuerpos)).toMatchObject({
+      notification_url: "https://turnomas.com/api/webhooks",
+    });
   });
 
   it("debería lanzar cuando MP rechaza",
@@ -177,7 +206,22 @@ describe("consultarPreapproval",
       status: "authorized",
       externalReference: "neg-1",
       payerEmail: "dueno@negocio.com",
+      initPoint: null,
     });
+  });
+
+  it("debería devolver el init_point cuando está presente",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaOk({
+      id: "pre-1",
+      status: "pending",
+      init_point: "https://mp/checkout/pre-1",
+    }));
+
+    const result = await consultarPreapproval("pre-1", "APP_USR-platform", fetchMock);
+
+    expect(result.initPoint).toBe("https://mp/checkout/pre-1");
   });
 
   it("debería lanzar con 404",
@@ -246,3 +290,70 @@ describe("buscarPreapprovalPorEmail",
       .resolves.toBeNull();
   });
 });
+
+describe("buscarPreapprovalsPorEstado",
+  () =>
+  {
+    it("debería listar los preapprovals con referencia, init_point y fecha",
+    async () =>
+    {
+      const { fetchMock } = instalarMpFetch(respuestaOk({
+        results: [
+          {
+            id: "pre-1",
+            status: "authorized",
+            external_reference: "neg-1",
+            init_point: "https://mp/checkout/pre-1",
+            last_modified: "2026-10-17T12:00:00.000Z",
+          },
+          { id: "pre-2", status: "pending", external_reference: "neg-1", date_created: "2026-10-16T12:00:00.000Z" },
+          { sinId: true },
+        ],
+      }));
+
+      const result = await buscarPreapprovalsPorEstado("authorized", "APP_USR-platform", fetchMock);
+
+      expect(result).toEqual([
+        {
+          id: "pre-1",
+          status: "authorized",
+          externalReference: "neg-1",
+          initPoint: "https://mp/checkout/pre-1",
+          lastModified: "2026-10-17T12:00:00.000Z",
+        },
+        {
+          id: "pre-2",
+          status: "pending",
+          externalReference: "neg-1",
+          initPoint: null,
+          lastModified: "2026-10-16T12:00:00.000Z",
+        },
+      ]);
+    });
+
+    it("debería enviar el status como filtro",
+    async () =>
+    {
+      const urls: string[] = [];
+      vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+      {
+        urls.push(url);
+
+        return { ok: true, status: 200, json: async () => ({ results: [] }) };
+      }));
+
+      await buscarPreapprovalsPorEstado("pending", "APP_USR-platform");
+
+      expect(urls[0]).toContain("/preapproval/search?");
+      expect(urls[0]).toContain("status=pending");
+    });
+
+    it("debería lanzar cuando MP falla",
+    async () =>
+    {
+      const { fetchMock } = instalarMpFetch(respuestaError(500));
+
+      await expect(buscarPreapprovalsPorEstado("authorized", "APP_USR-platform", fetchMock))
+        .rejects.toThrow("No se pudieron listar las suscripciones: 500");
+    });
+  });

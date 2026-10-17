@@ -1,11 +1,13 @@
 import { readEnv } from "@/lib/env/env";
 import {
   buscarPreapprovalPorEmail,
+  buscarPreapprovalsPorEstado,
   cancelarPreapproval,
   consultarCobroSuscripcion,
   consultarPreapproval,
   crearPreapproval,
   resolverPlanPais,
+  type PreapprovalResumen,
 } from "@/lib/payments/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
@@ -41,10 +43,71 @@ export class SubscriptionService
       negocioId,
       payerEmail,
       backUrl: `${stripTrailingSlashes(base)}/dashboard/facturacion?suscripcion=ok`,
+      notificationUrl: `${stripTrailingSlashes(base)}/api/webhooks`,
       monto: plan.monto,
       currency: plan.currency,
       platformToken,
     });
+  }
+
+  /**
+   * Reconcilia el plan del negocio contra MercadoPago, sin depender del webhook.
+   *
+   * Busca los preapprovals del negocio (`external_reference`). Si hay alguno
+   * `authorized`, activa el plan con el más reciente y cancela los duplicados
+   * (para evitar cobros recurrentes múltiples). Si sólo hay `pending`, lo
+   * reutiliza devolviendo su `init_point`. `none` si no hay nada.
+   */
+  async reconciliar(negocioId: string): Promise<{
+    readonly estado: "active" | "pending" | "none";
+    readonly preapprovalId: string | null;
+    readonly initPoint: string | null;
+  }>
+  {
+    const platformToken = readEnv("MP_ACCESS_TOKEN");
+
+    if (platformToken === null)
+    {
+      throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
+    }
+
+    const ordenarPorFecha = (filas: PreapprovalResumen[]): PreapprovalResumen[] =>
+      [...filas].sort((a, b) => (b.lastModified ?? "").localeCompare(a.lastModified ?? ""));
+
+    const delNegocio = (filas: PreapprovalResumen[]): PreapprovalResumen[] =>
+      filas.filter((fila) => fila.externalReference === negocioId);
+
+    const autorizadas = ordenarPorFecha(
+      delNegocio(await buscarPreapprovalsPorEstado("authorized", platformToken)));
+    const pendientes = ordenarPorFecha(
+      delNegocio(await buscarPreapprovalsPorEstado("pending", platformToken)));
+
+    if (autorizadas.length > 0)
+    {
+      const elegida = autorizadas[0];
+      await this.activarSuscripcion(negocioId, elegida.id);
+
+      for (const duplicada of [...autorizadas.slice(1), ...pendientes])
+      {
+        await cancelarPreapproval(duplicada.id, platformToken).catch(() => undefined);
+      }
+
+      return { estado: "active", preapprovalId: elegida.id, initPoint: null };
+    }
+
+    if (pendientes.length > 0)
+    {
+      const elegida = pendientes[0];
+
+      for (const duplicada of pendientes.slice(1))
+      {
+        await cancelarPreapproval(duplicada.id, platformToken).catch(() => undefined);
+      }
+
+      return { estado: "pending", preapprovalId: elegida.id, initPoint: elegida.initPoint };
+    }
+
+    return { estado: "none", preapprovalId: null, initPoint: null };
   }
 
   /** Activa el plan del negocio con el ID del preapproval autorizado. */

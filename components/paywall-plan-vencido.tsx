@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
-import AvisoSuscripcion from "@/components/aviso-suscripcion";
 import SuscripcionForm from "@/components/suscripcion-form";
+import VerificarPago from "@/components/verificar-pago";
 
 /**
  * Paywall a pantalla completa para negocios con el plan vencido.
@@ -47,7 +47,7 @@ export default function PaywallPlanVencido({
           Un solo plan para profesionales que quieren crecer sin complicaciones
         </p>
         <Suspense fallback={null}>
-          <AvisoSuscripcion />
+          <VerificarPago />
         </Suspense>
         <div className="mt-6 text-center">
           <div className="text-3xl font-bold bg-gradient-to-r from-brand-400 to-cyan-300

@@ -58,9 +58,111 @@ describe("subscriptionService.crearParaNegocio",
       payer_email: "pagador@mp.com",
       status: "pending",
       auto_recurring: { transaction_amount: 14999, currency_id: "ARS" },
+      notification_url: "https://turnomas.com/api/webhooks",
     });
   });
 });
+
+/** Fetch mockeado que responde búsquedas por estado y captura las URLs. */
+function instalarBusqueda(resultados: { authorized?: unknown[]; pending?: unknown[] })
+{
+  const urls: string[] = [];
+  const fetchMock = vi.fn(async (url: string, init: { method?: string } = {}) =>
+  {
+    urls.push(`${init.method ?? "GET"} ${url}`);
+
+    if (url.includes("status=authorized"))
+    {
+      return { ok: true, status: 200, json: async () => ({ results: resultados.authorized ?? [] }) };
+    }
+
+    if (url.includes("status=pending"))
+    {
+      return { ok: true, status: 200, json: async () => ({ results: resultados.pending ?? [] }) };
+    }
+
+    return { ok: true, status: 200, json: async () => ({}) };
+  });
+
+  vi.stubGlobal("fetch", fetchMock);
+
+  return { fetchMock, urls };
+}
+
+describe("subscriptionService.reconciliar",
+  () =>
+  {
+    it("debería activar con la autorizada más reciente y cancelar duplicadas",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      const { urls } = instalarBusqueda({
+        authorized: [
+          { id: "pre-a", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T14:00:00.000Z" },
+          { id: "pre-b", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T13:00:00.000Z" },
+          { id: "pre-otro", status: "authorized", external_reference: "neg-2", last_modified: "2026-10-18T00:00:00.000Z" },
+        ],
+        pending: [
+          { id: "pre-p", status: "pending", external_reference: "neg-1", last_modified: "2026-10-17T15:00:00.000Z" },
+        ],
+      });
+
+      const result = await subscriptionService.reconciliar("neg-1");
+
+      expect(result).toEqual({ estado: "active", preapprovalId: "pre-a", initPoint: null });
+      expect(updates).toEqual([{
+        suscripcion_estado: "active",
+        suscripcion_mp_id: "pre-a",
+        suscripcion_mora_desde: null,
+      }]);
+      expect(urls.filter((url) => url.startsWith("PUT "))).toEqual([
+        "PUT https://api.mercadopago.com/preapproval/pre-b",
+        "PUT https://api.mercadopago.com/preapproval/pre-p",
+      ]);
+    });
+
+    it("debería devolver el init_point de la pendiente y cancelar las otras",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      const { urls } = instalarBusqueda({
+        authorized: [],
+        pending: [
+          { id: "pre-p", status: "pending", external_reference: "neg-1", init_point: "https://mp/p", last_modified: "2026-10-17T15:00:00.000Z" },
+          { id: "pre-q", status: "pending", external_reference: "neg-1", last_modified: "2026-10-17T10:00:00.000Z" },
+        ],
+      });
+
+      const result = await subscriptionService.reconciliar("neg-1");
+
+      expect(result).toEqual({ estado: "pending", preapprovalId: "pre-p", initPoint: "https://mp/p" });
+      expect(updates).toEqual([]);
+      expect(urls.filter((url) => url.startsWith("PUT "))).toEqual([
+        "PUT https://api.mercadopago.com/preapproval/pre-q",
+      ]);
+    });
+
+    it("debería devolver none sin suscripciones del negocio",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      instalarBusqueda({ authorized: [], pending: [] });
+
+      await expect(subscriptionService.reconciliar("neg-1"))
+        .resolves.toEqual({ estado: "none", preapprovalId: null, initPoint: null });
+    });
+
+    it("debería fallar sin MP_ACCESS_TOKEN",
+    async () =>
+    {
+      await expect(subscriptionService.reconciliar("neg-1"))
+        .rejects.toThrow("MP_ACCESS_TOKEN");
+    });
+  });
 
 describe("subscriptionService.activarSuscripcion",
 () =>

@@ -115,6 +115,38 @@ export async function POST(request: Request)
     }
 
     const fila = negocio as { id: string; pais?: unknown };
+
+    try
+    {
+      const reconciliacion = await subscriptionService.reconciliar(fila.id);
+
+      if (reconciliacion.estado === "active")
+      {
+        return NextResponse.json(
+          { success: true, activado: true, estado: "active" },
+          { status: 200 },
+        );
+      }
+
+      if (reconciliacion.estado === "pending" && reconciliacion.initPoint !== null)
+      {
+        return NextResponse.json(
+          {
+            success: true,
+            preapprovalId: reconciliacion.preapprovalId,
+            initPoint: reconciliacion.initPoint,
+            status: "pending",
+            reusado: true,
+          },
+          { status: 200 },
+        );
+      }
+    }
+    catch (error)
+    {
+      console.error("[suscripcion/crear] reconciliación", error instanceof Error ? error.message : error);
+    }
+
     const preapproval = await subscriptionService.crearParaNegocio(
       fila.id,
       payerEmail,

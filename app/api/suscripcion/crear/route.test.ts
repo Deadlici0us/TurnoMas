@@ -13,7 +13,7 @@ vi.mock("@/lib/auth/demo-guard", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return { subscriptionService: { crearParaNegocio: vi.fn() } };
+  return { subscriptionService: { crearParaNegocio: vi.fn(), reconciliar: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -29,6 +29,7 @@ vi.mock("@/lib/supabase/admin", () =>
 const mockAssertModo = vi.mocked(assertModoEditable);
 const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockCrear = vi.mocked(subscriptionService.crearParaNegocio);
+const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
@@ -65,6 +66,7 @@ beforeEach(() =>
 {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
+  mockReconciliar.mockResolvedValue({ estado: "none", preapprovalId: null, initPoint: null });
 });
 
 describe("POST /api/suscripcion/crear",
@@ -167,6 +169,57 @@ describe("POST /api/suscripcion/crear",
       initPoint: "https://mp/checkout/1",
       status: "pending",
     });
+  });
+
+  it("debería devolver activado si la reconciliación encuentra una autorizada",
+  async () =>
+  {
+    sesionDueno();
+    mockReconciliar.mockResolvedValueOnce({ estado: "active", preapprovalId: "pre-1", initPoint: null });
+
+    const response = await POST(solicitud());
+    const body = await response.json() as { activado: boolean; estado: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, activado: true, estado: "active" });
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it("debería reutilizar la suscripción pendiente sin crear otra",
+  async () =>
+  {
+    sesionDueno();
+    mockReconciliar.mockResolvedValueOnce({
+      estado: "pending",
+      preapprovalId: "pre-7",
+      initPoint: "https://mp/checkout/7",
+    });
+
+    const response = await POST(solicitud());
+    const body = await response.json() as { initPoint: string; reusado: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      preapprovalId: "pre-7",
+      initPoint: "https://mp/checkout/7",
+      status: "pending",
+      reusado: true,
+    });
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it("debería crear aunque la reconciliación falle",
+  async () =>
+  {
+    sesionDueno();
+    mockReconciliar.mockRejectedValueOnce(new Error("MP caído"));
+    mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/checkout/1", status: "pending" });
+
+    const response = await POST(solicitud());
+
+    expect(response.status).toBe(200);
+    expect(mockCrear).toHaveBeenCalled();
   });
 
   it("debería devolver 502 con detalle fuera de producción",

@@ -54,9 +54,18 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
       });
       const data = await response.json() as {
         initPoint?: unknown;
+        activado?: unknown;
         error?: unknown;
         detalle?: unknown;
       };
+      const ir = props.navegar ?? ((url: string): void => { window.location.assign(url); });
+
+      if (data.activado === true)
+      {
+        ir("/dashboard/facturacion");
+        return;
+      }
+
       const initPoint = typeof data.initPoint === "string" ? data.initPoint : null;
 
       if (!response.ok || initPoint === null)
@@ -70,7 +79,6 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
         return;
       }
 
-      const ir = props.navegar ?? ((url: string): void => { window.location.assign(url); });
       ir(initPoint);
     }
     catch
