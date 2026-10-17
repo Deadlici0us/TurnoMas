@@ -130,8 +130,31 @@ export interface PreapprovalPorEmail
 
 type FetchFn = typeof fetch;
 
+/**
+ * Error de la API de MercadoPago que conserva el status HTTP.
+ *
+ * Permite distinguir un `404` (recurso que no existe para el token, p. ej.
+ * un preapproval huérfano) de un error transitorio (`5xx`/red) y decidir si
+ * conviene que MP reintente la entrega.
+ */
+export class MpHttpError extends Error
+{
+  readonly status: number;
+
+  /**
+   * @param mensaje Descripción legible del fallo (sin datos sensibles).
+   * @param status Código HTTP devuelto por MercadoPago.
+   */
+  constructor(mensaje: string, status: number)
+  {
+    super(mensaje);
+    this.name = "MpHttpError";
+    this.status = status;
+  }
+}
+
 /** Arma el error de MP incluyendo status y detalle para diagnóstico. */
-async function errorMp(response: Response, mensaje: string): Promise<Error>
+async function errorMp(response: Response, mensaje: string): Promise<MpHttpError>
 {
   let detalle = "";
 
@@ -144,8 +167,9 @@ async function errorMp(response: Response, mensaje: string): Promise<Error>
     detalle = "";
   }
 
-  return new Error(
+  return new MpHttpError(
     `${mensaje} (HTTP ${response.status})${detalle.length > 0 ? `: ${detalle}` : ""}.`,
+    response.status,
   );
 }
 
@@ -213,7 +237,7 @@ export async function consultarPreapproval(
 
   if (!response.ok)
   {
-    throw new Error(`No se pudo consultar la suscripción: ${response.status}`);
+    throw new MpHttpError(`No se pudo consultar la suscripción: ${response.status}`, response.status);
   }
 
   const data = (await response.json()) as {
@@ -250,7 +274,7 @@ export async function buscarPreapprovalsPorEstado(
 
   if (!response.ok)
   {
-    throw new Error(`No se pudieron listar las suscripciones: ${response.status}`);
+    throw new MpHttpError(`No se pudieron listar las suscripciones: ${response.status}`, response.status);
   }
 
   const data = (await response.json()) as { results?: unknown };
@@ -301,7 +325,7 @@ export async function cancelarPreapproval(
 
   if (!response.ok)
   {
-    throw new Error("No se pudo cancelar la suscripción en MercadoPago.");
+    throw new MpHttpError("No se pudo cancelar la suscripción en MercadoPago.", response.status);
   }
 }
 
@@ -325,7 +349,7 @@ export async function consultarCobroSuscripcion(
 
   if (!response.ok)
   {
-    throw new Error(`No se pudo consultar el cobro de suscripción: ${response.status}`);
+    throw new MpHttpError(`No se pudo consultar el cobro de suscripción: ${response.status}`, response.status);
   }
 
   const data = (await response.json()) as {

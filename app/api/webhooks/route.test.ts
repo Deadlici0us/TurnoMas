@@ -6,6 +6,7 @@ import { calendarService } from "@/lib/services/calendar";
 import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
 import { paymentService } from "@/lib/services/payment";
 import { subscriptionService } from "@/lib/services/subscription";
+import { MpHttpError } from "@/lib/payments/subscription";
 
 vi.mock("@/lib/services/payment", () =>
 {
@@ -98,14 +99,14 @@ beforeEach(() =>
 describe("POST /api/webhooks",
 () =>
 {
-  it("debería rechazar un tipo inválido en español",
+  it("debería ignorar con 200 un tópico no soportado",
   async () =>
   {
     const response = await POST(requestWith({ type: "otro" }));
-    const body = await response.json() as { error: string };
+    const body = await response.json() as { success: boolean; ignorado: boolean };
 
-    expect(response.status).toBe(400);
-    expect(body.error).toBe("Tipo de webhook inválido.");
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, ignorado: true });
   });
 
   it("debería rechazar sin ID de pago en español",
@@ -396,6 +397,20 @@ describe("POST /api/webhooks suscripciones",
 
     expect(response.status).toBe(502);
     expect(body.error).toBe("No pudimos consultar la suscripción.");
+  });
+
+  it("debería ignorar con 200 un preapproval no encontrado (huérfano)",
+  async () =>
+  {
+    mockSubEstado.mockRejectedValueOnce(
+      new MpHttpError("No se pudo consultar la suscripción: 404", 404));
+
+    const response = await POST(requestWith(ALTA));
+    const body = await response.json() as { success: boolean; ignorado: boolean; motivo: string };
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, ignorado: true, motivo: "preapproval_no_encontrado" });
+    expect(mockSubActivar).not.toHaveBeenCalled();
   });
 
   it("debería confirmar el plan con cobro aprobado",

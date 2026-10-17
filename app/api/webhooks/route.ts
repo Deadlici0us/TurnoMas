@@ -4,6 +4,7 @@ import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
 import { subscriptionService } from "@/lib/services/subscription";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
+import { MpHttpError } from "@/lib/payments/subscription";
 import {
   esAltaSuscripcion,
   esCobroSuscripcion,
@@ -149,13 +150,29 @@ async function aplicarAltaSuscripcion(
   {
     estado = await subscriptionService.consultarEstado(preapprovalId);
   }
-  catch
+  catch (error)
   {
+    // 404 = preapproval que el token actual no puede leer (huérfano de otra
+    // cuenta/usuario de prueba). Se ignora con 200 para cortar los reintentos.
+    if (error instanceof MpHttpError && error.status === 404)
+    {
+      console.warn(`[webhooks/suscripcion] preapproval ${preapprovalId} no encontrado (404); se ignora.`);
+
+      return NextResponse.json({ success: true, ignorado: true, motivo: "preapproval_no_encontrado" });
+    }
+
+    console.error(
+      `[webhooks/suscripcion] no se pudo consultar el preapproval ${preapprovalId}:`,
+      error instanceof Error ? error.message : error,
+    );
+
     return NextResponse.json({ error: "No pudimos consultar la suscripción." }, { status: 502 });
   }
 
   if (estado.externalReference === null || estado.externalReference.length === 0)
   {
+    console.warn(`[webhooks/suscripcion] preapproval ${preapprovalId} sin external_reference; se ignora.`);
+
     return NextResponse.json({ success: true, status: estado.status, sinNegocio: true });
   }
 
@@ -172,6 +189,10 @@ async function aplicarAltaSuscripcion(
 
     return NextResponse.json({ success: true, status: estado.status });
   }
+
+  console.info(
+    `[webhooks/suscripcion] preapproval ${preapprovalId} en estado ${estado.status}; sin cambios.`,
+  );
 
   return NextResponse.json({ success: true, status: estado.status });
 }
@@ -190,6 +211,8 @@ async function aplicarCobroSuscripcion(
 
   if (vinculo === null)
   {
+    console.error(`[webhooks/suscripcion] no se pudo vincular el cobro ${paymentId}.`);
+
     return NextResponse.json({ error: "No pudimos vincular el cobro." }, { status: 502 });
   }
 
@@ -225,7 +248,11 @@ export async function POST(request: Request)
 
     if (!esNotificacionPago(body) && !esAltaSuscripcion(body) && !esCobroSuscripcion(body))
     {
-      return NextResponse.json({ error: "Tipo de webhook inválido." }, { status: 400 });
+      // Tópicos que no manejamos (vinculación de apps, planes, reclamos…):
+      // se aceptan para que MP no los marque como fallidos ni reintente.
+      console.info("[webhooks] tópico no soportado; se ignora.");
+
+      return NextResponse.json({ success: true, ignorado: true });
     }
 
     const paymentId = extraerPagoId(body);
@@ -248,6 +275,10 @@ export async function POST(request: Request)
 
     if (!firmaOk)
     {
+      console.warn(
+        `[webhooks] firma inválida (firma=${firma !== null}, request-id=${requestId !== null}, ts=${ts.length > 0}).`,
+      );
+
       return NextResponse.json({ error: "Firma del webhook inválida." }, { status: 401 });
     }
 
@@ -270,8 +301,10 @@ export async function POST(request: Request)
 
     return aplicarResultadoPago(paymentStatus, paymentId);
   }
-  catch
+  catch (error)
   {
+    console.error("[webhooks] no se pudo procesar:", error instanceof Error ? error.message : error);
+
     return NextResponse.json({ error: "No se pudo procesar el webhook." }, { status: 500 });
   }
 }

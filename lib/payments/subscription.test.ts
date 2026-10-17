@@ -8,6 +8,7 @@ import {
   consultarPreapproval,
   crearPreapproval,
   MONTO_PLAN_PESOS,
+  MpHttpError,
   resolverMontoPlan,
   resolverPlanPais,
 } from "./subscription";
@@ -231,6 +232,18 @@ describe("consultarPreapproval",
 
     await expect(consultarPreapproval("pre-x", "APP_USR-platform", fetchMock))
       .rejects.toThrow("404");
+  });
+
+  it("debería conservar el status HTTP en MpHttpError",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaError(404));
+
+    const error = await consultarPreapproval("pre-x", "APP_USR-platform", fetchMock)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(MpHttpError);
+    expect((error as MpHttpError).status).toBe(404);
   });
 });
 
