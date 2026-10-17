@@ -23,16 +23,19 @@ export async function GET(request: Request): Promise<ReturnType<typeof NextRespo
 
   const token = readEnv("MP_ACCESS_TOKEN");
   const secret = readEnv("MP_WEBHOOK_SECRET");
-  const preapprovalId = new URL(request.url).searchParams.get("preapproval");
+  const params = new URL(request.url).searchParams;
+  const preapprovalId = params.get("preapproval");
 
   const resultado: Record<string, unknown> = {
     tokenLen: token !== null ? token.length : null,
     tokenFp: fingerprint(token),
     secretLen: secret !== null ? secret.length : null,
     secretFp: fingerprint(secret),
+    secretPrefix: secret !== null ? secret.slice(0, 7) : null,
   };
 
   await probarSupabase(resultado);
+  calcularFirma(params, secret, resultado);
 
   if (preapprovalId !== null && preapprovalId.length > 0)
   {
@@ -115,6 +118,34 @@ async function reproducirWebhook(
   {
     resultado.webhookThrow = error instanceof Error ? error.message : String(error);
   }
+}
+
+/**
+ * Calcula el HMAC del manifiesto oficial con el secreto del deploy.
+ *
+ * Con `id`, `rid` y `ts` en el query permite comparar contra la firma
+ * `v1` real que envió MercadoPago y así aislar si el problema es el
+ * secreto o el manifiesto. No expone el secreto, solo el HMAC resultante.
+ */
+function calcularFirma(
+  params: URLSearchParams,
+  secret: string | null,
+  resultado: Record<string, unknown>,
+): void
+{
+  const id = params.get("id");
+  const rid = params.get("rid");
+  const ts = params.get("ts");
+
+  if (id === null || ts === null || secret === null)
+  {
+    return;
+  }
+
+  const manifest = construirManifestMp(id, rid, ts);
+
+  resultado.manifest = manifest;
+  resultado.hmac = createHmac("sha256", secret).update(manifest).digest("hex");
 }
 
 /** Devuelve un fingerprint no reversible (primeros 16 hex de sha256). */
