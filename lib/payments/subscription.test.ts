@@ -5,7 +5,6 @@ import {
   cancelarPreapproval,
   consultarCobroSuscripcion,
   consultarPreapproval,
-  crearPlanPreapproval,
   crearPreapproval,
   MONTO_PLAN_PESOS,
   resolverMontoPlan,
@@ -81,7 +80,7 @@ describe("resolverPlanPais",
   () =>
   {
     expect(resolverPlanPais("ar", {})).toEqual(
-      { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes", planId: null });
+      { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes" });
     expect(resolverPlanPais("mx", {}).currency).toBe("USD");
     expect(resolverPlanPais("mx", {}).monto).toBe(15);
     expect(resolverPlanPais(null, {}).currency).toBe("USD");
@@ -95,27 +94,24 @@ describe("resolverPlanPais",
     expect(resolverPlanPais("mx", { MP_PLAN_USD: "20" }).monto).toBe(20);
     expect(() => resolverPlanPais("ar", { MP_PLAN_ARS: "cero" })).toThrow("MP_PLAN_ARS");
   });
-
-  it("debería resolver el planId del plan de MP por país",
-  () =>
-  {
-    expect(resolverPlanPais("ar", { MP_PLAN_ID_AR: "plan-ar-1" }).planId).toBe("plan-ar-1");
-    expect(resolverPlanPais("ar", {}).planId).toBeNull();
-    expect(resolverPlanPais("mx", { MP_PLAN_ID_USD: "plan-usd-1" }).planId).toBe("plan-usd-1");
-  });
 });
 
-describe("crearPlanPreapproval",
+describe("crearPreapproval",
 () =>
 {
-  it("debería crear el plan reutilizable y devolver su id",
+  it("debería crear la suscripción sin plan en pending y devolver el init_point",
   async () =>
   {
-    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "plan-ar-1" }));
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({
+      id: "pre-1",
+      status: "pending",
+      init_point: "https://mp/checkout/pre-1",
+    }));
 
-    const result = await crearPlanPreapproval(
+    const result = await crearPreapproval(
       {
-        reason: "TurnoMas - Plan mensual",
+        negocioId: "neg-1",
+        payerEmail: "pagador@mp.com",
         backUrl: "https://turnomas.com/dashboard/facturacion",
         monto: 14999,
         currency: "ARS",
@@ -124,70 +120,22 @@ describe("crearPlanPreapproval",
       fetchMock,
     );
 
-    expect(result).toEqual({ id: "plan-ar-1" });
+    expect(result).toEqual({ id: "pre-1", initPoint: "https://mp/checkout/pre-1", status: "pending" });
     expect(ultimoBody(cuerpos)).toMatchObject({
       reason: "TurnoMas - Plan mensual",
-      back_url: "https://turnomas.com/dashboard/facturacion",
+      external_reference: "neg-1",
+      payer_email: "pagador@mp.com",
       auto_recurring: {
         frequency: 1,
         frequency_type: "months",
         transaction_amount: 14999,
         currency_id: "ARS",
       },
-      payment_methods_allowed: {
-        payment_types: [{ id: "account_money" }, { id: "credit_card" }, { id: "debit_card" }],
-      },
-    });
-  });
-
-  it("debería lanzar cuando MP rechaza el plan",
-  async () =>
-  {
-    const { fetchMock } = instalarMpFetch(respuestaError(401));
-
-    await expect(crearPlanPreapproval(
-      {
-        reason: "x",
-        backUrl: "https://x/y",
-        monto: 14999,
-        currency: "ARS",
-        platformToken: "APP_USR-platform",
-      },
-      fetchMock,
-    )).rejects.toThrow(/No se pudo crear el plan en MercadoPago \(HTTP 401\)/);
-  });
-});
-
-describe("crearPreapproval",
-() =>
-{
-  it("debería crear la suscripción sobre el plan con la tarjeta tokenizada",
-  async () =>
-  {
-    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "authorized" }));
-
-    const result = await crearPreapproval(
-      {
-        negocioId: "neg-1",
-        payerEmail: "pagador@mp.com",
-        cardTokenId: "card-tok-1",
-        planId: "plan-ar-1",
-        backUrl: "https://turnomas.com/dashboard/facturacion",
-        platformToken: "APP_USR-platform",
-      },
-      fetchMock,
-    );
-
-    expect(result).toEqual({ id: "pre-1", status: "authorized" });
-    expect(ultimoBody(cuerpos)).toMatchObject({
-      preapproval_plan_id: "plan-ar-1",
-      payer_email: "pagador@mp.com",
-      card_token_id: "card-tok-1",
-      external_reference: "neg-1",
       back_url: "https://turnomas.com/dashboard/facturacion",
-      status: "authorized",
+      status: "pending",
     });
-    expect(ultimoBody(cuerpos)).not.toHaveProperty("auto_recurring");
+    expect(ultimoBody(cuerpos)).not.toHaveProperty("preapproval_plan_id");
+    expect(ultimoBody(cuerpos)).not.toHaveProperty("card_token_id");
   });
 
   it("debería lanzar cuando MP rechaza",
@@ -199,9 +147,9 @@ describe("crearPreapproval",
       {
         negocioId: "neg-1",
         payerEmail: "pagador@mp.com",
-        cardTokenId: "card-tok-1",
-        planId: "plan-ar-1",
         backUrl: "https://turnomas.com/dashboard/facturacion",
+        monto: 14999,
+        currency: "ARS",
         platformToken: "APP_USR-platform",
       },
       fetchMock,

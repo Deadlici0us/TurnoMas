@@ -1,11 +1,9 @@
-import SuscripcionCardForm from "@/components/suscripcion-card-form";
-
 /**
  * Paywall a pantalla completa para negocios con el plan vencido.
  *
  * Cubre todo el dashboard cuando el negocio está bloqueado: muestra el plan
- * y ofrece reactivarlo con el formulario de tarjeta de MercadoPago. No es
- * descartable; la única acción es activar el plan (o cerrar sesión).
+ * y ofrece reactivarlo pagando con MercadoPago (el pagador elige saldo o
+ * tarjeta en el checkout). No es descartable; sólo se activa o se cierra sesión.
  */
 const BENEFICIOS = [
   "Reservas ilimitadas",
@@ -19,15 +17,13 @@ const BENEFICIOS = [
 export interface PaywallPlanVencidoProps
 {
   readonly etiquetaPlan: string;
-  readonly monto: number;
-  readonly publicKey: string | null;
+  readonly activar: (formData: FormData) => Promise<void>;
   readonly logout: () => Promise<void>;
 }
 
 export default function PaywallPlanVencido({
   etiquetaPlan,
-  monto,
-  publicKey,
+  activar,
   logout,
 }: PaywallPlanVencidoProps)
 {
@@ -64,23 +60,39 @@ export default function PaywallPlanVencido({
             </li>
           ))}
         </ul>
-        <div className="mt-8">
-          {publicKey === null ? (
-            <p className="text-xs font-semibold text-rose-300 text-center">
-              El pago con tarjeta no está disponible en este momento.
-            </p>
-          ) : (
-            <SuscripcionCardForm publicKey={publicKey} monto={monto} emailPagador="" />
-          )}
-          <form action={logout} className="mt-3 text-center">
-            <button
-              type="submit"
-              className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              Cerrar sesión
-            </button>
-          </form>
-        </div>
+        <form action={activar} className="mt-8 space-y-3">
+          <label htmlFor="payer-email" className="block text-sm font-medium text-slate-300">
+            Email de tu cuenta de MercadoPago
+          </label>
+          <input
+            id="payer-email"
+            type="email"
+            name="payerEmail"
+            required
+            placeholder="tu-cuenta@ejemplo.com"
+            autoComplete="email"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+              placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+          />
+          <button
+            type="submit"
+            className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
+              rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
+              transition-all duration-300 hover:-translate-y-0.5"
+          >
+            <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
+              bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
+            Pagar con MercadoPago
+          </button>
+        </form>
+        <form action={logout} className="mt-3 text-center">
+          <button
+            type="submit"
+            className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Cerrar sesión
+          </button>
+        </form>
       </div>
     </div>
   );

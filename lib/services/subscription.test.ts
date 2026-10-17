@@ -34,42 +34,31 @@ beforeEach(() =>
 describe("subscriptionService.crearParaNegocio",
 () =>
 {
-  it("debería crear la suscripción AR sobre el plan con la tarjeta tokenizada",
+  it("debería crear la suscripción sin plan y devolver el init_point",
   async () =>
   {
     vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
-    vi.stubEnv("MP_PLAN_ID_AR", "plan-ar-1");
     const cuerpos: string[] = [];
     vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body?: unknown } = {}) =>
     {
       cuerpos.push(typeof init.body === "string" ? init.body : "");
 
-      return { ok: true, json: async () => ({ id: "pre-1", status: "authorized" }) };
+      return { ok: true, json: async () => ({ id: "pre-1", status: "pending", init_point: "https://mp/checkout/pre-1" }) };
     }));
 
-    const result = await subscriptionService.crearParaNegocio("neg-ar", "pagador@mp.com", "ar", "card-tok-1");
+    const result = await subscriptionService.crearParaNegocio("neg-ar", "pagador@mp.com", "ar");
 
-    expect(result).toEqual({ id: "pre-1", status: "authorized" });
+    expect(result).toEqual({ id: "pre-1", initPoint: "https://mp/checkout/pre-1", status: "pending" });
 
     const body = JSON.parse(cuerpos[0]) as Record<string, unknown>;
 
     expect(body).toMatchObject({
-      preapproval_plan_id: "plan-ar-1",
-      card_token_id: "card-tok-1",
+      external_reference: "neg-ar",
       payer_email: "pagador@mp.com",
-      status: "authorized",
+      status: "pending",
+      auto_recurring: { transaction_amount: 14999, currency_id: "ARS" },
     });
-  });
-
-  it("debería rechazar países sin plan configurado",
-  async () =>
-  {
-    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
-
-    await expect(subscriptionService.crearParaNegocio("neg-mx", "c@d.com", "mx", "card-tok-1"))
-      .rejects.toThrow("El plan de pago no está configurado para este país.");
   });
 });
 

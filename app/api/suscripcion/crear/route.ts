@@ -1,9 +1,9 @@
 /**
- * Crea la suscripción SaaS (plan de MercadoPago) para el negocio del dueño.
+ * Crea la suscripción SaaS (sin plan, `pending`) para el negocio del dueño.
  *
- * Recibe el token de tarjeta generado por el Card Brick y el email del
- * pagador; con eso crea el preapproval autorizado sobre el plan AR. La demo
- * nunca suscribe (403).
+ * Recibe el email de la cuenta de MercadoPago del pagador y devuelve el
+ * `init_point` para que complete el checkout (saldo en cuenta o tarjeta).
+ * La activación ocurre cuando MP confirma la autorización (webhook).
  */
 
 import { NextResponse } from "next/server";
@@ -15,7 +15,6 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 interface CrearBody
 {
-  readonly cardTokenId?: unknown;
   readonly payerEmail?: unknown;
 }
 
@@ -31,25 +30,6 @@ export async function POST(request: Request)
       { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
       { status: 403 },
     );
-  }
-
-  let body: CrearBody | null = null;
-
-  try
-  {
-    body = (await request.json()) as CrearBody;
-  }
-  catch
-  {
-    body = null;
-  }
-
-  const cardTokenId = typeof body?.cardTokenId === "string" ? body.cardTokenId.trim() : "";
-  const emailPagador = typeof body?.payerEmail === "string" ? body.payerEmail.trim() : "";
-
-  if (cardTokenId.length === 0)
-  {
-    return NextResponse.json({ error: "Falta el token de la tarjeta." }, { status: 400 });
   }
 
   try
@@ -77,6 +57,18 @@ export async function POST(request: Request)
       );
     }
 
+    let body: CrearBody | null = null;
+
+    try
+    {
+      body = (await request.json()) as CrearBody;
+    }
+    catch
+    {
+      body = null;
+    }
+
+    const emailPagador = typeof body?.payerEmail === "string" ? body.payerEmail.trim() : "";
     const payerEmail = emailPagador.length > 0
       ? emailPagador
       : (typeof user.email === "string" ? user.email : "");
@@ -84,7 +76,7 @@ export async function POST(request: Request)
     if (payerEmail.length === 0)
     {
       return NextResponse.json(
-        { error: "Necesitamos el email del pagador para el débito mensual." },
+        { error: "Necesitamos el email de tu cuenta de MercadoPago." },
         { status: 400 },
       );
     }
@@ -106,16 +98,15 @@ export async function POST(request: Request)
       fila.id,
       payerEmail,
       typeof fila.pais === "string" ? fila.pais : null,
-      cardTokenId,
     );
 
-    if (preapproval.status === "authorized")
-    {
-      await subscriptionService.activarSuscripcion(fila.id, preapproval.id);
-    }
-
     return NextResponse.json(
-      { success: true, preapprovalId: preapproval.id, status: preapproval.status },
+      {
+        success: true,
+        preapprovalId: preapproval.id,
+        initPoint: preapproval.initPoint,
+        status: preapproval.status,
+      },
       { status: 200 },
     );
   }

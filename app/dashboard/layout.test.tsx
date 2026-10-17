@@ -24,9 +24,9 @@ vi.mock("@/app/dashboard/demo/actions", () =>
   return { resetDemoData: vi.fn() };
 });
 
-vi.mock("@/components/suscripcion-card-form", () =>
+vi.mock("@/app/dashboard/facturacion/actions", () =>
 {
-  return { default: () => <div data-testid="card-form" /> };
+  return { activarPlan: vi.fn() };
 });
 
 const mockData = vi.mocked(getDashboardData);

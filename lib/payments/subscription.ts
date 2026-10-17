@@ -1,10 +1,11 @@
 /**
- * Suscripciones SaaS vía Preapproval de MercadoPago (plan 14.999 ARS/mes).
+ * Suscripciones SaaS vía Preapproval de MercadoPago (14.999 ARS/mes).
  *
- * Todo corre con el token de la plataforma: el dueño autoriza el débito
- * con su tarjeta y MP cobra solo cada mes. Funciones puras con fetch
- * inyectable para tests sin red. Nunca loguear valores de tokens.
- * Montos en pesos enteros (MP espera pesos, no centavos).
+ * Se crea una suscripción **sin plan asociado** en estado `pending` y se
+ * comparte su `init_point`: el pagador completa el checkout eligiendo el
+ * medio (saldo en cuenta o tarjeta). El `external_reference` lleva el
+ * negocio para poder mapear la suscripción en los webhooks. Funciones puras
+ * con fetch inyectable para tests sin red. Nunca loguear valores de tokens.
  */
 
 import type { EnvRecord } from "@/lib/env/env";
@@ -12,24 +13,17 @@ import { readEnv } from "@/lib/env/env";
 
 const MP_API_BASE = "https://api.mercadopago.com";
 
-/**
- * Plan mensual por país.
- *
- * `planId` es el `preapproval_plan_id` de MercadoPago (plantilla creada una
- * vez). Hoy solo AR está implementado; el resto queda desacoplado con
- * `planId: null` hasta que se agregue la suscripción en USD.
- */
+/** Precio mensual del plan por país (solo AR en ARS, resto en USD). */
 export interface PlanPais
 {
   readonly monto: number;
   readonly currency: string;
   readonly etiqueta: string;
-  readonly planId: string | null;
 }
 
 export const PLAN_POR_PAIS: Record<string, PlanPais> = {
-  ar: { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes", planId: null },
-  mx: { monto: 15, currency: "USD", etiqueta: "U$S 15 USD/mes", planId: null },
+  ar: { monto: 14999, currency: "ARS", etiqueta: "$ 14.999 ARS/mes" },
+  mx: { monto: 15, currency: "USD", etiqueta: "U$S 15 USD/mes" },
 };
 
 export const PLAN_DEFAULT = PLAN_POR_PAIS.mx;
@@ -64,11 +58,9 @@ export function resolverMontoPlan(env: EnvRecord = process.env): number
 }
 
 /**
- * Resuelve el plan por país del negocio (AR en ARS, resto en USD).
+ * Resuelve el monto y la moneda del plan según el país del negocio.
  *
- * Overrides de monto: `MP_PLAN_ARS` y `MP_PLAN_USD`. El `preapproval_plan_id`
- * sale de `MP_PLAN_ID_AR` / `MP_PLAN_ID_USD` (null si el país no está
- * implementado todavía).
+ * Overrides de monto: `MP_PLAN_ARS` y `MP_PLAN_USD`.
  */
 export function resolverPlanPais(pais: string | null, env: EnvRecord = process.env): PlanPais
 {
@@ -78,42 +70,29 @@ export function resolverPlanPais(pais: string | null, env: EnvRecord = process.e
   {
     const monto = leerMontoEnv(env, "MP_PLAN_ARS") ?? PLAN_POR_PAIS.ar.monto;
 
-    return { ...PLAN_POR_PAIS.ar, monto, planId: readEnv("MP_PLAN_ID_AR", env) };
+    return { ...PLAN_POR_PAIS.ar, monto };
   }
 
   const monto = leerMontoEnv(env, "MP_PLAN_USD") ?? PLAN_POR_PAIS.mx.monto;
 
-  return { ...PLAN_POR_PAIS.mx, monto, planId: readEnv("MP_PLAN_ID_USD", env) };
+  return { ...PLAN_POR_PAIS.mx, monto };
 }
 
 export interface PreapprovalInput
 {
   readonly negocioId: string;
   readonly payerEmail: string;
-  readonly cardTokenId: string;
-  readonly planId: string;
-  readonly backUrl: string;
-  readonly platformToken: string;
-}
-
-export interface PreapprovalCreada
-{
-  readonly id: string;
-  readonly status: string;
-}
-
-export interface PlanInput
-{
-  readonly reason: string;
   readonly backUrl: string;
   readonly monto: number;
   readonly currency: string;
   readonly platformToken: string;
 }
 
-export interface PlanCreado
+export interface PreapprovalCreada
 {
   readonly id: string;
+  readonly initPoint: string;
+  readonly status: string;
 }
 
 export interface PreapprovalEstado
@@ -159,53 +138,11 @@ async function errorMp(response: Response, mensaje: string): Promise<Error>
 }
 
 /**
- * Crea el plan (plantilla) reutilizable en MercadoPago.
+ * Crea la suscripción de un negocio sin plan, en estado `pending`.
  *
- * Operación de administración: se corre una vez y su `id` se guarda en
- * `MP_PLAN_ID_AR`. No se crea un plan por negocio.
- */
-export async function crearPlanPreapproval(input: PlanInput, fetchFn: FetchFn = fetch): Promise<PlanCreado>
-{
-  const response = await fetchFn(`${MP_API_BASE}/preapproval_plan`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.platformToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      reason: input.reason,
-      back_url: input.backUrl,
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: "months",
-        transaction_amount: input.monto,
-        currency_id: input.currency,
-      },
-      payment_methods_allowed: {
-        payment_types: [{ id: "account_money" }, { id: "credit_card" }, { id: "debit_card" }],
-      },
-    }),
-  });
-
-  if (!response.ok)
-  {
-    throw await errorMp(response, "No se pudo crear el plan en MercadoPago");
-  }
-
-  const data = (await response.json()) as { id?: unknown };
-
-  if (typeof data.id !== "string" || data.id.length === 0)
-  {
-    throw new Error("Respuesta inválida de MercadoPago al crear el plan.");
-  }
-
-  return { id: data.id };
-}
-
-/**
- * Crea la suscripción de un negocio sobre el plan (con tarjeta ya tokenizada).
- *
- * La suscripción con plan asociado exige `card_token_id` y `status: authorized`.
+ * MP devuelve un `init_point` para que el pagador complete el checkout
+ * eligiendo el medio (saldo en cuenta o tarjeta). El `external_reference`
+ * lleva el ID del negocio para mapear la suscripción en los webhooks.
  */
 export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn = fetch): Promise<PreapprovalCreada>
 {
@@ -216,13 +153,17 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      preapproval_plan_id: input.planId,
       reason: "TurnoMas - Plan mensual",
-      payer_email: input.payerEmail,
-      card_token_id: input.cardTokenId,
       external_reference: input.negocioId,
+      payer_email: input.payerEmail,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: input.monto,
+        currency_id: input.currency,
+      },
       back_url: input.backUrl,
-      status: "authorized",
+      status: "pending",
     }),
   });
 
@@ -231,14 +172,18 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
     throw await errorMp(response, "No se pudo crear la suscripción en MercadoPago");
   }
 
-  const data = (await response.json()) as { id?: unknown; status?: unknown };
+  const data = (await response.json()) as { id?: unknown; init_point?: unknown; status?: unknown };
 
-  if (typeof data.id !== "string" || data.id.length === 0)
+  if (typeof data.id !== "string" || typeof data.init_point !== "string")
   {
     throw new Error("Respuesta inválida de MercadoPago al crear la suscripción.");
   }
 
-  return { id: data.id, status: typeof data.status === "string" ? data.status : "unknown" };
+  return {
+    id: data.id,
+    initPoint: data.init_point,
+    status: typeof data.status === "string" ? data.status : "pending",
+  };
 }
 
 /** Consulta un preapproval por ID con el token de plataforma. */

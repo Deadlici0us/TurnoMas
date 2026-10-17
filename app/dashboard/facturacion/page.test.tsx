@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import FacturacionPage from "./page";
@@ -7,12 +7,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("./actions", () =>
 {
-  return { cancelarPlan: vi.fn() };
-});
-
-vi.mock("@/components/suscripcion-card-form", () =>
-{
-  return { default: () => <div data-testid="card-form" /> };
+  return { activarPlan: vi.fn(), cancelarPlan: vi.fn() };
 });
 
 vi.mock("@/lib/dashboard/queries", () =>
@@ -27,12 +22,6 @@ vi.mock("@/lib/supabase/server", () =>
 
 const mockData = vi.mocked(getDashboardData);
 const mockServer = vi.mocked(getSupabaseServer);
-
-beforeEach(() =>
-{
-  vi.unstubAllEnvs();
-  vi.stubEnv("NEXT_MP_PUBLIC_KEY", "pk-test");
-});
 
 /** Negocio con estado de suscripción dado. */
 function stubFacturacion(negocio: unknown, demo = false): void
@@ -67,7 +56,8 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByRole("heading", { name: "Facturación" })).toBeDefined();
-    expect(screen.getByTestId("card-form")).toBeDefined();
+    expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
   });
 
   it("debería mostrar activar en USD para México",
@@ -82,7 +72,8 @@ describe("FacturacionPage",
 
     render(await FacturacionPage());
 
-    expect(screen.getByTestId("card-form")).toBeDefined();
+    expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
   });
 
   it("debería mostrar cancelar con plan activo",
@@ -113,7 +104,8 @@ describe("FacturacionPage",
     render(await FacturacionPage());
 
     expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
-    expect(screen.getByTestId("card-form")).toBeDefined();
+    expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
   });
 
   it("debería ocultar acciones en la demo",

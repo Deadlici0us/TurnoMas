@@ -1,11 +1,9 @@
 import Link from "next/link";
 
-import { cancelarPlan } from "./actions";
+import { activarPlan, cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
-import SuscripcionCardForm from "@/components/suscripcion-card-form";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import { readEnv } from "@/lib/env/env";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
 import { resolverPlanPais } from "@/lib/payments/subscription";
@@ -40,7 +38,6 @@ export default async function FacturacionPage(
     suscripcion_mora_desde?: unknown;
   };
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
-  const publicKey = readEnv("NEXT_MP_PUBLIC_KEY");
   const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
   const estado = getNegocioSubscriptionStatus({
     created_at: creado,
@@ -122,12 +119,29 @@ export default async function FacturacionPage(
                 Cancelar plan
               </button>
             </form>
-          ) : publicKey === null ? (
-            <p className="text-xs font-semibold text-rose-300">
-              El pago con tarjeta no está disponible en este momento.
-            </p>
           ) : (
-            <SuscripcionCardForm publicKey={publicKey} monto={plan.monto} emailPagador="" />
+            <form action={activarPlan} className="space-y-3">
+              <label htmlFor="payer-email" className="block text-sm font-medium text-slate-300">
+                Email de tu cuenta de MercadoPago
+              </label>
+              <input
+                id="payer-email"
+                type="email"
+                name="payerEmail"
+                required
+                placeholder="tu-cuenta@ejemplo.com"
+                autoComplete="email"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
+                  placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
+                  hover:bg-blue-700 transition-colors"
+              >
+                Pagar con MercadoPago
+              </button>
+            </form>
           )}
           {suscripcionId !== null && !demo ? (
             <p className="text-xs text-slate-400 mt-4">

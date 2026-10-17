@@ -13,7 +13,7 @@ vi.mock("@/lib/auth/demo-guard", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return { subscriptionService: { crearParaNegocio: vi.fn(), activarSuscripcion: vi.fn() } };
+  return { subscriptionService: { crearParaNegocio: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -29,12 +29,11 @@ vi.mock("@/lib/supabase/admin", () =>
 const mockAssertModo = vi.mocked(assertModoEditable);
 const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockCrear = vi.mocked(subscriptionService.crearParaNegocio);
-const mockActivar = vi.mocked(subscriptionService.activarSuscripcion);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
-/** Request JSON con el token de tarjeta y, opcional, el email del pagador. */
-function solicitud(body: Record<string, unknown> = { cardTokenId: "card-tok-1" }): Request
+/** Request JSON con el email de pago. */
+function solicitud(body: Record<string, unknown> = { payerEmail: "pagador@mp.com" }): Request
 {
   return new Request("http://localhost/api/suscripcion/crear", {
     method: "POST",
@@ -84,19 +83,6 @@ describe("POST /api/suscripcion/crear",
     expect(mockCrear).not.toHaveBeenCalled();
   });
 
-  it("debería exigir el token de la tarjeta",
-  async () =>
-  {
-    mockAssertModo.mockResolvedValue(undefined);
-
-    const response = await POST(solicitud({ cardTokenId: "  " }));
-    const body = await response.json() as { error: string };
-
-    expect(response.status).toBe(400);
-    expect(body.error).toBe("Falta el token de la tarjeta.");
-    expect(mockCrear).not.toHaveBeenCalled();
-  });
-
   it("debería exigir sesión iniciada",
   async () =>
   {
@@ -113,37 +99,18 @@ describe("POST /api/suscripcion/crear",
     expect(body.error).toBe("Tenés que iniciar sesión para activar el plan.");
   });
 
-  it("debería bloquear al dueño demo",
-  async () =>
-  {
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockImplementationOnce(() =>
-    {
-      throw new Error("La cuenta demo es de solo lectura.");
-    });
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "demo-id", email: "demo@turnomas.com" } } }) },
-    } as never);
-
-    const response = await POST(solicitud());
-    const body = await response.json() as { error: string };
-
-    expect(response.status).toBe(403);
-    expect(body.error).toContain("solo lectura");
-  });
-
-  it("debería usar el email del pagador del body antes que el de la sesión",
+  it("debería usar el email de pago del body",
   async () =>
   {
     sesionDueno();
-    mockCrear.mockResolvedValueOnce({ id: "pre-1", status: "authorized" });
+    mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/1", status: "pending" });
 
-    await POST(solicitud({ cardTokenId: "card-tok-1", payerEmail: "pagador@mp.com" }));
+    await POST(solicitud({ payerEmail: "pago@mp.com" }));
 
-    expect(mockCrear).toHaveBeenCalledWith("neg-1", "pagador@mp.com", null, "card-tok-1");
+    expect(mockCrear).toHaveBeenCalledWith("neg-1", "pago@mp.com", null);
   });
 
-  it("debería exigir email para el débito",
+  it("debería exigir email de pago",
   async () =>
   {
     mockAssertModo.mockResolvedValue(undefined);
@@ -152,11 +119,11 @@ describe("POST /api/suscripcion/crear",
       auth: { getUser: async () => ({ data: { user: { id: "user-1", email: null } } }) },
     } as never);
 
-    const response = await POST(solicitud());
+    const response = await POST(solicitud({ payerEmail: "   " }));
     const body = await response.json() as { error: string };
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe("Necesitamos el email del pagador para el débito mensual.");
+    expect(body.error).toBe("Necesitamos el email de tu cuenta de MercadoPago.");
   });
 
   it("debería exigir negocio antes de suscribir",
@@ -184,18 +151,22 @@ describe("POST /api/suscripcion/crear",
     expect(body.error).toBe("Creá tu negocio antes de activar el plan.");
   });
 
-  it("debería activar la suscripción autorizada",
+  it("debería devolver el link de pago de MP",
   async () =>
   {
     sesionDueno();
-    mockCrear.mockResolvedValueOnce({ id: "pre-1", status: "authorized" });
+    mockCrear.mockResolvedValueOnce({ id: "pre-1", initPoint: "https://mp/checkout/1", status: "pending" });
 
     const response = await POST(solicitud());
-    const body = await response.json() as { success: boolean; status: string };
+    const body = await response.json() as { success: boolean; initPoint: string };
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ success: true, preapprovalId: "pre-1", status: "authorized" });
-    expect(mockActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+    expect(body).toEqual({
+      success: true,
+      preapprovalId: "pre-1",
+      initPoint: "https://mp/checkout/1",
+      status: "pending",
+    });
   });
 
   it("debería devolver 502 cuando MP falla",
