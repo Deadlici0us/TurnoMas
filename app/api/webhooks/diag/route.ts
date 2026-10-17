@@ -182,6 +182,7 @@ function calcularFirma(
   const rid = params.get("rid");
   const ts = params.get("ts");
   const v1 = params.get("v1");
+  const nid = params.get("nid");
 
   if (id === null || ts === null || secret === null)
   {
@@ -189,22 +190,38 @@ function calcularFirma(
   }
 
   const idLow = id.toLowerCase();
-  const variantes: Record<string, string> = {
-    oficial: `id:${idLow};request-id:${rid ?? ""};ts:${ts};`,
+  const tsMs = /^\d+$/.test(ts) ? String(Number(ts) * 1000) : ts;
+  const ridSeg = rid ?? "";
+  const candidatos: Record<string, string> = {
+    oficial: `id:${idLow};request-id:${ridSeg};ts:${ts};`,
     sinRequestId: `id:${idLow};ts:${ts};`,
-    sinPuntoYComa: `id:${idLow};request-id:${rid ?? ""};ts:${ts}`,
-    idOriginal: `id:${id};request-id:${rid ?? ""};ts:${ts};`,
-    ordenInvertido: `request-id:${rid ?? ""};id:${idLow};ts:${ts};`,
+    sinPuntoYComa: `id:${idLow};request-id:${ridSeg};ts:${ts}`,
+    sinRequestIdSinPC: `id:${idLow};ts:${ts}`,
+    idOriginal: `id:${id};request-id:${ridSeg};ts:${ts};`,
+    ordenInvertido: `request-id:${ridSeg};id:${idLow};ts:${ts};`,
+    soloTs: `ts:${ts};`,
+    tsMilisegundos: `id:${idLow};request-id:${ridSeg};ts:${tsMs};`,
+    idMayusculas: `id:${id.toUpperCase()};request-id:${ridSeg};ts:${ts};`,
+    conNotifId: nid !== null ? `id:${nid};request-id:${ridSeg};ts:${ts};` : "",
+    conNotifIdSinReq: nid !== null ? `id:${nid};ts:${ts};` : "",
   };
 
-  resultado.manifiestos = Object.fromEntries(
-    Object.entries(variantes).map(([k, m]) => [k, createHmac("sha256", secret).update(m).digest("hex")]),
-  );
+  const manifiestos: Record<string, string> = {};
+
+  for (const [k, m] of Object.entries(candidatos))
+  {
+    if (m.length > 0)
+    {
+      manifiestos[k] = createHmac("sha256", secret).update(m).digest("hex");
+    }
+  }
+
+  resultado.manifiestos = manifiestos;
   resultado.v1Recibido = v1;
 
   if (v1 !== null)
   {
-    const coincide = Object.entries(resultado.manifiestos as Record<string, string>)
+    const coincide = Object.entries(manifiestos)
       .filter(([, h]) => h === v1.toLowerCase())
       .map(([k]) => k);
 
