@@ -78,7 +78,7 @@ export async function activarPlan(formData: FormData): Promise<void>
 
   if (initPoint === null)
   {
-    redirect(`/dashboard/facturacion?error=${encodeURIComponent("No pudimos iniciar la activación. Probá de nuevo.")}`);
+    redirect(`/dashboard/facturacion?error=${encodeURIComponent(error ?? "No pudimos iniciar la activación. Probá de nuevo.")}`);
   }
 
   redirect(initPoint);
