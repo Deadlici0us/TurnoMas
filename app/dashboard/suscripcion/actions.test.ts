@@ -39,7 +39,11 @@ const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
 /** Sesión de dueño no demo con negocio. */
-function sesionDueno(negocio: unknown = { id: "neg-1", suscripcion_mp_id: "pre-1" }): void
+function sesionDueno(negocio: unknown = {
+  id: "neg-1",
+  suscripcion_mp_id: "pre-1",
+  suscripcion_vence_en: "2026-11-01T00:00:00Z",
+}): void
 {
   mockAssertModo.mockResolvedValue(undefined);
   mockAssertDueno.mockReturnValue(undefined);
@@ -66,7 +70,7 @@ beforeEach(() =>
 describe("cancelarPlan",
   () =>
   {
-    it("debería cancelar en MP y limpiar el plan local",
+    it("debería cancelar en MP conservando el vencimiento del período pago",
     async () =>
     {
       sesionDueno();
@@ -74,7 +78,18 @@ describe("cancelarPlan",
 
       await cancelarPlan();
 
-      expect(mockCancelar).toHaveBeenCalledWith("neg-1", "pre-1");
+      expect(mockCancelar).toHaveBeenCalledWith("neg-1", "pre-1", "2026-11-01T00:00:00Z");
+    });
+
+    it("debería cancelar en MP sin vencimiento cuando no hay período pago",
+    async () =>
+    {
+      sesionDueno({ id: "neg-1", suscripcion_mp_id: "pre-1", suscripcion_vence_en: null });
+      mockCancelar.mockResolvedValueOnce(undefined);
+
+      await cancelarPlan();
+
+      expect(mockCancelar).toHaveBeenCalledWith("neg-1", "pre-1", null);
     });
 
     it("debería limpiar el plan local sin preapproval en MP",

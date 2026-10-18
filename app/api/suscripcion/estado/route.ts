@@ -53,7 +53,7 @@ export async function GET()
 
     const admin = getSupabaseAdmin();
     const { data: negocio } = await admin.from("negocios")
-      .select("created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde")
+      .select("created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde, suscripcion_vence_en, suscripcion_cancelada_en")
       .eq("duenio_id", user.id).single();
 
     if (negocio === null)
@@ -69,6 +69,8 @@ export async function GET()
       suscripcion_estado?: unknown;
       suscripcion_mp_id?: unknown;
       suscripcion_mora_desde?: unknown;
+      suscripcion_vence_en?: unknown;
+      suscripcion_cancelada_en?: unknown;
     };
     const estado = getNegocioSubscriptionStatus({
       created_at: typeof fila.created_at === "string" ? fila.created_at : null,
@@ -78,6 +80,10 @@ export async function GET()
         typeof fila.suscripcion_mp_id === "string" ? fila.suscripcion_mp_id : null,
       suscripcion_mora_desde:
         typeof fila.suscripcion_mora_desde === "string" ? fila.suscripcion_mora_desde : null,
+      suscripcion_vence_en:
+        typeof fila.suscripcion_vence_en === "string" ? fila.suscripcion_vence_en : null,
+      suscripcion_cancelada_en:
+        typeof fila.suscripcion_cancelada_en === "string" ? fila.suscripcion_cancelada_en : null,
     });
 
     return NextResponse.json(

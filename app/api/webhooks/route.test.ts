@@ -38,6 +38,7 @@ vi.mock("@/lib/services/subscription", () =>
     subscriptionService: {
       consultarEstado: vi.fn(),
       activarSuscripcion: vi.fn(),
+      marcarCancelada: vi.fn(),
       cancelarSuscripcionLocal: vi.fn(),
       marcarPastDue: vi.fn(),
       resolverNegocioDeCobro: vi.fn(),
@@ -61,7 +62,7 @@ const mockBusinessToken = vi.mocked(paymentService.getBusinessAccessToken);
 const mockListConnected = vi.mocked(paymentService.listConnectedBusinessTokens);
 const mockSubEstado = vi.mocked(subscriptionService.consultarEstado);
 const mockSubActivar = vi.mocked(subscriptionService.activarSuscripcion);
-const mockSubCancelar = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
+const mockSubCancelada = vi.mocked(subscriptionService.marcarCancelada);
 const mockSubMora = vi.mocked(subscriptionService.marcarPastDue);
 const mockSubVinculo = vi.mocked(subscriptionService.resolverNegocioDeCobro);
 const mockSubRegistrarPago = vi.mocked(subscriptionService.registrarPago);
@@ -348,10 +349,14 @@ describe("POST /api/webhooks suscripciones",
   const ALTA = { type: "subscription_preapproval", data: { id: "pre-1" } };
   const COBRO = { type: "subscription_authorized_payment", data: { id: "999" } };
 
-  it("debería activar el plan con preapproval autorizado",
+  it("debería activar el plan con preapproval autorizado y su vencimiento",
   async () =>
   {
-    mockSubEstado.mockResolvedValueOnce({ status: "authorized", externalReference: "neg-1" });
+    mockSubEstado.mockResolvedValueOnce({
+      status: "authorized",
+      externalReference: "neg-1",
+      nextPaymentDate: "2026-11-01T00:00:00Z",
+    });
     mockSubActivar.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(ALTA));
@@ -359,27 +364,35 @@ describe("POST /api/webhooks suscripciones",
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, status: "authorized" });
-    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1", "2026-11-01T00:00:00Z");
   });
 
-  it("debería limpiar el plan con preapproval cancelado",
+  it("debería conservar el acceso con preapproval cancelado",
   async () =>
   {
-    mockSubEstado.mockResolvedValueOnce({ status: "cancelled", externalReference: "neg-1" });
-    mockSubCancelar.mockResolvedValueOnce(undefined);
+    mockSubEstado.mockResolvedValueOnce({
+      status: "canceled",
+      externalReference: "neg-1",
+      nextPaymentDate: null,
+    });
+    mockSubCancelada.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(ALTA));
     const body = await response.json() as { success: boolean; status: string };
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ success: true, status: "cancelled" });
-    expect(mockSubCancelar).toHaveBeenCalledWith("neg-1");
+    expect(body).toMatchObject({ success: true, status: "canceled" });
+    expect(mockSubCancelada).toHaveBeenCalledWith("neg-1", null);
   });
 
   it("debería responder sinNegocio sin referencia externa",
   async () =>
   {
-    mockSubEstado.mockResolvedValueOnce({ status: "authorized", externalReference: null });
+    mockSubEstado.mockResolvedValueOnce({
+      status: "authorized",
+      externalReference: null,
+      nextPaymentDate: null,
+    });
 
     const response = await POST(requestWith(ALTA));
     const body = await response.json() as { sinNegocio: boolean };
@@ -435,7 +448,7 @@ describe("POST /api/webhooks suscripciones",
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, status: "approved" });
-    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+    expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1", "2026-04-01T14:12:25.892Z");
     expect(mockSubRegistrarPago).toHaveBeenCalledWith({
       negocioId: "neg-1",
       preapprovalId: "pre-1",

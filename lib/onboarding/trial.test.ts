@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import
 {
   avisoSuscripcion,
+  diasSuscripcionRestantes,
   diasTrialRestantes,
   GRACIA_PAST_DUE_DIAS,
   TRIAL_DAYS,
@@ -139,6 +140,69 @@ describe("evaluateSubscription",
 
     expect(result).toBe("blocked");
   });
+
+  it("debería mantener el acceso de una suscripción cancelada hasta el vencimiento",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-10-20T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionCanceladaEn: new Date("2026-10-18T00:00:00Z"),
+        suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
+      }),
+    );
+
+    expect(result).toBe("active");
+  });
+
+  it("debería bloquear una suscripción cancelada pasada su fecha de vencimiento",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-11-02T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionCanceladaEn: new Date("2026-10-18T00:00:00Z"),
+        suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
+      }),
+    );
+
+    expect(result).toBe("blocked");
+  });
+
+  it("debería seguir activa sin cancelar aunque tenga vencimiento",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-11-02T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
+      }),
+    );
+
+    expect(result).toBe("active");
+  });
+
+  it("debería seguir activa si no conoce el vencimiento de la cancelada",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-11-02T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionCanceladaEn: new Date("2026-10-18T00:00:00Z"),
+        suscripcionVenceEn: null,
+      }),
+    );
+
+    expect(result).toBe("active");
+  });
 });
 
 describe("diasTrialRestantes",
@@ -151,6 +215,26 @@ describe("diasTrialRestantes",
     expect(diasTrialRestantes(null, new Date())).toBeNull();
     expect(diasTrialRestantes("invalida", new Date())).toBeNull();
     expect(diasTrialRestantes("2026-09-01T00:00:00Z", new Date("2026-10-01T00:00:00Z"))).toBe(0);
+  });
+});
+
+describe("diasSuscripcionRestantes",
+() =>
+{
+  it("debería calcular los días hasta el vencimiento",
+  () =>
+  {
+    expect(diasSuscripcionRestantes("2026-11-01T00:00:00Z", new Date("2026-10-20T00:00:00Z")))
+      .toBe(12);
+    expect(diasSuscripcionRestantes("2026-11-01T00:00:00Z", new Date("2026-11-02T00:00:00Z")))
+      .toBe(0);
+  });
+
+  it("debería devolver null con fecha ausente o inválida",
+  () =>
+  {
+    expect(diasSuscripcionRestantes(null, new Date())).toBeNull();
+    expect(diasSuscripcionRestantes("invalida", new Date())).toBeNull();
   });
 });
 

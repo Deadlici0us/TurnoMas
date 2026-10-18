@@ -14,6 +14,21 @@ export interface NegocioSubscriptionRow
   readonly suscripcion_estado: string | null;
   readonly suscripcion_mp_id: string | null;
   readonly suscripcion_mora_desde?: string | null;
+  readonly suscripcion_vence_en?: string | null;
+  readonly suscripcion_cancelada_en?: string | null;
+}
+
+/** Convierte un ISO 8601 a Date o null si falta/es inválido. */
+function aFecha(valor: string | null | undefined): Date | null
+{
+  if (valor === null || valor === undefined)
+  {
+    return null;
+  }
+
+  const fecha = new Date(valor);
+
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
 }
 
 /** Calcula trial/active/past_due/blocked para un negocio (o seed sin fecha). */
@@ -34,14 +49,13 @@ export function getNegocioSubscriptionStatus(
     return "trial";
   }
 
-  const moraCruda = negocio.suscripcion_mora_desde ?? null;
-  const moraDesde = moraCruda === null ? null : new Date(moraCruda);
-
   return evaluateSubscription({
     createdAt,
     now,
     suscripcionEstado: negocio.suscripcion_estado,
     suscripcionMpId: negocio.suscripcion_mp_id,
-    suscripcionMoraDesde: moraDesde !== null && !Number.isNaN(moraDesde.getTime()) ? moraDesde : null,
+    suscripcionMoraDesde: aFecha(negocio.suscripcion_mora_desde),
+    suscripcionVenceEn: aFecha(negocio.suscripcion_vence_en),
+    suscripcionCanceladaEn: aFecha(negocio.suscripcion_cancelada_en),
   });
 }

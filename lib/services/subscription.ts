@@ -125,7 +125,7 @@ export class SubscriptionService
     if (autorizadas.length > 0)
     {
       const elegida = autorizadas[0];
-      await this.activarSuscripcion(negocioId, elegida.id);
+      await this.activarSuscripcion(negocioId, elegida.id, elegida.nextPaymentDate);
 
       for (const duplicada of [...autorizadas.slice(1), ...pendientes])
       {
@@ -151,14 +151,27 @@ export class SubscriptionService
   }
 
   /** Activa el plan del negocio con el ID del preapproval autorizado. */
-  async activarSuscripcion(negocioId: string, preapprovalId: string): Promise<void>
+  async activarSuscripcion(
+    negocioId: string,
+    preapprovalId: string,
+    venceEn: string | null = null,
+  ): Promise<void>
   {
     const admin = getSupabaseAdmin();
-    const { error } = await admin.from("negocios").update({
+    const cambios: Record<string, unknown> = {
       suscripcion_estado: "active",
       suscripcion_mp_id: preapprovalId,
       suscripcion_mora_desde: null,
-    }).eq("id", negocioId);
+      suscripcion_cancelada_en: null,
+    };
+
+    // Sin fecha de MP se conserva el vencimiento previo en vez de borrarlo.
+    if (venceEn !== null)
+    {
+      cambios.suscripcion_vence_en = venceEn;
+    }
+
+    const { error } = await admin.from("negocios").update(cambios).eq("id", negocioId);
 
     if (error !== null)
     {
@@ -181,7 +194,43 @@ export class SubscriptionService
     }
   }
 
-  /** Limpia el plan local (el trial por fecha decide trial vs blocked). */
+  /**
+   * Marca la suscripción como cancelada sin cortar el acceso.
+   *
+   * El gate conserva el plan `active` hasta `suscripcion_vence_en` (fin del
+   * período pago) y recién ahí bloquea. Idempotente: reintentar la cancelación
+   * sólo refresca la marca y el vencimiento.
+   *
+   * @param negocioId Negocio dueño del plan.
+   * @param venceEn Fin del período pago (ISO 8601) o null para conservar el previo.
+   * @param desde Marca temporal de la cancelación.
+   */
+  async marcarCancelada(
+    negocioId: string,
+    venceEn: string | null,
+    desde: Date = new Date(),
+  ): Promise<void>
+  {
+    const admin = getSupabaseAdmin();
+    const cambios: Record<string, unknown> = {
+      suscripcion_estado: "active",
+      suscripcion_cancelada_en: desde.toISOString(),
+    };
+
+    if (venceEn !== null)
+    {
+      cambios.suscripcion_vence_en = venceEn;
+    }
+
+    const { error } = await admin.from("negocios").update(cambios).eq("id", negocioId);
+
+    if (error !== null)
+    {
+      throw new Error("No pudimos cancelar la suscripción. Probá de nuevo.");
+    }
+  }
+
+  /** Bloquea el plan local (drift real de MP: ya no existe la suscripción). */
   async cancelarSuscripcionLocal(negocioId: string): Promise<void>
   {
     const admin = getSupabaseAdmin();
@@ -198,7 +247,9 @@ export class SubscriptionService
   }
 
   /** Consulta un preapproval con el token de plataforma. */
-  async consultarEstado(preapprovalId: string): Promise<{ status: string; externalReference: string | null }>
+  async consultarEstado(
+    preapprovalId: string,
+  ): Promise<{ status: string; externalReference: string | null; nextPaymentDate: string | null }>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
 
@@ -209,18 +260,32 @@ export class SubscriptionService
 
     const estado = await consultarPreapproval(preapprovalId, platformToken);
 
-    return { status: estado.status, externalReference: estado.externalReference };
+    return {
+      status: estado.status,
+      externalReference: estado.externalReference,
+      nextPaymentDate: estado.nextPaymentDate,
+    };
   }
 
   /**
-   * Cancela en MP y limpia el plan local (idempotente).
+   * Cancela en MP y conserva el acceso local hasta el vencimiento (idempotente).
    *
    * Si MP rechaza porque el preapproval ya estaba cancelado (400) o no existe
-   * para el token (404), el objetivo ya está cumplido y se limpia el plan
-   * local igual; así una cancelación hecha desde MP no deja el estado colgado.
-   * Un fallo transitorio (5xx/red) sí se propaga para poder reintentar.
+   * para el token (404), el objetivo ya está cumplido y se marca la cancelación
+   * igual; así una cancelación hecha desde MP no deja el estado colgado. Un
+   * fallo transitorio (5xx/red) sí se propaga para poder reintentar.
+   *
+   * @param negocioId Negocio dueño del plan.
+   * @param preapprovalId Suscripción de MercadoPago a cancelar.
+   * @param venceEn Fin del período pago (ISO 8601) o null para conservar el previo.
+   * @param desde Marca temporal de la cancelación.
    */
-  async cancelarParaNegocio(negocioId: string, preapprovalId: string): Promise<void>
+  async cancelarParaNegocio(
+    negocioId: string,
+    preapprovalId: string,
+    venceEn: string | null = null,
+    desde: Date = new Date(),
+  ): Promise<void>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
 
@@ -241,7 +306,7 @@ export class SubscriptionService
       }
     }
 
-    await this.cancelarSuscripcionLocal(negocioId);
+    await this.marcarCancelada(negocioId, venceEn, desde);
   }
 
   /**

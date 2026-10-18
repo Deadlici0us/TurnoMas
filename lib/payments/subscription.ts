@@ -103,6 +103,7 @@ export interface PreapprovalEstado
   readonly externalReference: string | null;
   readonly payerEmail: string | null;
   readonly initPoint: string | null;
+  readonly nextPaymentDate: string | null;
 }
 
 /** Resumen de un preapproval listado por búsqueda (para reconciliación). */
@@ -113,6 +114,7 @@ export interface PreapprovalResumen
   readonly externalReference: string | null;
   readonly initPoint: string | null;
   readonly lastModified: string | null;
+  readonly nextPaymentDate: string | null;
 }
 
 export interface CobroSuscripcion
@@ -154,6 +156,35 @@ export function parsearMontoCentavos(valor: unknown): number | null
   }
 
   return Math.round(numero * 100);
+}
+
+/**
+ * Calcula el fin del período pago sumando un mes a la fecha del cobro.
+ *
+ * Respaldo local cuando MercadoPago no informa `next_payment_date`: la cuota
+ * aprobada cubre el mes siguiente. Devuelve ISO UTC o null si la fecha es
+ * inválida.
+ *
+ * @param fecha Cobro aprobado (`debit_date`/`date_created`) en ISO 8601.
+ * @return Fin del período en ISO UTC o null.
+ */
+export function primerVencimiento(fecha: string | null): string | null
+{
+  if (fecha === null)
+  {
+    return null;
+  }
+
+  const cobro = new Date(fecha);
+
+  if (Number.isNaN(cobro.getTime()))
+  {
+    return null;
+  }
+
+  cobro.setUTCMonth(cobro.getUTCMonth() + 1);
+
+  return cobro.toISOString();
 }
 
 export interface PreapprovalPorEmail
@@ -276,7 +307,7 @@ export async function consultarPreapproval(
 
   const data = (await response.json()) as {
     id?: unknown; status?: unknown; external_reference?: unknown;
-    payer_email?: unknown; init_point?: unknown;
+    payer_email?: unknown; init_point?: unknown; next_payment_date?: unknown;
   };
 
   return {
@@ -285,6 +316,7 @@ export async function consultarPreapproval(
     externalReference: typeof data.external_reference === "string" ? data.external_reference : null,
     payerEmail: typeof data.payer_email === "string" ? data.payer_email : null,
     initPoint: typeof data.init_point === "string" ? data.init_point : null,
+    nextPaymentDate: typeof data.next_payment_date === "string" ? data.next_payment_date : null,
   };
 }
 
@@ -337,6 +369,7 @@ export async function buscarPreapprovalsPorEstado(
       externalReference: typeof fila.external_reference === "string" ? fila.external_reference : null,
       initPoint: typeof fila.init_point === "string" ? fila.init_point : null,
       lastModified: modificado ?? creado,
+      nextPaymentDate: typeof fila.next_payment_date === "string" ? fila.next_payment_date : null,
     }];
   });
 }
@@ -354,7 +387,7 @@ export async function cancelarPreapproval(
       Authorization: `Bearer ${platformToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ status: "cancelled" }),
+    body: JSON.stringify({ status: "canceled" }),
   });
 
   if (!response.ok)

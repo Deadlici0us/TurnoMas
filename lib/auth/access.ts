@@ -38,6 +38,8 @@ interface NegocioRow
   readonly suscripcion_estado: string | null;
   readonly suscripcion_mp_id: string | null;
   readonly suscripcion_mora_desde: string | null;
+  readonly suscripcion_vence_en: string | null;
+  readonly suscripcion_cancelada_en: string | null;
 }
 
 /** Snapshot demo: la cookie `session=demo` actúa como sesión sin secrets. */
@@ -60,7 +62,7 @@ async function consultarNegocio(userId: string): Promise<NegocioRow | null>
   {
     const admin = getSupabaseAdmin();
     const { data } = await admin.from("negocios")
-      .select("created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde")
+      .select("created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde, suscripcion_vence_en, suscripcion_cancelada_en")
       .eq("duenio_id", userId)
       .maybeSingle();
 
@@ -112,6 +114,8 @@ async function resolveSupabaseAccess(
     suscripcion_estado: negocio.suscripcion_estado,
     suscripcion_mp_id: negocio.suscripcion_mp_id,
     suscripcion_mora_desde: negocio.suscripcion_mora_desde,
+    suscripcion_vence_en: negocio.suscripcion_vence_en,
+    suscripcion_cancelada_en: negocio.suscripcion_cancelada_en,
   });
 
   return {

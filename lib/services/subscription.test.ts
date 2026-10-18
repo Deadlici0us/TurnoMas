@@ -148,6 +148,7 @@ describe("subscriptionService.reconciliar",
         suscripcion_estado: "active",
         suscripcion_mp_id: "pre-a",
         suscripcion_mora_desde: null,
+        suscripcion_cancelada_en: null,
       }]);
       expect(urls.filter((url) => url.startsWith("PUT "))).toEqual([
         "PUT https://api.mercadopago.com/preapproval/pre-b",
@@ -191,6 +192,8 @@ describe("subscriptionService.reconciliar",
     it("debería fallar sin MP_ACCESS_TOKEN",
     async () =>
     {
+      vi.stubEnv("MP_ACCESS_TOKEN", "");
+
       await expect(subscriptionService.reconciliar("neg-1"))
         .rejects.toThrow("MP_ACCESS_TOKEN");
     });
@@ -199,7 +202,24 @@ describe("subscriptionService.reconciliar",
 describe("subscriptionService.activarSuscripcion",
 () =>
 {
-  it("debería guardar estado active con mp_id y limpiar la mora",
+  it("debería guardar estado active con mp_id, vencimiento y limpiar la mora",
+  async () =>
+  {
+    const updates: unknown[] = [];
+    stubUpdate(updates);
+
+    await subscriptionService.activarSuscripcion("neg-1", "pre-1", "2026-11-01T00:00:00Z");
+
+    expect(updates).toEqual([{
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+      suscripcion_mora_desde: null,
+      suscripcion_cancelada_en: null,
+      suscripcion_vence_en: "2026-11-01T00:00:00Z",
+    }]);
+  });
+
+  it("debería conservar el vencimiento previo cuando MP no lo informa",
   async () =>
   {
     const updates: unknown[] = [];
@@ -211,6 +231,7 @@ describe("subscriptionService.activarSuscripcion",
       suscripcion_estado: "active",
       suscripcion_mp_id: "pre-1",
       suscripcion_mora_desde: null,
+      suscripcion_cancelada_en: null,
     }]);
   });
 });
@@ -246,13 +267,14 @@ describe("subscriptionService.cancelarParaNegocio",
       })));
     }
 
-    const LIMPIEZA_LOCAL = [{
-      suscripcion_estado: "blocked",
-      suscripcion_mp_id: null,
-      suscripcion_mora_desde: null,
+    // Cancelación diferida: se conserva el acceso hasta el vencimiento.
+    const CANCELACION_DIFERIDA = [{
+      suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
+      suscripcion_estado: "active",
+      suscripcion_vence_en: "2026-11-01T00:00:00Z",
     }];
 
-    it("debería cancelar en MP y limpiar el plan local",
+    it("debería cancelar en MP y conservar el acceso hasta el vencimiento",
     async () =>
     {
       vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
@@ -261,15 +283,16 @@ describe("subscriptionService.cancelarParaNegocio",
       vi.stubGlobal("fetch", vi.fn(async () => ({
         ok: true,
         status: 200,
-        json: async () => ({ id: "pre-1", status: "cancelled" }),
+        json: async () => ({ id: "pre-1", status: "canceled" }),
       })));
 
-      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+      await subscriptionService.cancelarParaNegocio(
+        "neg-1", "pre-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z"));
 
-      expect(updates).toEqual(LIMPIEZA_LOCAL);
+      expect(updates).toEqual(CANCELACION_DIFERIDA);
     });
 
-    it("debería limpiar el plan local cuando MP ya la tenía cancelada (400)",
+    it("debería conservar el acceso cuando MP ya la tenía cancelada (400)",
     async () =>
     {
       vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
@@ -277,12 +300,13 @@ describe("subscriptionService.cancelarParaNegocio",
       stubUpdate(updates);
       fetchQueFalla(400);
 
-      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+      await subscriptionService.cancelarParaNegocio(
+        "neg-1", "pre-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z"));
 
-      expect(updates).toEqual(LIMPIEZA_LOCAL);
+      expect(updates).toEqual(CANCELACION_DIFERIDA);
     });
 
-    it("debería limpiar el plan local cuando el preapproval no existe (404)",
+    it("debería conservar el acceso cuando el preapproval no existe (404)",
     async () =>
     {
       vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
@@ -290,9 +314,10 @@ describe("subscriptionService.cancelarParaNegocio",
       stubUpdate(updates);
       fetchQueFalla(404);
 
-      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+      await subscriptionService.cancelarParaNegocio(
+        "neg-1", "pre-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z"));
 
-      expect(updates).toEqual(LIMPIEZA_LOCAL);
+      expect(updates).toEqual(CANCELACION_DIFERIDA);
     });
 
     it("debería propagar un fallo transitorio sin tocar el plan local",
@@ -303,9 +328,44 @@ describe("subscriptionService.cancelarParaNegocio",
       stubUpdate(updates);
       fetchQueFalla(500);
 
-      await expect(subscriptionService.cancelarParaNegocio("neg-1", "pre-1"))
+      await expect(subscriptionService.cancelarParaNegocio(
+        "neg-1", "pre-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z")))
         .rejects.toBeInstanceOf(MpHttpError);
       expect(updates).toEqual([]);
+    });
+  });
+
+describe("subscriptionService.marcarCancelada",
+  () =>
+  {
+    it("debería conservar el estado active con la fecha de cancelación y el vencimiento",
+    async () =>
+    {
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+
+      await subscriptionService.marcarCancelada(
+        "neg-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z"));
+
+      expect(updates).toEqual([{
+        suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
+        suscripcion_estado: "active",
+        suscripcion_vence_en: "2026-11-01T00:00:00Z",
+      }]);
+    });
+
+    it("debería conservar el vencimiento previo sin fecha de MP",
+    async () =>
+    {
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+
+      await subscriptionService.marcarCancelada("neg-1", null, new Date("2026-10-18T00:00:00Z"));
+
+      expect(updates).toEqual([{
+        suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
+        suscripcion_estado: "active",
+      }]);
     });
   });
 

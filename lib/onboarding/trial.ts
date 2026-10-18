@@ -21,6 +21,8 @@ export interface SubscriptionInput
   readonly suscripcionEstado: string | null;
   readonly suscripcionMpId: string | null;
   readonly suscripcionMoraDesde?: Date | null;
+  readonly suscripcionVenceEn?: Date | null;
+  readonly suscripcionCanceladaEn?: Date | null;
 }
 
 /** Indica si la mora sigue dentro de la gracia. */
@@ -54,6 +56,62 @@ export function diasTrialRestantes(createdAt: string | null, now: Date = new Dat
   return Math.max(0, Math.ceil((TRIAL_DAYS * MS_PER_DAY - (now.getTime() - inicio)) / MS_PER_DAY));
 }
 
+/**
+ * Días restantes de la suscripción hasta su vencimiento (renovación o fin de
+ * período tras cancelar). Null sin fecha válida; 0 si ya venció.
+ *
+ * @param venceEn Fin del período pago (`suscripcion_vence_en`) en ISO 8601.
+ * @param now Momento de referencia.
+ * @return Días enteros restantes (>= 0) o null.
+ */
+export function diasSuscripcionRestantes(venceEn: string | null, now: Date = new Date()): number | null
+{
+  if (venceEn === null)
+  {
+    return null;
+  }
+
+  const fin = new Date(venceEn).getTime();
+
+  if (Number.isNaN(fin))
+  {
+    return null;
+  }
+
+  return Math.max(0, Math.ceil((fin - now.getTime()) / MS_PER_DAY));
+}
+
+/**
+ * Indica si una suscripción activa ya venció estando cancelada.
+ *
+ * Tras cancelar se conserva el acceso hasta `suscripcion_vence_en`; pasada
+ * esa fecha el gate bloquea. Sin vencimiento conocido (dato legado) se sigue
+ * tratando como activa para no cortar el acceso de forma prematura.
+ *
+ * @param venceEn Fin del período pago.
+ * @param canceladaEn Marca de cancelación (null = auto-renueva).
+ * @param now Momento de referencia.
+ * @return `true` cuando corresponde bloquear por vencimiento post-cancelación.
+ */
+function canceladaVencida(
+  venceEn: Date | null | undefined,
+  canceladaEn: Date | null | undefined,
+  now: Date,
+): boolean
+{
+  if (canceladaEn === null || canceladaEn === undefined)
+  {
+    return false;
+  }
+
+  if (venceEn === null || venceEn === undefined || Number.isNaN(venceEn.getTime()))
+  {
+    return false;
+  }
+
+  return now.getTime() > venceEn.getTime();
+}
+
 /** Aviso de suscripción para el dashboard (null sin nada que avisar). */
 export function avisoSuscripcion(
   estado: SubscriptionStatus,
@@ -85,6 +143,11 @@ export function evaluateSubscription(input: SubscriptionInput): SubscriptionStat
 
   if (hasActiveSubscription)
   {
+    if (canceladaVencida(input.suscripcionVenceEn, input.suscripcionCanceladaEn, input.now))
+    {
+      return "blocked";
+    }
+
     return "active";
   }
 

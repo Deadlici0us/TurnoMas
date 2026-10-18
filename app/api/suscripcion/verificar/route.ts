@@ -60,7 +60,8 @@ export async function POST()
     }
 
     const admin = getSupabaseAdmin();
-    const { data: negocio } = await admin.from("negocios").select("id, suscripcion_estado")
+    const { data: negocio } = await admin.from("negocios")
+      .select("id, suscripcion_estado, suscripcion_vence_en, suscripcion_cancelada_en")
       .eq("duenio_id", user.id).single();
 
     if (negocio === null)
@@ -71,16 +72,30 @@ export async function POST()
       );
     }
 
-    const fila = negocio as { id: string; suscripcion_estado?: unknown };
+    const fila = negocio as {
+      id: string;
+      suscripcion_estado?: unknown;
+      suscripcion_vence_en?: unknown;
+      suscripcion_cancelada_en?: unknown;
+    };
     const resultado = await subscriptionService.reconciliar(fila.id);
 
     // Cierra el drift: si MP ya no tiene la suscripción pero el estado local
     // quedó activo o en mora (p. ej. se canceló desde MP), se limpia el plan.
+    // Se exceptúa la ventana "cancelada pero activa": el dueño conserva el
+    // acceso hasta `suscripcion_vence_en`, aunque MP ya no liste el preapproval.
     if (resultado.estado === "none")
     {
       const local = typeof fila.suscripcion_estado === "string" ? fila.suscripcion_estado : null;
+      const canceladaEn = typeof fila.suscripcion_cancelada_en === "string"
+        ? fila.suscripcion_cancelada_en
+        : null;
+      const venceEn = typeof fila.suscripcion_vence_en === "string" ? fila.suscripcion_vence_en : null;
+      const vencida = venceEn !== null && !Number.isNaN(new Date(venceEn).getTime())
+        && new Date(venceEn).getTime() < Date.now();
+      const enVentanaPaga = canceladaEn !== null && !vencida;
 
-      if (local === "active" || local === "past_due")
+      if (!enVentanaPaga && (local === "active" || local === "past_due"))
       {
         await subscriptionService.cancelarSuscripcionLocal(fila.id);
       }

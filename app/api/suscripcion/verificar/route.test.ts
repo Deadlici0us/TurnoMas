@@ -34,7 +34,10 @@ const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
 /** Sesión de dueño autenticado no demo con negocio. */
-function sesionDueno(suscripcionEstado: string | null = "active"): void
+function sesionDueno(
+  suscripcionEstado: string | null = "active",
+  extra: Record<string, unknown> = {},
+): void
 {
   mockAssertModo.mockResolvedValue(undefined);
   mockAssertDueno.mockReturnValue(undefined);
@@ -45,7 +48,9 @@ function sesionDueno(suscripcionEstado: string | null = "active"): void
     from: () => ({
       select: () => ({
         eq: () => ({
-          single: async () => ({ data: { id: "neg-1", suscripcion_estado: suscripcionEstado } }),
+          single: async () => ({
+            data: { id: "neg-1", suscripcion_estado: suscripcionEstado, ...extra },
+          }),
         }),
       }),
     }),
@@ -140,6 +145,36 @@ describe("POST /api/suscripcion/verificar",
 
       expect(response.status).toBe(200);
       expect(mockCancelarLocal).not.toHaveBeenCalled();
+    });
+
+    it("no debería cortar el acceso de un plan cancelado dentro del período pago",
+    async () =>
+    {
+      sesionDueno("active", {
+        suscripcion_cancelada_en: "2026-06-01T00:00:00Z",
+        suscripcion_vence_en: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+      });
+      mockReconciliar.mockResolvedValueOnce({ estado: "none", preapprovalId: null, initPoint: null });
+
+      const response = await POST();
+
+      expect(response.status).toBe(200);
+      expect(mockCancelarLocal).not.toHaveBeenCalled();
+    });
+
+    it("debería limpiar el plan cancelado ya vencido",
+    async () =>
+    {
+      sesionDueno("active", {
+        suscripcion_cancelada_en: "2026-06-01T00:00:00Z",
+        suscripcion_vence_en: new Date(Date.now() - 86_400_000).toISOString(),
+      });
+      mockReconciliar.mockResolvedValueOnce({ estado: "none", preapprovalId: null, initPoint: null });
+
+      const response = await POST();
+
+      expect(response.status).toBe(200);
+      expect(mockCancelarLocal).toHaveBeenCalledWith("neg-1");
     });
 
     it("debería devolver 502 con detalle fuera de producción",

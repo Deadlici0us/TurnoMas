@@ -335,4 +335,56 @@ describe("SuscripcionPage",
     expect(mockListarPagos).not.toHaveBeenCalled();
     expect(screen.getByText("Todavía no hay pagos registrados.")).toBeDefined();
   });
+
+  it("debería mostrar los días restantes de un plan activo",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+      suscripcion_vence_en: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+    });
+
+    render(await SuscripcionPage());
+
+    expect(screen.getByText("Activo")).toBeDefined();
+    expect(screen.getByText(/Se renueva en \d+ días\./)).toBeDefined();
+  });
+
+  it("debería conservar el acceso y ofrecer reactivar tras cancelar",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+      suscripcion_vence_en: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+      suscripcion_cancelada_en: "2026-06-01T00:00:00Z",
+    });
+
+    render(await SuscripcionPage());
+
+    expect(screen.getByText("Cancelado")).toBeDefined();
+    expect(screen.getByText(/Conservá|Seguís con acceso/)).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Cancelar plan" })).toBeNull();
+  });
+
+  it("debería bloquear cuando la suscripción cancelada ya venció",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+      suscripcion_vence_en: new Date(Date.now() - 86_400_000).toISOString(),
+      suscripcion_cancelada_en: "2026-06-01T00:00:00Z",
+    });
+
+    render(await SuscripcionPage());
+
+    expect(screen.getByText("Bloqueado")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Pagar con MercadoPago" })).toBeNull();
+  });
 });

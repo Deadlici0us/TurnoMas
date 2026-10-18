@@ -92,4 +92,38 @@ describe("getNegocioSubscriptionStatus",
       ),
     ).toBe("blocked");
   });
+
+  it("debería mantener activa la suscripción cancelada hasta el vencimiento",
+  () =>
+  {
+    expect(
+      getNegocioSubscriptionStatus(
+        {
+          created_at: "2026-01-01T00:00:00Z",
+          suscripcion_estado: "active",
+          suscripcion_mp_id: "mp-123",
+          suscripcion_cancelada_en: "2026-09-20T00:00:00Z",
+          suscripcion_vence_en: "2026-10-01T00:00:00Z",
+        },
+        new Date("2026-09-28T00:00:00Z"),
+      ),
+    ).toBe("active");
+  });
+
+  it("debería bloquear la suscripción cancelada pasada de fecha",
+  () =>
+  {
+    expect(
+      getNegocioSubscriptionStatus(
+        {
+          created_at: "2026-01-01T00:00:00Z",
+          suscripcion_estado: "active",
+          suscripcion_mp_id: "mp-123",
+          suscripcion_cancelada_en: "2026-09-20T00:00:00Z",
+          suscripcion_vence_en: "2026-09-25T00:00:00Z",
+        },
+        new Date("2026-09-28T00:00:00Z"),
+      ),
+    ).toBe("blocked");
+  });
 });

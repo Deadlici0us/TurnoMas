@@ -10,6 +10,7 @@ import {
   MONTO_PLAN_PESOS,
   MpHttpError,
   parsearMontoCentavos,
+  primerVencimiento,
   resolverMontoPlan,
   resolverPlanPais,
 } from "./subscription";
@@ -209,7 +210,23 @@ describe("consultarPreapproval",
       externalReference: "neg-1",
       payerEmail: "dueno@negocio.com",
       initPoint: null,
+      nextPaymentDate: null,
     });
+  });
+
+  it("debería exponer el next_payment_date cuando MP lo devuelve",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaOk({
+      id: "pre-1",
+      status: "authorized",
+      external_reference: "neg-1",
+      next_payment_date: "2026-11-01T11:12:25.892-03:00",
+    }));
+
+    const result = await consultarPreapproval("pre-1", "APP_USR-platform", fetchMock);
+
+    expect(result.nextPaymentDate).toBe("2026-11-01T11:12:25.892-03:00");
   });
 
   it("debería devolver el init_point cuando está presente",
@@ -251,14 +268,14 @@ describe("consultarPreapproval",
 describe("cancelarPreapproval",
 () =>
 {
-  it("debería cancelar con PUT",
+  it("debería cancelar con PUT usando el estado canceled",
   async () =>
   {
-    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "cancelled" }));
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "canceled" }));
 
     await cancelarPreapproval("pre-1", "APP_USR-platform", fetchMock);
 
-    expect(ultimoBody(cuerpos)).toMatchObject({ status: "cancelled" });
+    expect(ultimoBody(cuerpos)).toMatchObject({ status: "canceled" });
   });
 });
 
@@ -390,6 +407,23 @@ describe("parsearMontoCentavos",
   });
 });
 
+describe("primerVencimiento",
+() =>
+{
+  it("debería sumar un mes a la fecha del cobro",
+  () =>
+  {
+    expect(primerVencimiento("2026-03-01T11:12:25.892-03:00")).toBe("2026-04-01T14:12:25.892Z");
+  });
+
+  it("debería devolver null sin fecha o con fecha inválida",
+  () =>
+  {
+    expect(primerVencimiento(null)).toBeNull();
+    expect(primerVencimiento("invalida")).toBeNull();
+  });
+});
+
 describe("buscarPreapprovalPorEmail",
 () =>
 {
@@ -429,6 +463,7 @@ describe("buscarPreapprovalsPorEstado",
             external_reference: "neg-1",
             init_point: "https://mp/checkout/pre-1",
             last_modified: "2026-10-17T12:00:00.000Z",
+            next_payment_date: "2026-11-17T12:00:00.000Z",
           },
           { id: "pre-2", status: "pending", external_reference: "neg-1", date_created: "2026-10-16T12:00:00.000Z" },
           { sinId: true },
@@ -444,6 +479,7 @@ describe("buscarPreapprovalsPorEstado",
           externalReference: "neg-1",
           initPoint: "https://mp/checkout/pre-1",
           lastModified: "2026-10-17T12:00:00.000Z",
+          nextPaymentDate: "2026-11-17T12:00:00.000Z",
         },
         {
           id: "pre-2",
@@ -451,6 +487,7 @@ describe("buscarPreapprovalsPorEstado",
           externalReference: "neg-1",
           initPoint: null,
           lastModified: "2026-10-16T12:00:00.000Z",
+          nextPaymentDate: null,
         },
       ]);
     });

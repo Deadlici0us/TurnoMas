@@ -8,7 +8,7 @@ import VerificarPago from "@/components/verificar-pago";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
-import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
+import { diasSuscripcionRestantes, diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
 import { esRetornoCheckout } from "@/lib/payments/checkout-return";
 import { resolverPlanPais } from "@/lib/payments/subscription";
 import { subscriptionService, type PagoSuscripcion } from "@/lib/services/subscription";
@@ -169,9 +169,15 @@ export default async function SuscripcionPage(
     suscripcion_estado?: unknown;
     suscripcion_mp_id?: unknown;
     suscripcion_mora_desde?: unknown;
+    suscripcion_vence_en?: unknown;
+    suscripcion_cancelada_en?: unknown;
   };
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
   const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
+  const venceEn = typeof negocio.suscripcion_vence_en === "string" ? negocio.suscripcion_vence_en : null;
+  const canceladaEn = typeof negocio.suscripcion_cancelada_en === "string"
+    ? negocio.suscripcion_cancelada_en
+    : null;
   const estado = getNegocioSubscriptionStatus({
     created_at: creado,
     suscripcion_estado:
@@ -180,8 +186,12 @@ export default async function SuscripcionPage(
       typeof negocio.suscripcion_mp_id === "string" ? negocio.suscripcion_mp_id : null,
     suscripcion_mora_desde:
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
+    suscripcion_vence_en: venceEn,
+    suscripcion_cancelada_en: canceladaEn,
   });
   const diasRestantes = diasTrialRestantes(creado);
+  const planCancelado = estado === "active" && canceladaEn !== null;
+  const diasPlan = diasSuscripcionRestantes(venceEn);
   const negocioId = typeof negocio.id === "string" && negocio.id.length > 0 ? negocio.id : null;
   const timeZone = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
   const pagos = demo ? [] : await cargarPagos(negocioId);
@@ -220,7 +230,8 @@ export default async function SuscripcionPage(
             <h3 className="font-semibold text-slate-100">Plan mensual</h3>
             <span className="text-xs font-semibold px-3 py-1 rounded-full border
               bg-white/10 text-slate-400 border-white/10">
-              {estado === "active" ? "Activo"
+              {estado === "active"
+                ? planCancelado ? "Cancelado" : "Activo"
                 : estado === "past_due" ? `En mora (${GRACIA_PAST_DUE_DIAS} días de gracia)`
                 : estado === "blocked" ? "Bloqueado"
                 : diasRestantes !== null ? `Prueba: ${diasRestantes} días restantes` : "Prueba"}
@@ -228,7 +239,14 @@ export default async function SuscripcionPage(
           </div>
           <p className="text-sm text-slate-400 mb-4">
             {estado === "active"
-              ? "Tu plan está activo. El débito es automático cada mes."
+              ? planCancelado
+                ? venceEn !== null
+                  ? `Cancelaste el plan. Seguís con acceso hasta el `
+                    + `${formatearEnZonaConFecha(venceEn, timeZone)}`
+                    + (diasPlan !== null ? ` (${diasPlan} días restantes).` : ".")
+                  : "Cancelaste el plan. Conservás el acceso hasta que termine el período ya pago."
+                : "Tu plan está activo. El débito es automático cada mes."
+                  + (diasPlan !== null ? ` Se renueva en ${diasPlan} días.` : "")
               : estado === "past_due"
               ? "Falló el último cobro. Regularizá tu tarjeta antes de que termine la gracia o se bloquea el acceso."
               : estado === "blocked"
@@ -239,7 +257,7 @@ export default async function SuscripcionPage(
             <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
               La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
             </p>
-          ) : estado === "active" ? (
+          ) : estado === "active" && !planCancelado ? (
             <form action={cancelarPlan}>
               <button
                 type="submit"
@@ -254,7 +272,14 @@ export default async function SuscripcionPage(
               Completá el pago en el aviso para reactivar tu plan.
             </p>
           ) : (
-            <SuscripcionForm idPrefix="suscripcion" emailInicial={userEmail ?? undefined} />
+            <div>
+              {planCancelado && (
+                <p className="text-xs text-slate-400 mb-3">
+                  Reactivá tu plan para volver a renovar automáticamente cada mes.
+                </p>
+              )}
+              <SuscripcionForm idPrefix="suscripcion" emailInicial={userEmail ?? undefined} />
+            </div>
           )}
         </div>
 

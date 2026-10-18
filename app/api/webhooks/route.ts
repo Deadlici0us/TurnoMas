@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
+import { primerVencimiento } from "@/lib/payments/subscription";
 import { subscriptionService } from "@/lib/services/subscription";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { MpHttpError } from "@/lib/payments/subscription";
@@ -153,7 +154,7 @@ async function aplicarAltaSuscripcion(
   preapprovalId: string,
 ): Promise<ReturnType<typeof NextResponse.json>>
 {
-  let estado: { status: string; externalReference: string | null };
+  let estado: { status: string; externalReference: string | null; nextPaymentDate: string | null };
 
   try
   {
@@ -187,14 +188,15 @@ async function aplicarAltaSuscripcion(
 
   if (estado.status === "authorized")
   {
-    await subscriptionService.activarSuscripcion(estado.externalReference, preapprovalId);
+    await subscriptionService.activarSuscripcion(
+      estado.externalReference, preapprovalId, estado.nextPaymentDate);
 
     return NextResponse.json({ success: true, status: estado.status });
   }
 
-  if (estado.status === "cancelled")
+  if (estado.status === "canceled" || estado.status === "cancelled")
   {
-    await subscriptionService.cancelarSuscripcionLocal(estado.externalReference);
+    await subscriptionService.marcarCancelada(estado.externalReference, null);
 
     return NextResponse.json({ success: true, status: estado.status });
   }
@@ -244,7 +246,8 @@ async function aplicarCobroSuscripcion(
 
   if (vinculo.status === "approved")
   {
-    await subscriptionService.activarSuscripcion(vinculo.negocioId, vinculo.preapprovalId);
+    await subscriptionService.activarSuscripcion(
+      vinculo.negocioId, vinculo.preapprovalId, primerVencimiento(vinculo.fecha));
 
     return NextResponse.json({ success: true, status: vinculo.status });
   }
