@@ -82,7 +82,7 @@ describe("MercadoPagoAdapter.createDepositPreference",
     );
     const body = JSON.parse(cuerpos[0]) as { notification_url?: string };
 
-    expect(body.notification_url).toBe("https://turnomas.com/api/webhooks");
+    expect(body.notification_url).toBe("https://turnomas.com/api/webhooks/mercadopago");
   });
 
   it("debería omitir notification_url sin base pública",

@@ -48,7 +48,7 @@ export function resolveMpWebhookUrl(): string | null
     ? `https://${readEnv("VERCEL_URL") as string}`
     : null);
 
-  return base === null ? null : `${stripTrailingSlashes(base)}/api/webhooks`;
+  return base === null ? null : `${stripTrailingSlashes(base)}/api/webhooks/mercadopago`;
 }
 
 /** Adaptador real: crea preferencias de seña y reembolsa pagos. */

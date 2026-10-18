@@ -43,7 +43,7 @@ export class SubscriptionService
       negocioId,
       payerEmail,
       backUrl: `${stripTrailingSlashes(base)}/dashboard/facturacion?suscripcion=ok`,
-      notificationUrl: `${stripTrailingSlashes(base)}/api/webhooks`,
+      notificationUrl: `${stripTrailingSlashes(base)}/api/webhooks/mercadopago`,
       monto: plan.monto,
       currency: plan.currency,
       platformToken,

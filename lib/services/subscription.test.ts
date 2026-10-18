@@ -58,7 +58,7 @@ describe("subscriptionService.crearParaNegocio",
       payer_email: "pagador@mp.com",
       status: "pending",
       auto_recurring: { transaction_amount: 14999, currency_id: "ARS" },
-      notification_url: "https://turnomas.com/api/webhooks",
+      notification_url: "https://turnomas.com/api/webhooks/mercadopago",
     });
   });
 });
