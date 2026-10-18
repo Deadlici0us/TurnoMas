@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { subscriptionService } from "./subscription";
+import { MpHttpError } from "@/lib/payments/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 vi.mock("@/lib/supabase/admin", () =>
@@ -201,9 +202,85 @@ describe("subscriptionService.marcarPastDue",
   });
 });
 
+describe("subscriptionService.cancelarParaNegocio",
+  () =>
+  {
+    /** Fetch que rechaza el PUT de cancelación con el status indicado. */
+    function fetchQueFalla(status: number): void
+    {
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: false,
+        status,
+        text: async () => "cancelación rechazada",
+      })));
+    }
+
+    const LIMPIEZA_LOCAL = [{
+      suscripcion_estado: "blocked",
+      suscripcion_mp_id: null,
+      suscripcion_mora_desde: null,
+    }];
+
+    it("debería cancelar en MP y limpiar el plan local",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "pre-1", status: "cancelled" }),
+      })));
+
+      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+
+      expect(updates).toEqual(LIMPIEZA_LOCAL);
+    });
+
+    it("debería limpiar el plan local cuando MP ya la tenía cancelada (400)",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      fetchQueFalla(400);
+
+      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+
+      expect(updates).toEqual(LIMPIEZA_LOCAL);
+    });
+
+    it("debería limpiar el plan local cuando el preapproval no existe (404)",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      fetchQueFalla(404);
+
+      await subscriptionService.cancelarParaNegocio("neg-1", "pre-1");
+
+      expect(updates).toEqual(LIMPIEZA_LOCAL);
+    });
+
+    it("debería propagar un fallo transitorio sin tocar el plan local",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      fetchQueFalla(500);
+
+      await expect(subscriptionService.cancelarParaNegocio("neg-1", "pre-1"))
+        .rejects.toBeInstanceOf(MpHttpError);
+      expect(updates).toEqual([]);
+    });
+  });
+
 describe("subscriptionService.cancelarSuscripcionLocal",
-() =>
-{
+  () =>
+  {
   it("debería limpiar mp_id y volver a blocked (el trial decide por fecha)",
   async () =>
   {

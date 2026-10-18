@@ -57,12 +57,16 @@ export async function cancelarPlan(): Promise<void>
 {
   const { id, mpId } = await negocioDelDueno();
 
+  // Sin preapproval en MP igual se limpia el plan local (idempotente): el
+  // estado puede haber quedado desincronizado si se canceló desde MP.
   if (mpId === null)
   {
-    throw new Error("No tenés un plan activo para cancelar.");
+    await subscriptionService.cancelarSuscripcionLocal(id);
   }
-
-  await subscriptionService.cancelarParaNegocio(id, mpId);
+  else
+  {
+    await subscriptionService.cancelarParaNegocio(id, mpId);
+  }
 
   revalidatePath("/dashboard/facturacion");
 }

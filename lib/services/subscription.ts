@@ -1,5 +1,6 @@
 import { readEnv } from "@/lib/env/env";
 import {
+  MpHttpError,
   buscarPreapprovalPorEmail,
   buscarPreapprovalsPorEstado,
   cancelarPreapproval,
@@ -172,7 +173,14 @@ export class SubscriptionService
     return { status: estado.status, externalReference: estado.externalReference };
   }
 
-  /** Cancela en MP y limpia el plan local. */
+  /**
+   * Cancela en MP y limpia el plan local (idempotente).
+   *
+   * Si MP rechaza porque el preapproval ya estaba cancelado (400) o no existe
+   * para el token (404), el objetivo ya está cumplido y se limpia el plan
+   * local igual; así una cancelación hecha desde MP no deja el estado colgado.
+   * Un fallo transitorio (5xx/red) sí se propaga para poder reintentar.
+   */
   async cancelarParaNegocio(negocioId: string, preapprovalId: string): Promise<void>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
@@ -182,7 +190,18 @@ export class SubscriptionService
       throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
     }
 
-    await cancelarPreapproval(preapprovalId, platformToken);
+    try
+    {
+      await cancelarPreapproval(preapprovalId, platformToken);
+    }
+    catch (error)
+    {
+      if (!esSuscripcionYaCancelada(error))
+      {
+        throw error;
+      }
+    }
+
     await this.cancelarSuscripcionLocal(negocioId);
   }
 
@@ -245,6 +264,21 @@ export class SubscriptionService
       return null;
     }
   }
+}
+
+/**
+ * Indica si el rechazo de MP corresponde a una suscripción ya cancelada.
+ *
+ * MercadoPago devuelve 400 al cancelar un preapproval ya cancelado y 404
+ * cuando el recurso no existe para el token; en ambos casos no queda nada por
+ * cancelar y corresponde limpiar el plan local.
+ *
+ * @param error Error capturado al intentar cancelar en MP.
+ * @return `true` cuando la suscripción ya no está activa en MP.
+ */
+function esSuscripcionYaCancelada(error: unknown): boolean
+{
+  return error instanceof MpHttpError && (error.status === 400 || error.status === 404);
 }
 
 /**

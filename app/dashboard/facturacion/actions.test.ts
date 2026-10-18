@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/demo-guard", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return { subscriptionService: { cancelarParaNegocio: vi.fn() } };
+  return { subscriptionService: { cancelarParaNegocio: vi.fn(), cancelarSuscripcionLocal: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -34,6 +34,7 @@ vi.mock("@/lib/supabase/admin", () =>
 const mockAssertModo = vi.mocked(assertModoEditable);
 const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockCancelar = vi.mocked(subscriptionService.cancelarParaNegocio);
+const mockCancelarLocal = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
@@ -76,13 +77,15 @@ describe("cancelarPlan",
       expect(mockCancelar).toHaveBeenCalledWith("neg-1", "pre-1");
     });
 
-    it("debería exigir plan activo para cancelar",
+    it("debería limpiar el plan local sin preapproval en MP",
     async () =>
     {
       sesionDueno({ id: "neg-1", suscripcion_mp_id: null });
 
-      await expect(cancelarPlan()).rejects.toThrow("No tenés un plan activo para cancelar.");
+      await cancelarPlan();
+
       expect(mockCancelar).not.toHaveBeenCalled();
+      expect(mockCancelarLocal).toHaveBeenCalledWith("neg-1");
     });
 
     it("debería bloquear al dueño demo",
