@@ -68,5 +68,5 @@ export async function cancelarPlan(): Promise<void>
     await subscriptionService.cancelarParaNegocio(id, mpId);
   }
 
-  revalidatePath("/dashboard/facturacion");
+  revalidatePath("/dashboard/suscripcion");
 }

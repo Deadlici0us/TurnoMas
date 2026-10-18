@@ -50,7 +50,7 @@ describe("VerificarPago",
       await user.click(screen.getByRole("button", { name: "Ya pagué, verificar ahora" }));
 
       expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/verificar", { method: "POST" });
-      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/suscripcion"));
     });
 
     it("debería avisar cuando MercadoPago todavía no confirmó",
@@ -91,7 +91,7 @@ describe("VerificarPago",
       render(<VerificarPago recargar={recargar} />);
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/verificar", { method: "POST" }));
-      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/suscripcion"));
     });
 
     it("debería verificar automáticamente al volver con la URL malformada de MercadoPago",
@@ -106,7 +106,7 @@ describe("VerificarPago",
       render(<VerificarPago recargar={recargar} />);
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/verificar", { method: "POST" }));
-      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/suscripcion"));
     });
 
     it("debería levantar el paywall solo cuando el estado deja de estar bloqueado",
@@ -137,7 +137,7 @@ describe("VerificarPago",
       await vi.advanceTimersByTimeAsync(1100);
 
       expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/estado");
-      expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion");
+      expect(recargar).toHaveBeenCalledWith("/dashboard/suscripcion");
     });
 
     it("no debería levantar el paywall si sigue bloqueado",
@@ -184,6 +184,6 @@ describe("VerificarPago",
         document.dispatchEvent(new Event("visibilitychange"));
       });
 
-      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/suscripcion"));
     });
   });

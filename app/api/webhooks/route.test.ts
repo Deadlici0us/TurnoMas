@@ -41,6 +41,7 @@ vi.mock("@/lib/services/subscription", () =>
       cancelarSuscripcionLocal: vi.fn(),
       marcarPastDue: vi.fn(),
       resolverNegocioDeCobro: vi.fn(),
+      registrarPago: vi.fn(),
     },
   };
 });
@@ -63,6 +64,7 @@ const mockSubActivar = vi.mocked(subscriptionService.activarSuscripcion);
 const mockSubCancelar = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
 const mockSubMora = vi.mocked(subscriptionService.marcarPastDue);
 const mockSubVinculo = vi.mocked(subscriptionService.resolverNegocioDeCobro);
+const mockSubRegistrarPago = vi.mocked(subscriptionService.registrarPago);
 const mockByPaymentId = vi.mocked(bookingService.getBookingByPaymentId);
 const mockById = vi.mocked(bookingService.getBookingById);
 const mockConfirm = vi.mocked(bookingService.confirmBooking);
@@ -416,7 +418,16 @@ describe("POST /api/webhooks suscripciones",
   it("debería confirmar el plan con cobro aprobado",
   async () =>
   {
-    mockSubVinculo.mockResolvedValueOnce({ negocioId: "neg-1", preapprovalId: "pre-1", status: "approved" });
+    mockSubVinculo.mockResolvedValueOnce({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      status: "approved",
+      authorizedPaymentId: "999",
+      mpPaymentId: "pay-1",
+      montoCents: 1499900,
+      currency: "ARS",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
     mockSubActivar.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(COBRO));
@@ -425,12 +436,72 @@ describe("POST /api/webhooks suscripciones",
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, status: "approved" });
     expect(mockSubActivar).toHaveBeenCalledWith("neg-1", "pre-1");
+    expect(mockSubRegistrarPago).toHaveBeenCalledWith({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      authorizedPaymentId: "999",
+      mpPaymentId: "pay-1",
+      montoCents: 1499900,
+      currency: "ARS",
+      estado: "approved",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
+  });
+
+  it("debería persistir la cuota sin activar con cobro pendiente",
+  async () =>
+  {
+    mockSubVinculo.mockResolvedValueOnce({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      status: "pending",
+      authorizedPaymentId: "999",
+      mpPaymentId: null,
+      montoCents: 1499900,
+      currency: "ARS",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
+
+    const response = await POST(requestWith(COBRO));
+
+    expect(response.status).toBe(200);
+    expect(mockSubRegistrarPago).toHaveBeenCalledTimes(1);
+    expect(mockSubActivar).not.toHaveBeenCalled();
+  });
+
+  it("no debería persistir sin monto/moneda/fecha",
+  async () =>
+  {
+    mockSubVinculo.mockResolvedValueOnce({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      status: "approved",
+      authorizedPaymentId: "999",
+      mpPaymentId: null,
+      montoCents: null,
+      currency: null,
+      fecha: null,
+    });
+    mockSubActivar.mockResolvedValueOnce(undefined);
+
+    await POST(requestWith(COBRO));
+
+    expect(mockSubRegistrarPago).not.toHaveBeenCalled();
   });
 
   it("debería marcar mora con cobro rechazado",
   async () =>
   {
-    mockSubVinculo.mockResolvedValueOnce({ negocioId: "neg-1", preapprovalId: "pre-1", status: "rejected" });
+    mockSubVinculo.mockResolvedValueOnce({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      status: "rejected",
+      authorizedPaymentId: "999",
+      mpPaymentId: null,
+      montoCents: 1499900,
+      currency: "ARS",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
     mockSubMora.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(COBRO));
@@ -439,6 +510,7 @@ describe("POST /api/webhooks suscripciones",
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, mora: true });
     expect(mockSubMora).toHaveBeenCalledWith("neg-1");
+    expect(mockSubRegistrarPago).toHaveBeenCalledTimes(1);
   });
 
   it("debería devolver 502 cuando el cobro no se puede vincular",

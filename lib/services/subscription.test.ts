@@ -26,6 +26,37 @@ function stubUpdate(updates: unknown[] = [], error: { message?: string } | null 
   } as never);
 }
 
+/** Stub de upsert() que captura fila y opciones. */
+function stubUpsert(capturado: { valores?: unknown; opciones?: unknown } = {},
+  error: { message?: string } | null = null)
+{
+  mockGetSupabaseAdmin.mockReturnValue({
+    from: () => ({
+      upsert: async (valores: unknown, opciones: unknown) =>
+      {
+        capturado.valores = valores;
+        capturado.opciones = opciones;
+
+        return { error };
+      },
+    }),
+  } as never);
+}
+
+/** Stub de select().eq().order() que devuelve filas. */
+function stubSelect(filas: unknown[], error: { message?: string } | null = null)
+{
+  mockGetSupabaseAdmin.mockReturnValue({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          order: async () => ({ data: filas, error }),
+        }),
+      }),
+    }),
+  } as never);
+}
+
 beforeEach(() =>
 {
   vi.unstubAllEnvs();
@@ -319,13 +350,25 @@ describe("subscriptionService.resolverNegocioDeCobro",
           external_reference: "neg-1",
           preapproval_id: "pre-1",
           payment: { id: 183627913945, status: "approved" },
+          transaction_amount: "14999.00",
+          currency_id: "ARS",
+          debit_date: "2026-03-01T11:12:25.892-03:00",
         }),
       };
     }));
 
     const result = await subscriptionService.resolverNegocioDeCobro("7033036606");
 
-    expect(result).toEqual({ negocioId: "neg-1", preapprovalId: "pre-1", status: "approved" });
+    expect(result).toEqual({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      status: "approved",
+      authorizedPaymentId: "7033036606",
+      mpPaymentId: "183627913945",
+      montoCents: 1499900,
+      currency: "ARS",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
     expect(urls[0]).toContain("/authorized_payments/7033036606");
     expect(urls.some((url) => url.includes("/preapproval/search"))).toBe(false);
   });
@@ -355,7 +398,16 @@ describe("subscriptionService.resolverNegocioDeCobro",
 
     const result = await subscriptionService.resolverNegocioDeCobro("999");
 
-    expect(result).toEqual({ negocioId: "neg-9", preapprovalId: "pre-9", status: "rejected" });
+    expect(result).toEqual({
+      negocioId: "neg-9",
+      preapprovalId: "pre-9",
+      status: "rejected",
+      authorizedPaymentId: "999",
+      mpPaymentId: null,
+      montoCents: null,
+      currency: null,
+      fecha: null,
+    });
   });
 
   it("debería devolver null sin negocio ni email",
@@ -370,5 +422,129 @@ describe("subscriptionService.resolverNegocioDeCobro",
     })));
 
     await expect(subscriptionService.resolverNegocioDeCobro("999")).resolves.toBeNull();
+  });
+});
+
+describe("subscriptionService.registrarPago",
+() =>
+{
+  it("debería hacer upsert idempotente por authorized_payment_id",
+  async () =>
+  {
+    const capturado: { valores?: unknown; opciones?: unknown } = {};
+    stubUpsert(capturado);
+
+    await subscriptionService.registrarPago({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      authorizedPaymentId: "auth-1",
+      mpPaymentId: "pay-1",
+      montoCents: 1499900,
+      currency: "ARS",
+      estado: "approved",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
+
+    expect(capturado.valores).toEqual({
+      negocio_id: "neg-1",
+      preapproval_id: "pre-1",
+      authorized_payment_id: "auth-1",
+      mp_payment_id: "pay-1",
+      monto_cents: 1499900,
+      currency: "ARS",
+      estado: "approved",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    });
+    expect(capturado.opciones).toEqual({ onConflict: "authorized_payment_id" });
+  });
+
+  it("debería propagar el error de Supabase",
+  async () =>
+  {
+    stubUpsert({}, { message: "boom" });
+
+    await expect(subscriptionService.registrarPago({
+      negocioId: "neg-1",
+      preapprovalId: "pre-1",
+      authorizedPaymentId: "auth-1",
+      mpPaymentId: null,
+      montoCents: 1500,
+      currency: "USD",
+      estado: "rejected",
+      fecha: "2026-03-01T11:12:25.892-03:00",
+    })).rejects.toThrow("No pudimos registrar el pago");
+  });
+});
+
+describe("subscriptionService.listarPagos",
+() =>
+{
+  it("debería mapear las cuotas del negocio",
+  async () =>
+  {
+    stubSelect([
+      {
+        id: "pago-1",
+        preapproval_id: "pre-1",
+        authorized_payment_id: "auth-1",
+        mp_payment_id: "pay-1",
+        monto_cents: 1499900,
+        currency: "ARS",
+        estado: "approved",
+        fecha: "2026-03-01T11:12:25.892-03:00",
+      },
+      {
+        id: "pago-2",
+        preapproval_id: "pre-1",
+        authorized_payment_id: "auth-2",
+        mp_payment_id: null,
+        monto_cents: 1500,
+        currency: "USD",
+        estado: "rejected",
+        fecha: "2026-04-01T11:12:25.892-03:00",
+      },
+    ]);
+
+    const result = await subscriptionService.listarPagos("neg-1");
+
+    expect(result).toEqual([
+      {
+        id: "pago-1",
+        preapprovalId: "pre-1",
+        authorizedPaymentId: "auth-1",
+        mpPaymentId: "pay-1",
+        montoCents: 1499900,
+        currency: "ARS",
+        estado: "approved",
+        fecha: "2026-03-01T11:12:25.892-03:00",
+      },
+      {
+        id: "pago-2",
+        preapprovalId: "pre-1",
+        authorizedPaymentId: "auth-2",
+        mpPaymentId: null,
+        montoCents: 1500,
+        currency: "USD",
+        estado: "rejected",
+        fecha: "2026-04-01T11:12:25.892-03:00",
+      },
+    ]);
+  });
+
+  it("debería devolver lista vacía sin filas y descartar filas inválidas",
+  async () =>
+  {
+    stubSelect([{ id: "incompleto" }]);
+
+    await expect(subscriptionService.listarPagos("neg-1")).resolves.toEqual([]);
+  });
+
+  it("debería propagar el error de Supabase",
+  async () =>
+  {
+    stubSelect([], { message: "boom" });
+
+    await expect(subscriptionService.listarPagos("neg-1"))
+      .rejects.toThrow("No pudimos cargar el historial");
   });
 });

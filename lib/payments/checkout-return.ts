@@ -17,7 +17,7 @@ export interface RetornoCheckoutParams
 /**
  * Indica si la navegación corresponde a la vuelta del checkout de MercadoPago.
  *
- * @param params Parámetros de query de la página de facturación.
+ * @param params Parámetros de query de la página de suscripción.
  * @return `true` si volvió del checkout con un pago iniciado.
  */
 export function esRetornoCheckout(params: RetornoCheckoutParams): boolean

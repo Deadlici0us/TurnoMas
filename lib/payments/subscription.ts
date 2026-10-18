@@ -124,6 +124,36 @@ export interface CobroSuscripcion
   readonly externalReference: string | null;
   readonly paymentId: string | null;
   readonly paymentStatus: string | null;
+  readonly montoCents: number | null;
+  readonly currency: string | null;
+  readonly fecha: string | null;
+}
+
+/**
+ * Convierte el monto de una cuota a centavos enteros.
+ *
+ * MercadoPago expone `transaction_amount` como string decimal (ej. "14999.00")
+ * o número. Se redondea a centavos para guardarlo con la misma convención que
+ * `turnos.monto_total`. Null si falta o no es numérico.
+ *
+ * @param valor `transaction_amount` crudo de MercadoPago.
+ * @return Monto en centavos o null si no es parseable.
+ */
+export function parsearMontoCentavos(valor: unknown): number | null
+{
+  if (typeof valor !== "string" && typeof valor !== "number")
+  {
+    return null;
+  }
+
+  const numero = typeof valor === "number" ? valor : Number(valor.trim());
+
+  if (!Number.isFinite(numero) || numero < 0)
+  {
+    return null;
+  }
+
+  return Math.round(numero * 100);
 }
 
 export interface PreapprovalPorEmail
@@ -365,11 +395,20 @@ export async function consultarCobroSuscripcion(
     preapproval_id?: unknown;
     payer?: { email?: unknown } | null;
     payment?: { id?: unknown; status?: unknown } | null;
+    transaction_amount?: unknown;
+    currency_id?: unknown;
+    debit_date?: unknown;
+    date_created?: unknown;
   };
 
   const pago = data.payment ?? null;
   const pagoId = pago?.id;
   const pagoStatus = pago?.status;
+  const fecha = typeof data.debit_date === "string" && data.debit_date.length > 0
+    ? data.debit_date
+    : typeof data.date_created === "string" && data.date_created.length > 0
+    ? data.date_created
+    : null;
 
   return {
     id: data.id !== undefined && data.id !== null ? String(data.id) : paymentId,
@@ -381,6 +420,9 @@ export async function consultarCobroSuscripcion(
     externalReference: typeof data.external_reference === "string" ? data.external_reference : null,
     paymentId: pagoId !== undefined && pagoId !== null ? String(pagoId) : null,
     paymentStatus: typeof pagoStatus === "string" ? pagoStatus : null,
+    montoCents: parsearMontoCentavos(data.transaction_amount),
+    currency: typeof data.currency_id === "string" ? data.currency_id : null,
+    fecha,
   };
 }
 

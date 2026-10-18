@@ -54,7 +54,7 @@ export function diasTrialRestantes(createdAt: string | null, now: Date = new Dat
   return Math.max(0, Math.ceil((TRIAL_DAYS * MS_PER_DAY - (now.getTime() - inicio)) / MS_PER_DAY));
 }
 
-/** Aviso de facturación para el dashboard (null sin nada que avisar). */
+/** Aviso de suscripción para el dashboard (null sin nada que avisar). */
 export function avisoSuscripcion(
   estado: SubscriptionStatus,
   createdAt: string | null,

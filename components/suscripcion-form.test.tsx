@@ -56,7 +56,7 @@ describe("SuscripcionForm",
       const fetchMock = instalarFetch(
         respuestaOk({ success: true, initPoint: "https://mp/checkout/1" }));
 
-      render(<SuscripcionForm idPrefix="facturacion" navegar={navegar} />);
+      render(<SuscripcionForm idPrefix="suscripcion" navegar={navegar} />);
       await user.type(
         screen.getByLabelText("Email de tu cuenta de MercadoPago"),
         "pagador@mp.com",

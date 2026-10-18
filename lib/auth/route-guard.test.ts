@@ -71,7 +71,7 @@ describe("resolveBlockedRedirect",
   it("debería permitir la ruta de adquisición al bloqueado",
   () =>
   {
-    expect(resolveBlockedRedirect("/dashboard/facturacion", "authenticated", "blocked")).toBeNull();
+    expect(resolveBlockedRedirect("/dashboard/suscripcion", "authenticated", "blocked")).toBeNull();
   });
 
   it("debería permitir login y OAuth al bloqueado (evita lockout)",
@@ -127,14 +127,14 @@ describe("isRutaAdquirirServicio / isRutaExentaBloqueo",
   it("debería reconocer la ruta de adquisición",
   () =>
   {
-    expect(isRutaAdquirirServicio("/dashboard/facturacion")).toBe(true);
-    expect(isRutaAdquirirServicio("/dashboard/facturacion/extra")).toBe(false);
+    expect(isRutaAdquirirServicio("/dashboard/suscripcion")).toBe(true);
+    expect(isRutaAdquirirServicio("/dashboard/suscripcion/extra")).toBe(false);
   });
 
   it("debería marcar exentas adquisición, login y auth",
   () =>
   {
-    expect(isRutaExentaBloqueo("/dashboard/facturacion")).toBe(true);
+    expect(isRutaExentaBloqueo("/dashboard/suscripcion")).toBe(true);
     expect(isRutaExentaBloqueo("/login")).toBe(true);
     expect(isRutaExentaBloqueo("/login?error=x")).toBe(false);
     expect(isRutaExentaBloqueo("/auth/callback")).toBe(true);

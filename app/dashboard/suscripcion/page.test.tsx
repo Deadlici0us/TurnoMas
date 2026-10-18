@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import FacturacionPage from "./page";
+import SuscripcionPage from "./page";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -18,7 +18,7 @@ vi.mock("@/lib/dashboard/queries", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return { subscriptionService: { reconciliar: vi.fn() } };
+  return { subscriptionService: { reconciliar: vi.fn(), listarPagos: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -29,6 +29,7 @@ vi.mock("@/lib/supabase/server", () =>
 const mockData = vi.mocked(getDashboardData);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
+const mockListarPagos = vi.mocked(subscriptionService.listarPagos);
 
 /** Negocio con estado de suscripción dado. */
 function stubFacturacion(negocio: unknown, demo = false): Record<string, unknown>
@@ -55,9 +56,10 @@ beforeEach(() =>
 {
   vi.clearAllMocks();
   mockReconciliar.mockResolvedValue({ estado: "none", preapprovalId: null, initPoint: null });
+  mockListarPagos.mockResolvedValue([]);
 });
 
-describe("FacturacionPage",
+describe("SuscripcionPage",
   () =>
   {
   it("debería mostrar activar en ARS para Argentina",
@@ -70,9 +72,9 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
-    expect(screen.getByRole("heading", { name: "Facturación" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Suscripción" })).toBeDefined();
     expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
     expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
   });
@@ -87,7 +89,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
     expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
@@ -102,7 +104,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: "pre-1",
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(screen.getByRole("button", { name: "Cancelar plan" })).toBeDefined();
     expect(screen.getByText("Activo")).toBeDefined();
@@ -118,7 +120,7 @@ describe("FacturacionPage",
       suscripcion_mora_desde: new Date(Date.now() - 86_400_000).toISOString(),
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(screen.getByText("En mora (5 días de gracia)")).toBeDefined();
     expect(screen.getByLabelText("Email de tu cuenta de MercadoPago")).toBeDefined();
@@ -135,7 +137,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(screen.getByText("Bloqueado")).toBeDefined();
     expect(screen.queryByRole("button", { name: "Pagar con MercadoPago" })).toBeNull();
@@ -151,7 +153,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: "pre-1",
     }, true);
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(screen.queryByRole("button", { name: "Cancelar plan" })).toBeNull();
     expect(screen.getByText("La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo."))
@@ -172,7 +174,7 @@ describe("FacturacionPage",
       isDemo: false,
     } as never);
 
-    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+    render(await SuscripcionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
 
     expect(mockReconciliar).toHaveBeenCalledWith("neg-1");
     expect(screen.getByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización."))
@@ -193,7 +195,7 @@ describe("FacturacionPage",
       isDemo: false,
     } as never);
 
-    render(await FacturacionPage({
+    render(await SuscripcionPage({
       searchParams: Promise.resolve({
         suscripcion: "ok?preapproval_id=c9d413fe3d2a465f88d28b2be92993a4",
       }),
@@ -223,7 +225,7 @@ describe("FacturacionPage",
       isDemo: false,
     } as never);
 
-    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+    render(await SuscripcionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
 
     expect(mockReconciliar).toHaveBeenCalledWith("neg-1");
     expect(screen.getByText("Activo")).toBeDefined();
@@ -240,7 +242,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
     expect(mockReconciliar).not.toHaveBeenCalled();
   });
@@ -254,7 +256,7 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage({
+    render(await SuscripcionPage({
       searchParams: Promise.resolve({ error: "Falta configurar MP_ACCESS_TOKEN en el entorno." }),
     }));
 
@@ -262,7 +264,7 @@ describe("FacturacionPage",
       .toBeDefined();
   });
 
-  it("debería mostrar el comprobante de la suscripción con botón para copiar",
+  it("debería listar el historial de pagos con fecha, monto y comprobante",
   async () =>
   {
     stubFacturacion({
@@ -271,14 +273,40 @@ describe("FacturacionPage",
       suscripcion_estado: "active",
       suscripcion_mp_id: "pre-1",
     });
+    mockListarPagos.mockResolvedValueOnce([
+      {
+        id: "pago-1",
+        preapprovalId: "pre-1",
+        authorizedPaymentId: "auth-1",
+        mpPaymentId: "pay-1",
+        montoCents: 1499900,
+        currency: "ARS",
+        estado: "approved",
+        fecha: "2026-03-01T11:12:25.892-03:00",
+      },
+      {
+        id: "pago-2",
+        preapprovalId: "pre-1",
+        authorizedPaymentId: "auth-2",
+        mpPaymentId: null,
+        montoCents: 1499900,
+        currency: "ARS",
+        estado: "rejected",
+        fecha: "2026-04-01T11:12:25.892-03:00",
+      },
+    ]);
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
-    expect(screen.getByText("pre-1")).toBeDefined();
+    expect(mockListarPagos).toHaveBeenCalledWith("neg-1");
+    expect(screen.getByRole("heading", { name: "Historial de pagos" })).toBeDefined();
+    expect(screen.getByText("pay-1")).toBeDefined();
     expect(screen.getByRole("button", { name: "Copiar nro de comprobante" })).toBeDefined();
+    expect(screen.getByText("Pagado")).toBeDefined();
+    expect(screen.getByText("Rechazado")).toBeDefined();
   });
 
-  it("debería ocultar el comprobante sin suscripción",
+  it("debería mostrar el estado vacío sin pagos registrados",
   async () =>
   {
     stubFacturacion({
@@ -288,8 +316,23 @@ describe("FacturacionPage",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage());
+    render(await SuscripcionPage());
 
-    expect(screen.queryByText("Comprobante")).toBeNull();
+    expect(screen.getByText("Todavía no hay pagos registrados.")).toBeDefined();
+  });
+
+  it("no debería consultar pagos en la demo",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "pre-1",
+    }, true);
+
+    render(await SuscripcionPage());
+
+    expect(mockListarPagos).not.toHaveBeenCalled();
+    expect(screen.getByText("Todavía no hay pagos registrados.")).toBeDefined();
   });
 });

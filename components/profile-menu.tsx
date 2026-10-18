@@ -21,7 +21,7 @@ export interface ProfileMenuProps
 const ITEMS = [
   { href: "/dashboard", key: "dashboardLabel", Icon: LayoutDashboard },
   { href: "/dashboard/config", key: "configLabel", Icon: Settings },
-  { href: "/dashboard/facturacion", key: "billingLabel", Icon: ReceiptText },
+  { href: "/dashboard/suscripcion", key: "billingLabel", Icon: ReceiptText },
 ] as const;
 
 /**

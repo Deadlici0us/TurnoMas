@@ -11,8 +11,64 @@ import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
 import { esRetornoCheckout } from "@/lib/payments/checkout-return";
 import { resolverPlanPais } from "@/lib/payments/subscription";
-import { subscriptionService } from "@/lib/services/subscription";
+import { subscriptionService, type PagoSuscripcion } from "@/lib/services/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { formatearEnZonaConFecha, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+
+/** Formatea un monto en centavos según su moneda (ARS/USD). */
+function formatearMonto(currency: string, cents: number): string
+{
+  try
+  {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
+  }
+  catch
+  {
+    return `${cents / 100} ${currency}`;
+  }
+}
+
+/** Etiqueta legible del estado de una cuota del plan. */
+function etiquetaPago(estado: string): string
+{
+  if (estado === "approved")
+  {
+    return "Pagado";
+  }
+
+  if (estado === "rejected")
+  {
+    return "Rechazado";
+  }
+
+  if (estado === "pending" || estado === "scheduled")
+  {
+    return "Pendiente";
+  }
+
+  return estado;
+}
+
+/** Clases del badge según el estado de la cuota. */
+function clasePago(estado: string): string
+{
+  if (estado === "approved")
+  {
+    return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+  }
+
+  if (estado === "rejected")
+  {
+    return "bg-rose-500/10 text-rose-300 border-rose-500/30";
+  }
+
+  return "bg-amber-500/10 text-amber-300 border-amber-500/30";
+}
 
 /** Indica si el lector es el dueño demo (sin suscripciones reales). */
 async function esDuenoDemo(): Promise<boolean>
@@ -29,6 +85,30 @@ async function esDuenoDemo(): Promise<boolean>
     return false;
   }
 }
+
+/**
+ * Historial de pagos del negocio (best-effort: nunca rompe la página).
+ *
+ * @param negocioId ID del negocio o null (demo/sin fila).
+ * @return Cuotas ordenadas por fecha desc, o lista vacía si falla.
+ */
+async function cargarPagos(negocioId: string | null): Promise<PagoSuscripcion[]>
+{
+  if (negocioId === null)
+  {
+    return [];
+  }
+
+  try
+  {
+    return await subscriptionService.listarPagos(negocioId);
+  }
+  catch
+  {
+    return [];
+  }
+}
+
 
 /**
  * Reconcilia la suscripción contra MercadoPago al volver del checkout.
@@ -57,7 +137,7 @@ async function reconciliarRetorno(negocio: { id?: unknown }): Promise<void>
   }
 }
 
-export default async function FacturacionPage(
+export default async function SuscripcionPage(
   props?: { readonly searchParams?: Promise<{ suscripcion?: string; preapproval_id?: string; error?: string }> },
 )
 {
@@ -82,8 +162,10 @@ export default async function FacturacionPage(
   }
 
   const negocio = dashboard.negocio as {
+    id?: unknown;
     created_at?: unknown;
     pais?: unknown;
+    timezone?: unknown;
     suscripcion_estado?: unknown;
     suscripcion_mp_id?: unknown;
     suscripcion_mora_desde?: unknown;
@@ -100,16 +182,15 @@ export default async function FacturacionPage(
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
   });
   const diasRestantes = diasTrialRestantes(creado);
-  const suscripcionId = typeof negocio.suscripcion_mp_id === "string"
-    && negocio.suscripcion_mp_id.trim().length > 0
-    ? negocio.suscripcion_mp_id.trim()
-    : null;
+  const negocioId = typeof negocio.id === "string" && negocio.id.length > 0 ? negocio.id : null;
+  const timeZone = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
+  const pagos = demo ? [] : await cargarPagos(negocioId);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Facturación</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Suscripción</h1>
           <p className="text-slate-400 mt-1 text-sm">Plan mensual de TurnoMas: {plan.etiqueta}.</p>
         </div>
         <Link
@@ -173,14 +254,50 @@ export default async function FacturacionPage(
               Completá el pago en el aviso para reactivar tu plan.
             </p>
           ) : (
-            <SuscripcionForm idPrefix="facturacion" emailInicial={userEmail ?? undefined} />
+            <SuscripcionForm idPrefix="suscripcion" emailInicial={userEmail ?? undefined} />
           )}
-          {suscripcionId !== null && !demo ? (
-            <p className="text-xs text-slate-400 mt-4">
-              Comprobante: <CopiarComprobante comprobanteId={suscripcionId} />
-            </p>
-          ) : null}
         </div>
+
+      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
+        <h3 className="font-semibold text-slate-100 mb-4">Historial de pagos</h3>
+        {pagos.length === 0 ? (
+          <p className="text-sm text-slate-400">Todavía no hay pagos registrados.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400">
+                  <th className="pb-3 font-semibold">Fecha</th>
+                  <th className="pb-3 font-semibold">Monto</th>
+                  <th className="pb-3 font-semibold">Estado</th>
+                  <th className="pb-3 font-semibold">Comprobante</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {pagos.map((pago) => (
+                  <tr key={pago.id} className="hover:bg-white/10">
+                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                      {formatearEnZonaConFecha(pago.fecha, timeZone)}
+                    </td>
+                    <td className="py-3 text-slate-300 tabular-nums whitespace-nowrap">
+                      {formatearMonto(pago.currency, pago.montoCents)}
+                    </td>
+                    <td className="py-3">
+                      <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
+                        + clasePago(pago.estado)}>
+                        {etiquetaPago(pago.estado)}
+                      </span>
+                    </td>
+                    <td className="py-3 text-slate-400">
+                      <CopiarComprobante comprobanteId={pago.mpPaymentId} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {retorno && !demo && estado !== "active" && estado !== "blocked" ? (
         <Suspense fallback={null}>

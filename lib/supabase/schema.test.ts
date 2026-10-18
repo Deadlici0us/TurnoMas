@@ -48,6 +48,10 @@ const REEMBOLSO_ATOMICO = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0013_reembolso_atomico.sql"),
   "utf8",
 );
+const SUSCRIPCION_PAGOS = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0016_suscripcion_pagos.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -256,5 +260,23 @@ describe("esquema Supabase",
     expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on reembolsos/);
     expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on turno_eventos/);
     expect(REEMBOLSO_ATOMICO).not.toMatch(/policy[^;]*to anon/);
+  });
+
+  it("debería persistir el historial de pagos de la suscripción",
+  () =>
+  {
+    expect(SUSCRIPCION_PAGOS).toMatch(/create table if not exists suscripcion_pagos/i);
+
+    for (const columna of ["negocio_id", "preapproval_id", "authorized_payment_id",
+      "mp_payment_id", "monto_cents", "currency", "estado", "fecha"])
+    {
+      expect(SUSCRIPCION_PAGOS).toContain(columna);
+    }
+
+    expect(SUSCRIPCION_PAGOS).toMatch(/references negocios \(id\) on delete cascade/);
+    expect(SUSCRIPCION_PAGOS).toMatch(/unique index[^;]*authorized_payment_id/i);
+    expect(SUSCRIPCION_PAGOS).toMatch(/enable row level security/);
+    expect(SUSCRIPCION_PAGOS).toContain("suscripcion_pagos_owner_all");
+    expect(SUSCRIPCION_PAGOS).not.toMatch(/policy[^;]*to anon/);
   });
 });

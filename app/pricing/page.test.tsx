@@ -18,6 +18,6 @@ describe("PricingPage",
 
     expect(screen.getByRole("heading", { name: "pricing.title" })).toBeDefined();
     expect(screen.getByRole("link", { name: "pricing.cta" }))
-      .toHaveAttribute("href", "/dashboard/facturacion");
+      .toHaveAttribute("href", "/dashboard/suscripcion");
   });
 });

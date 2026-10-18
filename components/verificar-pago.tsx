@@ -13,7 +13,7 @@ export interface VerificarPagoProps
   readonly limiteMs?: number;
 }
 
-const DESTINO = "/dashboard/facturacion";
+const DESTINO = "/dashboard/suscripcion";
 const INTERVALO_ESTADO_MS = 5000;
 const INTERVALO_VERIFICAR_MS = 30000;
 const LIMITE_MS = 600000;

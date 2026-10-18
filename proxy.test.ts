@@ -66,14 +66,14 @@ describe("proxy",
     const response = await proxy(new NextRequest("http://localhost/dashboard/agenda"));
 
     expect(response.headers.get("location"))
-      .toBe("http://localhost/dashboard/facturacion");
+      .toBe("http://localhost/dashboard/suscripcion");
   });
 
   it("debería permitir la ruta de adquisición al bloqueado",
   async () =>
   {
     snapshot = { session: "authenticated", subscription: "blocked", hasBusiness: true };
-    const response = await proxy(new NextRequest("http://localhost/dashboard/facturacion"));
+    const response = await proxy(new NextRequest("http://localhost/dashboard/suscripcion"));
 
     expect(response.status).toBe(200);
   });

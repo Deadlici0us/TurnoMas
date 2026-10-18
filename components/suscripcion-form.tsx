@@ -20,7 +20,7 @@ const MENSAJE_SIN_EMAIL = "Ingresá el email de tu cuenta de MercadoPago.";
  * en error conserva el email y muestra el mensaje inline (sin recargar).
  * `navegar` se inyecta en tests; por defecto usa `window.location.assign`.
  *
- * @param props Prefijo de IDs único por contexto (`paywall`/`facturacion`),
+ * @param props Prefijo de IDs único por contexto (`paywall`/`suscripcion`),
  *   navegador opcional para tests y email inicial editable de la cuenta.
  * @return Formulario con control de email y botón de pago.
  */
@@ -63,7 +63,7 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
 
       if (data.activado === true)
       {
-        ir("/dashboard/facturacion");
+        ir("/dashboard/suscripcion");
         return;
       }
 

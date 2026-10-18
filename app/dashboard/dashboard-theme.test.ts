@@ -26,7 +26,7 @@ const PAGINAS = [
   "pagos/page.tsx",
   "config/page.tsx",
   "checkout/page.tsx",
-  "facturacion/page.tsx",
+  "suscripcion/page.tsx",
 ];
 
 const COMPONENTES = [
@@ -193,13 +193,13 @@ describe("dashboard tema oscuro unificado",
     expect(errores).toEqual([]);
   });
 
-  it("debería usar un solo ancho y escala tipográfica en checkout/facturación",
+  it("debería usar un solo ancho y escala tipográfica en checkout/suscripción",
   () =>
   {
     const checkout = leer("checkout/page.tsx");
-    const facturacion = leer("facturacion/page.tsx");
+    const suscripcion = leer("suscripcion/page.tsx");
 
-    for (const [nombre, contenido] of [["checkout", checkout], ["facturacion", facturacion]] as const)
+    for (const [nombre, contenido] of [["checkout", checkout], ["suscripcion", suscripcion]] as const)
     {
       expect(contenido, nombre).not.toContain("max-w-7xl");
       expect(contenido, nombre).not.toContain("text-3xl");

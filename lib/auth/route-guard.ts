@@ -12,7 +12,7 @@ import type { SubscriptionStatus } from "@/lib/onboarding/trial";
 
 export const DASHBOARD_ROUTE = "/dashboard";
 export const ONBOARDING_ROUTE = "/onboarding";
-export const ADQUIRIR_SERVICIO_ROUTE = "/dashboard/facturacion";
+export const ADQUIRIR_SERVICIO_ROUTE = "/dashboard/suscripcion";
 
 /**
  * Rutas exentas del bloqueo por servicio vencido.

@@ -35,7 +35,7 @@ const SECCIONES: readonly Seccion[] =
   { href: "/dashboard/remarketing", etiqueta: "Remarketing", Icono: Repeat },
   { href: "/dashboard/pagos", etiqueta: "Pagos", Icono: Wallet },
   { href: "/dashboard/config", etiqueta: "Configuración", Icono: Settings },
-  { href: "/dashboard/facturacion", etiqueta: "Facturación", Icono: ReceiptText },
+  { href: "/dashboard/suscripcion", etiqueta: "Suscripción", Icono: ReceiptText },
 ];
 
 /**
@@ -123,7 +123,7 @@ export default function DashboardSidebar({
         <nav className="flex flex-col gap-1">
           {SECCIONES.map(({ href, etiqueta, Icono }) =>
           {
-            const deshabilitada = bloqueado && href !== "/dashboard/facturacion";
+            const deshabilitada = bloqueado && href !== "/dashboard/suscripcion";
 
             const contenido = (
               <>

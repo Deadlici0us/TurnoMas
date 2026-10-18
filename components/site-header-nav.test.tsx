@@ -13,7 +13,7 @@ const LABELS =
   menuLabel: "Abrir menú de cuenta",
   dashboardLabel: "Panel",
   configLabel: "Configuración",
-  billingLabel: "Facturación",
+  billingLabel: "Suscripción",
   accountLabel: "Mi cuenta",
 } as const;
 

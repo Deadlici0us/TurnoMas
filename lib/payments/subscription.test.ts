@@ -9,6 +9,7 @@ import {
   crearPreapproval,
   MONTO_PLAN_PESOS,
   MpHttpError,
+  parsearMontoCentavos,
   resolverMontoPlan,
   resolverPlanPais,
 } from "./subscription";
@@ -114,7 +115,7 @@ describe("crearPreapproval",
       {
         negocioId: "neg-1",
         payerEmail: "pagador@mp.com",
-        backUrl: "https://turnomas.com/dashboard/facturacion",
+        backUrl: "https://turnomas.com/dashboard/suscripcion",
         monto: 14999,
         currency: "ARS",
         platformToken: "APP_USR-platform",
@@ -133,7 +134,7 @@ describe("crearPreapproval",
         transaction_amount: 14999,
         currency_id: "ARS",
       },
-      back_url: "https://turnomas.com/dashboard/facturacion",
+      back_url: "https://turnomas.com/dashboard/suscripcion",
       status: "pending",
     });
     expect(ultimoBody(cuerpos)).not.toHaveProperty("preapproval_plan_id");
@@ -154,7 +155,7 @@ describe("crearPreapproval",
       {
         negocioId: "neg-1",
         payerEmail: "pagador@mp.com",
-        backUrl: "https://turnomas.com/dashboard/facturacion?suscripcion=ok",
+        backUrl: "https://turnomas.com/dashboard/suscripcion?suscripcion=ok",
         notificationUrl: "https://turnomas.com/api/webhooks",
         monto: 14999,
         currency: "ARS",
@@ -177,7 +178,7 @@ describe("crearPreapproval",
       {
         negocioId: "neg-1",
         payerEmail: "pagador@mp.com",
-        backUrl: "https://turnomas.com/dashboard/facturacion",
+        backUrl: "https://turnomas.com/dashboard/suscripcion",
         monto: 14999,
         currency: "ARS",
         platformToken: "APP_USR-platform",
@@ -278,6 +279,10 @@ describe("consultarCobroSuscripcion",
         external_reference: "neg-1",
         preapproval_id: "pre-1",
         payment: { id: 183627913945, status: "approved", status_detail: "accredited" },
+        transaction_amount: "14999.00",
+        currency_id: "ARS",
+        debit_date: "2026-03-01T11:12:25.892-03:00",
+        date_created: "2026-02-25T09:00:00.000-03:00",
       });
     }) as unknown as typeof fetch;
 
@@ -292,7 +297,46 @@ describe("consultarCobroSuscripcion",
       externalReference: "neg-1",
       paymentId: "183627913945",
       paymentStatus: "approved",
+      montoCents: 1499900,
+      currency: "ARS",
+      fecha: "2026-03-01T11:12:25.892-03:00",
     });
+  });
+
+  it("debería caer a date_created cuando falta debit_date",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaOk({
+      id: 100,
+      status: "scheduled",
+      external_reference: "neg-1",
+      preapproval_id: "pre-1",
+      transaction_amount: 15,
+      currency_id: "USD",
+      date_created: "2026-02-25T09:00:00.000-03:00",
+    }));
+
+    const result = await consultarCobroSuscripcion("100", "APP_USR-platform", fetchMock);
+
+    expect(result.montoCents).toBe(1500);
+    expect(result.currency).toBe("USD");
+    expect(result.fecha).toBe("2026-02-25T09:00:00.000-03:00");
+  });
+
+  it("debería dejar monto/currency/fecha en null cuando MP no los expone",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaOk({
+      id: 101,
+      status: "recycling",
+      external_reference: "neg-1",
+    }));
+
+    const result = await consultarCobroSuscripcion("101", "APP_USR-platform", fetchMock);
+
+    expect(result.montoCents).toBeNull();
+    expect(result.currency).toBeNull();
+    expect(result.fecha).toBeNull();
   });
 
   it("debería devolver el email del pagador cuando MP lo expone",
@@ -322,6 +366,27 @@ describe("consultarCobroSuscripcion",
 
     expect(error).toBeInstanceOf(MpHttpError);
     expect((error as MpHttpError).status).toBe(404);
+  });
+});
+
+describe("parsearMontoCentavos",
+() =>
+{
+  it("debería convertir string decimal y número a centavos",
+  () =>
+  {
+    expect(parsearMontoCentavos("14999.00")).toBe(1499900);
+    expect(parsearMontoCentavos("24.50")).toBe(2450);
+    expect(parsearMontoCentavos(15)).toBe(1500);
+  });
+
+  it("debería devolver null con valores inválidos",
+  () =>
+  {
+    expect(parsearMontoCentavos(null)).toBeNull();
+    expect(parsearMontoCentavos(undefined)).toBeNull();
+    expect(parsearMontoCentavos("abc")).toBeNull();
+    expect(parsearMontoCentavos("-5")).toBeNull();
   });
 });
 

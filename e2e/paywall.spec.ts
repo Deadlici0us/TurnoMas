@@ -16,7 +16,7 @@ async ({ page }) =>
   await page.fill('input[name="password"]', "demo123");
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
 
-  await expect(page).toHaveURL(/\/dashboard\/facturacion/);
+  await expect(page).toHaveURL(/\/dashboard\/suscripcion/);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tu plan venció" })).toBeVisible();
 });

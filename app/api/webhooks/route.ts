@@ -225,6 +225,23 @@ async function aplicarCobroSuscripcion(
     return NextResponse.json({ error: "No pudimos vincular el cobro." }, { status: 502 });
   }
 
+  // Historial de pagos: se persiste la cuota completa cuando MP expone monto,
+  // moneda y fecha. Idempotente por `authorized_payment_id`; si falla, se
+  // propaga para que MP reintente (el upsert no duplica).
+  if (vinculo.montoCents !== null && vinculo.currency !== null && vinculo.fecha !== null)
+  {
+    await subscriptionService.registrarPago({
+      negocioId: vinculo.negocioId,
+      preapprovalId: vinculo.preapprovalId,
+      authorizedPaymentId: vinculo.authorizedPaymentId,
+      mpPaymentId: vinculo.mpPaymentId,
+      montoCents: vinculo.montoCents,
+      currency: vinculo.currency,
+      estado: vinculo.status,
+      fecha: vinculo.fecha,
+    });
+  }
+
   if (vinculo.status === "approved")
   {
     await subscriptionService.activarSuscripcion(vinculo.negocioId, vinculo.preapprovalId);

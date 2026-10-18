@@ -93,7 +93,7 @@ describe("DashboardPage",
     render(await DashboardPage());
 
     expect(screen.getByText("Falló el último cobro del plan. Regularizá tu tarjeta para no perder el acceso.")).toBeDefined();
-    expect(screen.getByRole("link", { name: "Ver facturación" })).toHaveAttribute("href", "/dashboard/facturacion");
+    expect(screen.getByRole("link", { name: "Ver suscripción" })).toHaveAttribute("href", "/dashboard/suscripcion");
   });
 
   it("debería avisar conexión MP con señas sin conectar",

@@ -25,7 +25,7 @@ export interface SiteHeaderNavProps
  * Barra de navegación global presentacional.
  *
  * Invitados ven login/registro; autenticados, el perfil del negocio con su
- * menú de cuenta (panel, configuración, facturación y cerrar sesión).
+ * menú de cuenta (panel, configuración, suscripción y cerrar sesión).
  *
  * @param props autenticación, identidad del negocio, etiquetas i18n y logout.
  * @return Header con marca y acción de cuenta según sesión.

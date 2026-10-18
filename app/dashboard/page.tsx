@@ -83,7 +83,7 @@ export default async function DashboardPage()
   });
 
   const avisos = [
-    aviso !== null ? { texto: aviso, href: "/dashboard/facturacion", cta: "Ver facturación" } : null,
+    aviso !== null ? { texto: aviso, href: "/dashboard/suscripcion", cta: "Ver suscripción" } : null,
     avisarMp
       ? {
         texto: "Tenés servicios con seña pero sin MercadoPago conectado: las reservas quedan pendientes sin link de pago.",

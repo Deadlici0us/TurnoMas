@@ -9,7 +9,7 @@ const LABELS =
   menuLabel: "Abrir menú de cuenta",
   dashboardLabel: "Panel",
   configLabel: "Configuración",
-  billingLabel: "Facturación",
+  billingLabel: "Suscripción",
   logoutLabel: "Cerrar sesión",
 } as const;
 
@@ -35,7 +35,7 @@ describe("ProfileMenu",
 
     expect(await screen.findByRole("menuitem", { name: "Panel" })).toBeDefined();
     expect(screen.getByRole("menuitem", { name: "Configuración" })).toBeDefined();
-    expect(screen.getByRole("menuitem", { name: "Facturación" })).toBeDefined();
+    expect(screen.getByRole("menuitem", { name: "Suscripción" })).toBeDefined();
     expect(screen.getByRole("menuitem", { name: "Cerrar sesión" })).toBeDefined();
   });
 });

@@ -13,6 +13,45 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
+/** Cuota persistida del plan SaaS (historial de pagos). */
+export interface PagoSuscripcion
+{
+  readonly id: string;
+  readonly preapprovalId: string;
+  readonly authorizedPaymentId: string;
+  readonly mpPaymentId: string | null;
+  readonly montoCents: number;
+  readonly currency: string;
+  readonly estado: string;
+  readonly fecha: string;
+}
+
+/** Datos de una cuota a persistir en el historial. */
+export interface RegistrarPagoInput
+{
+  readonly negocioId: string;
+  readonly preapprovalId: string;
+  readonly authorizedPaymentId: string;
+  readonly mpPaymentId: string | null;
+  readonly montoCents: number;
+  readonly currency: string;
+  readonly estado: string;
+  readonly fecha: string;
+}
+
+/** Vínculo de un cobro recurrente con su negocio y datos de la cuota. */
+export interface VinculoCobro
+{
+  readonly negocioId: string;
+  readonly preapprovalId: string;
+  readonly status: string;
+  readonly authorizedPaymentId: string;
+  readonly mpPaymentId: string | null;
+  readonly montoCents: number | null;
+  readonly currency: string | null;
+  readonly fecha: string | null;
+}
+
 export class SubscriptionService
 {
   /** Crea la suscripción (sin plan, `pending`) y devuelve el link de pago de MP. */
@@ -43,7 +82,7 @@ export class SubscriptionService
     return crearPreapproval({
       negocioId,
       payerEmail,
-      backUrl: `${stripTrailingSlashes(base)}/dashboard/facturacion?suscripcion=ok`,
+      backUrl: `${stripTrailingSlashes(base)}/dashboard/suscripcion?suscripcion=ok`,
       notificationUrl: `${stripTrailingSlashes(base)}/api/webhooks/mercadopago`,
       monto: plan.monto,
       currency: plan.currency,
@@ -214,11 +253,7 @@ export class SubscriptionService
    * mapeo no depende del email del pagador. El email queda como respaldo
    * para cuotas sin `external_reference`. Null si ningún eslabón resuelve.
    */
-  async resolverNegocioDeCobro(paymentId: string): Promise<{
-    readonly negocioId: string;
-    readonly preapprovalId: string;
-    readonly status: string;
-  } | null>
+  async resolverNegocioDeCobro(paymentId: string): Promise<VinculoCobro | null>
   {
     const platformToken = readEnv("MP_ACCESS_TOKEN");
 
@@ -231,6 +266,13 @@ export class SubscriptionService
     {
       const cobro = await consultarCobroSuscripcion(paymentId, platformToken);
       const status = normalizarEstadoCobro(cobro.status, cobro.paymentStatus);
+      const cuota = {
+        authorizedPaymentId: cobro.id,
+        mpPaymentId: cobro.paymentId,
+        montoCents: cobro.montoCents,
+        currency: cobro.currency,
+        fecha: cobro.fecha,
+      };
 
       if (cobro.externalReference !== null && cobro.preapprovalId !== null)
       {
@@ -238,6 +280,7 @@ export class SubscriptionService
           negocioId: cobro.externalReference,
           preapprovalId: cobro.preapprovalId,
           status,
+          ...cuota,
         };
       }
 
@@ -257,12 +300,86 @@ export class SubscriptionService
         negocioId: preapproval.externalReference,
         preapprovalId: cobro.preapprovalId ?? preapproval.id,
         status,
+        ...cuota,
       };
     }
     catch
     {
       return null;
     }
+  }
+
+  /**
+   * Persiste una cuota del plan en el historial del negocio (idempotente).
+   *
+   * El `authorized_payment_id` es la clave de idempotencia: reintentos del
+   * webhook de MercadoPago actualizan la misma fila en vez de duplicarla.
+   *
+   * @param input Datos de la cuota resueltos desde MercadoPago.
+   * @throws Error cuando Supabase rechaza el upsert.
+   */
+  async registrarPago(input: RegistrarPagoInput): Promise<void>
+  {
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("suscripcion_pagos").upsert({
+      negocio_id: input.negocioId,
+      preapproval_id: input.preapprovalId,
+      authorized_payment_id: input.authorizedPaymentId,
+      mp_payment_id: input.mpPaymentId,
+      monto_cents: input.montoCents,
+      currency: input.currency,
+      estado: input.estado,
+      fecha: input.fecha,
+    }, { onConflict: "authorized_payment_id" });
+
+    if (error !== null)
+    {
+      throw new Error("No pudimos registrar el pago de la suscripción. Probá de nuevo.");
+    }
+  }
+
+  /** Lista las cuotas del negocio, más recientes primero. */
+  async listarPagos(negocioId: string): Promise<PagoSuscripcion[]>
+  {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.from("suscripcion_pagos")
+      .select("id, preapproval_id, authorized_payment_id, mp_payment_id, monto_cents, currency, estado, fecha")
+      .eq("negocio_id", negocioId)
+      .order("fecha", { ascending: false });
+
+    if (error !== null)
+    {
+      throw new Error("No pudimos cargar el historial de pagos. Probá de nuevo.");
+    }
+
+    return (Array.isArray(data) ? data : []).flatMap((raw) =>
+    {
+      if (typeof raw !== "object" || raw === null)
+      {
+        return [];
+      }
+
+      const fila = raw as Record<string, unknown>;
+
+      if (typeof fila.id !== "string" || typeof fila.fecha !== "string"
+        || typeof fila.monto_cents !== "number" || typeof fila.currency !== "string"
+        || typeof fila.estado !== "string" || typeof fila.preapproval_id !== "string"
+        || typeof fila.authorized_payment_id !== "string")
+      {
+        return [];
+      }
+
+      return [{
+        id: fila.id,
+        preapprovalId: fila.preapproval_id,
+        authorizedPaymentId: fila.authorized_payment_id,
+        mpPaymentId: typeof fila.mp_payment_id === "string" ? fila.mp_payment_id : null,
+        montoCents: fila.monto_cents,
+        currency: fila.currency,
+        estado: fila.estado,
+        fecha: fila.fecha,
+      }];
+    });
   }
 }
 

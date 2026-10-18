@@ -32,7 +32,7 @@ export default async function PricingPage() {
           </ul>
           <div className="text-center">
             <Link
-              href="/dashboard/facturacion"
+              href="/dashboard/suscripcion"
               className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
                 rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
                 transition-all duration-300 hover:-translate-y-0.5"
