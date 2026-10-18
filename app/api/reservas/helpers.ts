@@ -14,6 +14,7 @@ import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
 import { esEmailValido } from "@/lib/validation/email";
+import { limpiarControl } from "@/lib/validation/texto";
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
@@ -54,7 +55,7 @@ function exigirTexto(valor: unknown, mensaje: string): string
 
 function exigirNombre(valor: unknown): string
 {
-  const nombre = exigirTexto(valor, "Contanos tu nombre para confirmar la reserva.");
+  const nombre = limpiarControl(exigirTexto(valor, "Contanos tu nombre para confirmar la reserva."));
 
   if (nombre.length < NOMBRE_MINIMO)
   {

@@ -5,6 +5,8 @@
  * rápido en la Server Action con mensajes en es-AR.
  */
 
+import { limpiarControl } from "@/lib/validation/texto";
+
 import { DAY_ORDER, formatDayRange, parseDayRanges, type DayKey } from "./schedule";
 
 const NOMBRE_MINIMO = 2;
@@ -18,7 +20,7 @@ export function validarNombreStaff(nombre: unknown): string
     throw new RangeError("El nombre del profesional tiene que ser texto.");
   }
 
-  const value = nombre.trim();
+  const value = limpiarControl(nombre);
 
   if (value.length < NOMBRE_MINIMO || value.length > NOMBRE_MAXIMO)
   {

@@ -6,6 +6,8 @@
  * público (`/:pais/:slug`) y cambiarlo rompería reservas compartidas.
  */
 
+import { limpiarControl } from "@/lib/validation/texto";
+
 const NOMBRE_MINIMO = 2;
 const NOMBRE_MAXIMO = 80;
 
@@ -17,7 +19,7 @@ export function validarNombreNegocio(nombre: unknown): string
     throw new RangeError("El nombre del negocio tiene que ser texto.");
   }
 
-  const value = nombre.trim();
+  const value = limpiarControl(nombre);
 
   if (value.length < NOMBRE_MINIMO || value.length > NOMBRE_MAXIMO)
   {

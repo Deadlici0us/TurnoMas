@@ -54,6 +54,12 @@ export function interpolarVariables(texto: string, datos: Record<string, string>
     Object.hasOwn(datos, clave) ? (datos[clave] as string) : marca);
 }
 
+/** Quita saltos de línea (defensa contra inyección de headers en el asunto). */
+function sinSaltos(texto: string): string
+{
+  return texto.replace(/[\r\n]+/g, " ").trim();
+}
+
 function escapeHtml(valor: string): string
 {
   return valor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -126,7 +132,7 @@ export function resolverPlantilla(
   }
 
   const vars = datosConLink(tipo, datos, link);
-  const titulo = subject !== null ? interpolarVariables(subject, vars) : datos.negocio;
+  const titulo = subject !== null ? sinSaltos(interpolarVariables(subject, vars)) : datos.negocio;
   const parrafos = cuerpo !== null
     ? interpolarVariables(cuerpo, vars).split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0)
     : [];

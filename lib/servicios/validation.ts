@@ -5,6 +5,8 @@
  * rápido en la Server Action con mensajes en es-AR.
  */
 
+import { limpiarControl } from "@/lib/validation/texto";
+
 export interface ServicioInput
 {
   readonly nombre: unknown;
@@ -60,7 +62,7 @@ function validarNombre(nombre: unknown): string
     throw new RangeError("El nombre del servicio tiene que ser texto.");
   }
 
-  const recortado = nombre.trim();
+  const recortado = limpiarControl(nombre);
 
   if (recortado.length < NOMBRE_MINIMO || recortado.length > NOMBRE_MAXIMO)
   {

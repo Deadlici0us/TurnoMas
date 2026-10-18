@@ -9,6 +9,7 @@ import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { buildDemoSeed } from "@/lib/seed/demo-rows";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { sanitizeUrlExterna } from "@/lib/validation/url";
 
 const DEMO_DUENIO_ID = "demo-duenio";
 
@@ -58,9 +59,10 @@ async function consultarNegocio(userId: string): Promise<NegocioHeader | null>
 
     const row = data as { nombre?: unknown; logo_url?: unknown };
     const nombre = typeof row.nombre === "string" ? row.nombre : "";
-    const logo = typeof row.logo_url === "string" ? row.logo_url.trim() : "";
+    // Saneo XSS: el logo se usa como `src`; solo se permiten http(s).
+    const logo = sanitizeUrlExterna(row.logo_url);
 
-    return { nombre, logoUrl: logo.length > 0 ? logo : null };
+    return { nombre, logoUrl: logo };
   }
   catch
   {
