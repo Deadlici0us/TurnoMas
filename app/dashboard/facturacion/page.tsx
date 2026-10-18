@@ -1,13 +1,17 @@
+import { Suspense } from "react";
 import Link from "next/link";
 
 import { cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
 import SuscripcionForm from "@/components/suscripcion-form";
+import VerificarPago from "@/components/verificar-pago";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
+import { esRetornoCheckout } from "@/lib/payments/checkout-return";
 import { resolverPlanPais } from "@/lib/payments/subscription";
+import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Indica si el lector es el dueño demo (sin suscripciones reales). */
@@ -26,11 +30,57 @@ async function esDuenoDemo(): Promise<boolean>
   }
 }
 
+/**
+ * Reconcilia la suscripción contra MercadoPago al volver del checkout.
+ *
+ * Best-effort: si MP no responde o falta configuración, la página se renderiza
+ * igual y queda el fallback cliente (`VerificarPago`) con el botón manual.
+ *
+ * @param negocio Fila del negocio (se usa su `id`).
+ */
+async function reconciliarRetorno(negocio: { id?: unknown }): Promise<void>
+{
+  const negocioId = typeof negocio.id === "string" ? negocio.id : "";
+
+  if (negocioId.length === 0)
+  {
+    return;
+  }
+
+  try
+  {
+    await subscriptionService.reconciliar(negocioId);
+  }
+  catch
+  {
+    // Best-effort: el retorno del checkout nunca debe romper la página.
+  }
+}
+
 export default async function FacturacionPage(
-  props?: { readonly searchParams?: Promise<{ suscripcion?: string; error?: string }> },
+  props?: { readonly searchParams?: Promise<{ suscripcion?: string; preapproval_id?: string; error?: string }> },
 )
 {
-  const { data: dashboard, userEmail } = await getDashboardData();
+  const params = props?.searchParams === undefined ? undefined : await props.searchParams;
+  const demo = await esDuenoDemo();
+  const retorno = esRetornoCheckout({
+    suscripcion: params?.suscripcion,
+    preapproval_id: params?.preapproval_id,
+  });
+
+  const inicial = await getDashboardData();
+  let dashboard = inicial.data;
+  let userEmail = inicial.userEmail;
+
+  if (retorno && !demo)
+  {
+    await reconciliarRetorno(dashboard.negocio as { id?: unknown });
+    const refrescado = await getDashboardData();
+
+    dashboard = refrescado.data;
+    userEmail = refrescado.userEmail;
+  }
+
   const negocio = dashboard.negocio as {
     created_at?: unknown;
     pais?: unknown;
@@ -49,8 +99,6 @@ export default async function FacturacionPage(
     suscripcion_mora_desde:
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
   });
-  const demo = await esDuenoDemo();
-  const params = props?.searchParams === undefined ? undefined : await props.searchParams;
   const diasRestantes = diasTrialRestantes(creado);
   const suscripcionId = typeof negocio.suscripcion_mp_id === "string"
     && negocio.suscripcion_mp_id.trim().length > 0
@@ -72,7 +120,7 @@ export default async function FacturacionPage(
         </Link>
       </div>
 
-      {params?.suscripcion === "ok" && (
+      {retorno && estado !== "active" && (
         <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
           bg-green-500/10 text-green-300 border-green-500/30">
           Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
@@ -133,6 +181,12 @@ export default async function FacturacionPage(
             </p>
           ) : null}
         </div>
+
+      {retorno && !demo && estado !== "active" && estado !== "blocked" ? (
+        <Suspense fallback={null}>
+          <VerificarPago />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

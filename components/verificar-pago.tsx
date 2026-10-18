@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { esRetornoCheckout } from "@/lib/payments/checkout-return";
+
 export interface VerificarPagoProps
 {
   readonly recargar?: (url: string) => void;
@@ -110,7 +112,10 @@ export default function VerificarPago(props: VerificarPagoProps)
   // Verificación automática al volver del checkout.
   useEffect(() =>
   {
-    if (params.get("suscripcion") !== "ok")
+    if (params === null || !esRetornoCheckout({
+      suscripcion: params.get("suscripcion"),
+      preapproval_id: params.get("preapproval_id"),
+    }))
     {
       return;
     }

@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import FacturacionPage from "./page";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("./actions", () =>
@@ -15,6 +16,11 @@ vi.mock("@/lib/dashboard/queries", () =>
   return { getDashboardData: vi.fn() };
 });
 
+vi.mock("@/lib/services/subscription", () =>
+{
+  return { subscriptionService: { reconciliar: vi.fn() } };
+});
+
 vi.mock("@/lib/supabase/server", () =>
 {
   return { getSupabaseServer: vi.fn() };
@@ -22,10 +28,13 @@ vi.mock("@/lib/supabase/server", () =>
 
 const mockData = vi.mocked(getDashboardData);
 const mockServer = vi.mocked(getSupabaseServer);
+const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
 
 /** Negocio con estado de suscripción dado. */
-function stubFacturacion(negocio: unknown, demo = false): void
+function stubFacturacion(negocio: unknown, demo = false): Record<string, unknown>
 {
+  const fila = { id: "neg-1", ...(negocio as Record<string, unknown>) };
+
   mockServer.mockResolvedValue({
     auth: {
       getUser: async () => ({
@@ -34,15 +43,23 @@ function stubFacturacion(negocio: unknown, demo = false): void
     },
   } as never);
   mockData.mockResolvedValueOnce({
-    data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
+    data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
     isDemo: demo,
   } as never);
+
+  return fila;
 }
 
-describe("FacturacionPage",
-() =>
+beforeEach(() =>
 {
+  vi.clearAllMocks();
+  mockReconciliar.mockResolvedValue({ estado: "none", preapprovalId: null, initPoint: null });
+});
+
+describe("FacturacionPage",
+  () =>
+  {
   it("debería mostrar activar en ARS para Argentina",
   async () =>
   {
@@ -144,16 +161,88 @@ describe("FacturacionPage",
   it("debería avisar retorno de MercadoPago con suscripcion=ok",
   async () =>
   {
+    const fila = stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+    mockData.mockResolvedValue({
+      data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+
+    expect(mockReconciliar).toHaveBeenCalledWith("neg-1");
+    expect(screen.getByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización."))
+      .toBeDefined();
+  });
+
+  it("debería reconciliar al volver con la URL malformada de MercadoPago",
+  async () =>
+  {
+    const fila = stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+    mockData.mockResolvedValue({
+      data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await FacturacionPage({
+      searchParams: Promise.resolve({
+        suscripcion: "ok?preapproval_id=c9d413fe3d2a465f88d28b2be92993a4",
+      }),
+    }));
+
+    expect(mockReconciliar).toHaveBeenCalledWith("neg-1");
+    expect(screen.getByRole("button", { name: "Ya pagué, verificar ahora" })).toBeDefined();
+  });
+
+  it("debería mostrar el plan activo sin aviso cuando la reconciliación lo activó",
+  async () =>
+  {
+    stubFacturacion({
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      suscripcion_estado: "trial",
+      suscripcion_mp_id: null,
+    });
+    mockData.mockResolvedValue({
+      data: {
+        negocio: { id: "neg-1", created_at: "2026-01-01T00:00:00Z", suscripcion_estado: "active", suscripcion_mp_id: "pre-9" },
+        staff: [],
+        servicios: [],
+        clientes: [],
+        turnos: [],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+
+    expect(mockReconciliar).toHaveBeenCalledWith("neg-1");
+    expect(screen.getByText("Activo")).toBeDefined();
+    expect(screen.queryByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ya pagué, verificar ahora" })).toBeNull();
+  });
+
+  it("no debería reconciliar al entrar sin retorno de MercadoPago",
+  async () =>
+  {
     stubFacturacion({
       created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
       suscripcion_estado: "trial",
       suscripcion_mp_id: null,
     });
 
-    render(await FacturacionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
+    render(await FacturacionPage());
 
-    expect(screen.getByText("Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización."))
-      .toBeDefined();
+    expect(mockReconciliar).not.toHaveBeenCalled();
   });
 
   it("debería avisar el error de activación",

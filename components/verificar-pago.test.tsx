@@ -94,6 +94,21 @@ describe("VerificarPago",
       await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
     });
 
+    it("debería verificar automáticamente al volver con la URL malformada de MercadoPago",
+    async () =>
+    {
+      navegacion.params = new URLSearchParams({
+        suscripcion: "ok?preapproval_id=c9d413fe3d2a465f88d28b2be92993a4",
+      });
+      const recargar = vi.fn();
+      const fetchMock = instalarFetch({ ok: true, json: async () => ({ activado: true, estado: "active" }) });
+
+      render(<VerificarPago recargar={recargar} />);
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/verificar", { method: "POST" }));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+    });
+
     it("debería levantar el paywall solo cuando el estado deja de estar bloqueado",
     async () =>
     {
