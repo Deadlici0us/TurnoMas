@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
@@ -254,7 +256,12 @@ export default async function ClientesPage({
                 return (
                   <tr key={cliente.id} className="hover:bg-white/10 align-top">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-slate-100">{cliente.nombre}</p>
+                      <Link
+                        href={"/dashboard/clientes/" + cliente.id}
+                        className="font-medium text-slate-100 hover:text-blue-300"
+                      >
+                        {cliente.nombre}
+                      </Link>
                       <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
                       <p className="text-slate-400 text-xs mt-1">
                         {ultimo
@@ -346,7 +353,12 @@ export default async function ClientesPage({
               <div key={cliente.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-100">{cliente.nombre}</p>
+                    <Link
+                      href={"/dashboard/clientes/" + cliente.id}
+                      className="font-medium text-slate-100 hover:text-blue-300"
+                    >
+                      {cliente.nombre}
+                    </Link>
                     <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
                     <p className="text-slate-400 text-xs mt-1">
                       {historial.length} turnos · {cliente.ausencias} faltas

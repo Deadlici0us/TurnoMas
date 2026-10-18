@@ -175,6 +175,19 @@ describe("ClientesPage",
     expect(screen.queryByText("Juan")).toBeNull();
   });
 
+  it("debería enlazar el nombre a la ficha del cliente",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+
+    render(await ClientesPage({ searchParams: params() }));
+
+    const links = screen.getAllByRole("link", { name: "Juan Pérez" });
+
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    expect(links[0]?.getAttribute("href")).toBe("/dashboard/clientes/cli-1");
+  });
+
   it("debería avisar sin coincidencias y sin clientes",
   async () =>
   {
