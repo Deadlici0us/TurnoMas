@@ -13,7 +13,7 @@ vi.mock("@/lib/auth/demo-guard", () =>
 
 vi.mock("@/lib/services/subscription", () =>
 {
-  return { subscriptionService: { reconciliar: vi.fn() } };
+  return { subscriptionService: { reconciliar: vi.fn(), cancelarSuscripcionLocal: vi.fn() } };
 });
 
 vi.mock("@/lib/supabase/server", () =>
@@ -29,11 +29,12 @@ vi.mock("@/lib/supabase/admin", () =>
 const mockAssertModo = vi.mocked(assertModoEditable);
 const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
+const mockCancelarLocal = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
 /** Sesión de dueño autenticado no demo con negocio. */
-function sesionDueno(): void
+function sesionDueno(suscripcionEstado: string | null = "active"): void
 {
   mockAssertModo.mockResolvedValue(undefined);
   mockAssertDueno.mockReturnValue(undefined);
@@ -44,7 +45,7 @@ function sesionDueno(): void
     from: () => ({
       select: () => ({
         eq: () => ({
-          single: async () => ({ data: { id: "neg-1" } }),
+          single: async () => ({ data: { id: "neg-1", suscripcion_estado: suscripcionEstado } }),
         }),
       }),
     }),
@@ -113,6 +114,32 @@ describe("POST /api/suscripcion/verificar",
 
       expect(response.status).toBe(200);
       expect(body).toEqual({ success: true, estado: "pending", activado: false });
+    });
+
+    it("debería limpiar el plan local cuando MP ya no tiene la suscripción",
+    async () =>
+    {
+      sesionDueno("active");
+      mockReconciliar.mockResolvedValueOnce({ estado: "none", preapprovalId: null, initPoint: null });
+
+      const response = await POST();
+      const body = await response.json() as { estado: string; activado: boolean };
+
+      expect(response.status).toBe(200);
+      expect(body.estado).toBe("none");
+      expect(mockCancelarLocal).toHaveBeenCalledWith("neg-1");
+    });
+
+    it("no debería tocar el plan de un negocio en prueba",
+    async () =>
+    {
+      sesionDueno("trial");
+      mockReconciliar.mockResolvedValueOnce({ estado: "none", preapprovalId: null, initPoint: null });
+
+      const response = await POST();
+
+      expect(response.status).toBe(200);
+      expect(mockCancelarLocal).not.toHaveBeenCalled();
     });
 
     it("debería devolver 502 con detalle fuera de producción",

@@ -60,7 +60,7 @@ export async function POST()
     }
 
     const admin = getSupabaseAdmin();
-    const { data: negocio } = await admin.from("negocios").select("id")
+    const { data: negocio } = await admin.from("negocios").select("id, suscripcion_estado")
       .eq("duenio_id", user.id).single();
 
     if (negocio === null)
@@ -71,8 +71,20 @@ export async function POST()
       );
     }
 
-    const fila = negocio as { id: string };
+    const fila = negocio as { id: string; suscripcion_estado?: unknown };
     const resultado = await subscriptionService.reconciliar(fila.id);
+
+    // Cierra el drift: si MP ya no tiene la suscripción pero el estado local
+    // quedó activo o en mora (p. ej. se canceló desde MP), se limpia el plan.
+    if (resultado.estado === "none")
+    {
+      const local = typeof fila.suscripcion_estado === "string" ? fila.suscripcion_estado : null;
+
+      if (local === "active" || local === "past_due")
+      {
+        await subscriptionService.cancelarSuscripcionLocal(fila.id);
+      }
+    }
 
     return NextResponse.json(
       {
