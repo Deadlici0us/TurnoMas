@@ -251,7 +251,7 @@ describe("POST /api/suscripcion/crear",
     expect(body.detalle).toBeUndefined();
   });
 
-  it("debería explicar el rechazo por email de MercadoPago",
+  it("debería explicar el rechazo por pagador real con cobrador de prueba",
   async () =>
   {
     sesionDueno();
@@ -262,6 +262,20 @@ describe("POST /api/suscripcion/crear",
     const body = await response.json() as { error: string };
 
     expect(response.status).toBe(502);
-    expect(body.error).toBe("Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.");
+    expect(body.error).toBe("Este entorno de prueba solo acepta pagos con un usuario de test de MercadoPago.");
+  });
+
+  it("debería explicar el rechazo por cuenta de otro país",
+  async () =>
+  {
+    sesionDueno();
+    mockCrear.mockRejectedValueOnce(
+      new Error("payer_email: guest_site_mismatch"));
+
+    const response = await POST(solicitud());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("Ese email pertenece a una cuenta de MercadoPago de otro país. Usá una cuenta de Argentina.");
   });
 });

@@ -29,16 +29,21 @@ function mensajeDeError(detalle: string): string
 {
   const texto = detalle.toLowerCase();
 
-  if (texto.includes("both payer and collector")
-    || texto.includes("payer and collector")
-    || texto.includes("payer_email"))
+  if (texto.includes("must be real or test") || texto.includes("real or test users"))
   {
-    return "Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.";
+    return "Este entorno de prueba solo acepta pagos con un usuario de test de MercadoPago.";
   }
 
   if (texto.includes("guest_site_mismatch") || texto.includes("different site"))
   {
     return "Ese email pertenece a una cuenta de MercadoPago de otro país. Usá una cuenta de Argentina.";
+  }
+
+  if (texto.includes("both payer and collector")
+    || texto.includes("payer and collector")
+    || texto.includes("payer_email"))
+  {
+    return "Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.";
   }
 
   return "No pudimos activar el plan. Probá de nuevo.";
