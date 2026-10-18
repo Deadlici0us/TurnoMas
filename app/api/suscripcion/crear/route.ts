@@ -36,6 +36,11 @@ function mensajeDeError(detalle: string): string
     return "Usá el email de la misma cuenta de MercadoPago con la que vas a pagar.";
   }
 
+  if (texto.includes("guest_site_mismatch") || texto.includes("different site"))
+  {
+    return "Ese email pertenece a una cuenta de MercadoPago de otro país. Usá una cuenta de Argentina.";
+  }
+
   return "No pudimos activar el plan. Probá de nuevo.";
 }
 
