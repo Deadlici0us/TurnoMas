@@ -16,7 +16,12 @@ async ({ page }) =>
   await page.fill('input[name="password"]', "demo123");
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
 
-  await expect(page).toHaveURL(/\/dashboard\/suscripcion/);
+  // El server action aterriza en /dashboard y el overlay se levanta ahí mismo.
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tu plan venció" })).toBeVisible();
+
+  // Al pedir una sección protegida, el proxy manda a la ruta de suscripción.
+  await page.goto("/dashboard/agenda");
+  await expect(page).toHaveURL(/\/dashboard\/suscripcion/);
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
