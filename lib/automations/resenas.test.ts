@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolverResenaHs, resolveReviewDestination, shouldAskReview } from "./resenas";
+import { esEstrellasValidas, resolverResenaHs, shouldAskReview } from "./resenas";
 
 const AHORA = new Date("2026-09-28T10:00:00Z");
 
@@ -42,27 +42,23 @@ describe("shouldAskReview",
   });
 });
 
-describe("resolveReviewDestination",
+describe("esEstrellasValidas",
 () =>
 {
-  it("debería derivar a Google Maps con 4 o 5 estrellas",
+  it("debería aceptar enteros de 1 a 5",
   () =>
   {
-    expect(resolveReviewDestination(5)).toBe("google-maps");
-    expect(resolveReviewDestination(4)).toBe("google-maps");
+    expect(esEstrellasValidas(1)).toBe(true);
+    expect(esEstrellasValidas(5)).toBe(true);
   });
 
-  it("debería pedir feedback interno con 1 a 3 estrellas",
+  it("debería rechazar fuera de rango o no enteros",
   () =>
   {
-    expect(resolveReviewDestination(3)).toBe("feedback-interno");
-    expect(resolveReviewDestination(1)).toBe("feedback-interno");
-  });
-
-  it("debería rechazar estrellas fuera de 1 a 5",
-  () =>
-  {
-    expect(() => resolveReviewDestination(0)).toThrow(RangeError);
-    expect(() => resolveReviewDestination(6)).toThrow(RangeError);
+    expect(esEstrellasValidas(0)).toBe(false);
+    expect(esEstrellasValidas(6)).toBe(false);
+    expect(esEstrellasValidas(3.5)).toBe(false);
+    expect(esEstrellasValidas("4")).toBe(false);
+    expect(esEstrellasValidas(undefined)).toBe(false);
   });
 });

@@ -51,6 +51,8 @@ export interface PortalBusiness
   readonly servicios: readonly PortalServicio[];
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
+  /** El negocio exige email al reservar (tiene reseñas o recordatorios activos). */
+  readonly requiereEmail?: boolean;
 }
 
 const DEMO_DUENIO_ID = "demo-duenio";

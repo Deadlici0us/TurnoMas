@@ -2,17 +2,13 @@
 
 import { useState } from "react";
 
-type Resultado =
-  | { readonly destino: "google-maps"; readonly mapsUrl: string }
-  | { readonly destino: "feedback-interno" };
-
 export default function FormularioResena({ turnoId }: { readonly turnoId: string })
 {
   const [estrellas, setEstrellas] = useState(0);
   const [comentario, setComentario] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [enviado, setEnviado] = useState(false);
 
   async function enviar(): Promise<void>
   {
@@ -32,7 +28,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ turnoId, estrellas, comentario: comentario.trim() }),
       });
-      const data = await response.json() as Resultado & { error?: string };
+      const data = await response.json() as { error?: string };
 
       if (!response.ok)
       {
@@ -40,9 +36,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
         return;
       }
 
-      setResultado(data.destino === "google-maps"
-        ? { destino: "google-maps", mapsUrl: (data as { mapsUrl: string }).mapsUrl }
-        : { destino: "feedback-interno" });
+      setEnviado(true);
     }
     catch
     {
@@ -54,32 +48,23 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
     }
   }
 
-  if (resultado !== null)
+  if (enviado)
   {
     return (
       <div className="space-y-4 text-center">
         <div className="text-5xl">¡Gracias!</div>
-        {resultado.destino === "google-maps" ? (
-          <a
-            href={resultado.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl
-              hover:bg-brand-500 transition-colors"
-          >
-            Dejanos tu reseña en Google
-          </a>
-        ) : (
-          <p className="text-sm text-slate-400">
-            Recibimos tu devolución y la vamos a usar para mejorar. ¡Gracias!
-          </p>
-        )}
+        <p className="text-sm text-slate-400">
+          Recibimos tu devolución y la vamos a usar para mejorar. ¡Gracias!
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-slate-400 text-center">
+        Contanos cómo te fue. Es privado: solo lo ve el negocio.
+      </p>
       <div className="flex justify-center gap-2">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -109,7 +94,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
       >
         <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
           bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-        {enviando ? "Enviando..." : "Enviar calificación"}
+        {enviando ? "Enviando..." : "Enviar"}
       </button>
     </div>
   );

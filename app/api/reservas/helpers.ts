@@ -144,6 +144,26 @@ export function parseReservaBody(body: ReservaBody): ReservaValidada
 }
 
 /**
+ * Indica si el negocio exige email al reservar.
+ *
+ * Se exige cuando tiene reseñas o recordatorios activos (default true). Estos
+ * features avisan al cliente por email, así que sin email el negocio pierde la
+ * entrega. Si el dueño desactiva ambos, el email pasa a ser opcional.
+ *
+ * @param negocio Fila del negocio (o null).
+ * @return Verdadero cuando el email es obligatorio.
+ */
+export function requiereEmailObligatorio(
+  negocio: { readonly resena_activa?: unknown; readonly recordatorio_activo?: unknown } | null,
+): boolean
+{
+  const resena = negocio?.resena_activa !== false;
+  const recordatorio = negocio?.recordatorio_activo !== false;
+
+  return resena || recordatorio;
+}
+
+/**
  * Indica si un turno existente retiene su slot durante la gracia de pago.
  *
  * @param estado Estado del turno.

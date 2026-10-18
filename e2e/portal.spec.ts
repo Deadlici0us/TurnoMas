@@ -23,6 +23,7 @@ async ({ page }) =>
 
   await page.getByPlaceholder("Ej: Juan Pérez").fill("Juan Pérez");
   await page.getByPlaceholder("Ej: +549110000001").fill("+549110000001");
+  await page.getByPlaceholder("Ej: juan@ejemplo.com").fill("juan@ejemplo.com");
   await page.getByRole("button", { name: "Confirmar reserva" }).click();
 
   await expect(page.getByRole("heading", { name: "¡Reserva confirmada!" })).toBeVisible();

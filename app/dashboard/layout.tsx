@@ -6,6 +6,7 @@ import { logout } from "@/app/login/actions";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { resolverPlanPais } from "@/lib/payments/subscription";
+import { contarResenasPendientes } from "@/lib/resenas/queries";
 
 /** Shell del dashboard: banner demo, navegación lateral y paywall si venció el plan. */
 export default async function DashboardLayout({
@@ -16,6 +17,12 @@ export default async function DashboardLayout({
 {
   const { data: dashboard, isDemo, userEmail } = await getDashboardData();
   const candidatos = candidatosDesdeDashboard(dashboard);
+  const negocioId = typeof (dashboard.negocio as { id?: unknown })?.id === "string"
+    ? (dashboard.negocio as { id: string }).id
+    : null;
+  const resenasPendientes = isDemo || negocioId === null
+    ? 0
+    : await contarResenasPendientes(negocioId);
   const negocio = dashboard.negocio as {
     created_at?: unknown;
     pais?: unknown;
@@ -46,7 +53,7 @@ export default async function DashboardLayout({
   return (
     <>
       <div className="relative z-10 flex min-h-screen bg-slate-950 text-slate-100 scheme-dark">
-        <DashboardSidebar pendientesRemarketing={candidatos.length} bloqueado={bloqueado} />
+        <DashboardSidebar pendientesRemarketing={candidatos.length} resenasPendientes={resenasPendientes} bloqueado={bloqueado} />
         <div className="min-w-0 flex-1">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
             {isDemo ? <DemoEditableBanner /> : null}

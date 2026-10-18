@@ -5,7 +5,7 @@ import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import GuiaWhatsapp from "@/components/guia-whatsapp";
 import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
-import { actualizarGoogleMapsUrl, actualizarHorariosNegocio, actualizarNombreNegocio,
+import { actualizarGoogleMapsUrl, actualizarGooglePlaceId, actualizarHorariosNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
   actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
@@ -94,6 +94,15 @@ async function guardarMaps(formData: FormData): Promise<void>
   const url = formData.get("mapsUrl");
 
   await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
+}
+
+async function guardarPlaceId(formData: FormData): Promise<void>
+{
+  "use server";
+
+  const placeId = formData.get("placeId");
+
+  await actualizarGooglePlaceId(typeof placeId === "string" ? placeId : null);
 }
 
 async function guardarWhatsapp(formData: FormData): Promise<void>
@@ -330,6 +339,7 @@ export default async function ConfigPage(
     msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
     msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
     google_maps_url?: string | null;
+    google_place_id?: string | null;
     whatsapp?: string | null;
   };
   const {
@@ -617,8 +627,10 @@ export default async function ConfigPage(
         {resenaActiva ? (
           <form action={guardarMaps} className="space-y-3">
             <label className="block text-sm font-semibold text-slate-200">
-              {"¿A dónde van las buenas opiniones?"}
-              <span className="block text-xs font-normal text-slate-400">Pegá tu link de Google</span>
+              {"Link de Google Maps de tu negocio"}
+              <span className="block text-xs font-normal text-slate-400">
+                Se usa si no cargás el place ID
+              </span>
               <input
                 type="url"
                 name="mapsUrl"
@@ -638,11 +650,37 @@ export default async function ConfigPage(
             </button>
           </form>
         ) : null}
+        {resenaActiva ? (
+          <form action={guardarPlaceId} className="space-y-3">
+            <label className="block text-sm font-semibold text-slate-200">
+              {"Place ID de Google (link directo de reseña)"}
+              <span className="block text-xs font-normal text-slate-400">
+                Con esto el botón lleva directo a “escribir reseña”
+              </span>
+              <input
+                type="text"
+                name="placeId"
+                defaultValue={negocio.google_place_id ?? ""}
+                placeholder="ChIJ..."
+                className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
+                  text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </label>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
+                hover:bg-blue-700 transition-colors"
+            >
+              Guardar place ID
+            </button>
+          </form>
+        ) : null}
       </SeccionConfig>
       <SeccionConfig
         icono="repetir"
         titulo="Remarketing"
-        ayuda="Avisamos a cada cliente cuando ya es hora de repetir su servicio. Solo a quienes dejaron email."
+        ayuda="Te mostramos a quién ya le toca volver, para que le escribas por WhatsApp. No se envía nada automático."
         avanzada={true}
       >
         <form action={guardarRemarketing} className="space-y-3">
@@ -653,7 +691,7 @@ export default async function ConfigPage(
               defaultChecked={remarketingActivo}
               className="w-5 h-5"
             />
-            {"Hacer remarketing por email"}
+            {"Mostrar candidatos de remarketing"}
           </label>
           <label className="block text-sm font-semibold text-slate-200">
             {"¿A los cuántos días les escribimos?"}

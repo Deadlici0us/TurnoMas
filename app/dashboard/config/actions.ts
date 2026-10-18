@@ -26,7 +26,7 @@ import { RETENCION_MAX_HS, RETENCION_MIN_HS } from "@/lib/payments/refund-policy
 import { REMARKETING_MAX_DIAS, REMARKETING_MIN_DIAS } from "@/lib/automations/remarketing";
 import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/recordatorios";
 import { RESENA_MAX_HS, RESENA_MIN_HS } from "@/lib/automations/resenas";
-import { normalizarTextoPlantilla, validarGoogleMapsUrl } from "@/lib/notifications/custom-templates";
+import { normalizarTextoPlantilla, validarGoogleMapsUrl, validarGooglePlaceId } from "@/lib/notifications/custom-templates";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -276,6 +276,42 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
 
   const { error } = await admin.from("negocios")
     .update({ google_maps_url: valor }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/**
+ * Guarda el place ID de Google del negocio (para el link directo de reseña).
+ */
+export async function actualizarGooglePlaceId(valor: string | null): Promise<void>
+{
+  const placeId = validarGooglePlaceId(valor);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocio = await exigirNegocioDelDueno(admin, user.id);
+
+  if (negocio.resena_activa === false && placeId !== null)
+  {
+    throw new RangeError("Activá las reseñas para guardar el place ID de Google.");
+  }
+
+  const { error } = await admin.from("negocios")
+    .update({ google_place_id: placeId }).eq("duenio_id", user.id);
 
   if (error !== null)
   {

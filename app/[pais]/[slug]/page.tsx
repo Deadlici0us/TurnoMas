@@ -77,7 +77,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const { data: negocio } = await supabase
     .from("portal_negocios")
-    .select("id, nombre, pais, slug, horarios, timezone")
+    .select("id, nombre, pais, slug, horarios, timezone, requiere_email")
     .eq("pais", pais.toLowerCase())
     .eq("slug", slug.toLowerCase())
     .single();
@@ -178,6 +178,7 @@ async function buildPortalBusiness(
       inicio: asString(t.inicio),
     })),
     bloqueos,
+    requiereEmail: negocioRow.requiere_email === true,
   };
 }
 
@@ -206,6 +207,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           turnos={business.turnos}
           bloqueos={business.bloqueos}
           horariosNegocio={business.horarios}
+          requiereEmail={business.requiereEmail === true}
         />
         <p className="text-xs text-slate-500 text-center mt-4">Reservas por TurnoMas</p>
       </div>

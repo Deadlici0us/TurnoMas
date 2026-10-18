@@ -25,7 +25,7 @@ import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezon
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 import type { ReservaBody, ReservaValidada } from "./helpers";
-import { evaluarRiesgo, filtrarBloqueos, parseReservaBody } from "./helpers";
+import { evaluarRiesgo, filtrarBloqueos, parseReservaBody, requiereEmailObligatorio } from "./helpers";
 
 /** Formatea fecha/hora en hora del negocio (DD/MM/YYYY HH:mm). */
 function formatearFechaEnZona(fecha: Date, timeZone: string): string
@@ -355,7 +355,7 @@ async function cargarContextoNegocio(
 }>
 {
   const { data: negocioFull } = await admin.from("negocios")
-    .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais," +
+    .select("id, blacklist_umbral, blacklist_penalidad, timezone, pais, resena_activa, recordatorio_activo," +
       " msg_confirmacion_subject, msg_confirmacion_cuerpo").eq("id", negocioId).single();
   const timeZone = resolverTimezoneNegocio(
     { timezone: (negocioFull as { timezone?: unknown } | null)?.timezone,
@@ -577,6 +577,17 @@ export async function POST(request: Request)
       whatsapp,
       pais,
     );
+
+    // Email obligatorio cuando el negocio tiene reseñas o recordatorios activos
+    // (ambos avisan al cliente por email).
+    if (email === null && requiereEmailObligatorio(
+      negocioFull as { resena_activa?: unknown; recordatorio_activo?: unknown } | null))
+    {
+      return NextResponse.json(
+        { error: "Dejanos tu email para confirmar y avisarte." },
+        { status: 400 },
+      );
+    }
 
     const servicioRow = servicio as unknown as {
       nombre: string; duracion_min: number; precio_base: number;

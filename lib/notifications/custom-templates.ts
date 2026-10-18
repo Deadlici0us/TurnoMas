@@ -85,13 +85,16 @@ export function datosConLink(
 
 /**
  * Resuelve subject + html: personalizada del negocio o default por tipo.
- * `link` es portalUrl (remarketing), resenaUrl (reseña) o "" (resto).
+ *
+ * `link` es portalUrl (remarketing), link de Google (reseña) o el link de
+ * cancelación; para reseñas, `feedbackUrl` es el link privado opcional.
  */
 export function resolverPlantilla(
   tipo: TipoPlantilla,
   custom: PlantillaPersonalizada,
   datos: DatosTurno,
   link: string = "",
+  feedbackUrl: string = "",
 ): EmailTemplate
 {
   const subject = normalizarTextoPlantilla(custom.subject, MAX_SUBJECT);
@@ -111,7 +114,7 @@ export function resolverPlantilla(
 
     if (tipo === "resena")
     {
-      return plantillaResena({ ...datos, resenaUrl: link });
+      return plantillaResena({ ...datos, googleReviewUrl: link, feedbackUrl });
     }
 
     if (tipo === "cancelacion")
@@ -135,7 +138,8 @@ export function resolverPlantilla(
   return { subject: titulo, html: envolverCuerpo(titulo, cuerpoHtml) };
 }
 
-/** Valida la URL de Google Maps del negocio (vacia = sin configurar). */export function validarGoogleMapsUrl(valor: unknown): string | null
+/** Valida la URL de Google Maps del negocio (vacia = sin configurar). */
+export function validarGoogleMapsUrl(valor: unknown): string | null
 {
   if (valor === null || valor === undefined)
   {
@@ -156,6 +160,29 @@ export function resolverPlantilla(
   }
 
   return url;
+}
+
+/** Valida el place ID de Google del negocio (vacio = sin configurar). */
+export function validarGooglePlaceId(valor: unknown): string | null
+{
+  if (valor === null || valor === undefined)
+  {
+    return null;
+  }
+
+  if (typeof valor !== "string" || valor.trim().length === 0)
+  {
+    return null;
+  }
+
+  const id = valor.trim().slice(0, 200);
+
+  if (!/^[A-Za-z0-9_-]{10,200}$/.test(id))
+  {
+    throw new RangeError("Pegá un place ID válido de Google (ej: ChIJ...).");
+  }
+
+  return id;
 }
 
 /**

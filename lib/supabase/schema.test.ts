@@ -56,6 +56,10 @@ const SUSCRIPCION_RECONCILIACION = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0018_suscripcion_reconciliacion.sql"),
   "utf8",
 );
+const RESENAS = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0019_resenas.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -292,5 +296,25 @@ describe("esquema Supabase",
     expect(SUSCRIPCION_RECONCILIACION).toMatch(/alter table negocios add column/i);
     expect(SUSCRIPCION_RECONCILIACION).toContain("negocios_suscripcion_riesgo");
     expect(SUSCRIPCION_RECONCILIACION).toMatch(/create index if not exists/i);
+  });
+
+  it("debería persistir las reseñas y el place ID de Google",
+  () =>
+  {
+    expect(RESENAS).toMatch(/create table if not exists resenas/i);
+
+    for (const columna of ["negocio_id", "turno_id", "cliente_id", "estrellas",
+      "comentario", "destino", "resuelto", "created_at"])
+    {
+      expect(RESENAS).toContain(columna);
+    }
+
+    expect(RESENAS).toMatch(/unique index[^;]*turno_id/i);
+    expect(RESENAS).toMatch(/enable row level security/);
+    expect(RESENAS).toContain("resenas_owner_all");
+    expect(RESENAS).not.toMatch(/policy[^;]*to anon/);
+    expect(RESENAS).toContain("google_place_id");
+    expect(RESENAS).toContain("requiere_email");
+    expect(RESENAS).toMatch(/security_invoker = true/);
   });
 });

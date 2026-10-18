@@ -15,6 +15,7 @@ import { resolverResenaHs, shouldAskReview } from "@/lib/automations/resenas";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
+import { googleReviewUrl } from "@/lib/resenas/link";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
 
@@ -32,6 +33,7 @@ interface TurnoCandidato
     nombre: string;
     resena_activa?: boolean | null; resena_hs?: number | null;
     msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
+    google_maps_url?: string | null; google_place_id?: string | null;
   } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
@@ -80,7 +82,8 @@ export async function POST(request: Request)
   const ahora = new Date();
   const { data } = await admin.from("turnos")
     .select("id, inicio, fin, resena_pedida," +
-      " negocio:negocios(nombre, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo)," +
+      " negocio:negocios(nombre, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo," +
+      " google_maps_url, google_place_id)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
     .eq("estado", "completado").eq("resena_pedida", false)
     .limit(LIMITE_BARRIDO);
@@ -106,10 +109,16 @@ export async function POST(request: Request)
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: "",
       };
+      const feedbackUrl = `${base}/resena/${turno.id}`;
+      const reviewUrl = googleReviewUrl(
+        turno.negocio?.google_place_id,
+        turno.negocio?.google_maps_url,
+        datos.negocio,
+      );
       const plantilla = resolverPlantilla("resena", {
         subject: turno.negocio?.msg_resena_subject ?? null,
         cuerpo: turno.negocio?.msg_resena_cuerpo ?? null,
-      }, datos, `${base}/resena/${turno.id}`);
+      }, datos, reviewUrl, feedbackUrl);
 
       await email.send({
         to: turno.cliente?.email as string,

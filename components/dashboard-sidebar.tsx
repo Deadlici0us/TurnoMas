@@ -13,6 +13,7 @@ import
   ReceiptText,
   Scissors,
   Settings,
+  Star,
   Users,
   Wallet,
   X,
@@ -32,6 +33,7 @@ const SECCIONES: readonly Seccion[] =
   { href: "/dashboard/staff", etiqueta: "Equipo", Icono: Users },
   { href: "/dashboard/servicios", etiqueta: "Servicios", Icono: Scissors },
   { href: "/dashboard/clientes", etiqueta: "Clientes", Icono: BookUser },
+  { href: "/dashboard/resenas", etiqueta: "Reseñas", Icono: Star },
   { href: "/dashboard/remarketing", etiqueta: "Remarketing", Icono: Repeat },
   { href: "/dashboard/pagos", etiqueta: "Pagos", Icono: Wallet },
   { href: "/dashboard/config", etiqueta: "Configuración", Icono: Settings },
@@ -47,9 +49,11 @@ const SECCIONES: readonly Seccion[] =
  */
 export default function DashboardSidebar({
   pendientesRemarketing,
+  resenasPendientes,
   bloqueado = false,
 }: {
   readonly pendientesRemarketing?: number;
+  readonly resenasPendientes?: number;
   readonly bloqueado?: boolean;
 } = {})
 {
@@ -124,14 +128,17 @@ export default function DashboardSidebar({
           {SECCIONES.map(({ href, etiqueta, Icono }) =>
           {
             const deshabilitada = bloqueado && href !== "/dashboard/suscripcion";
+            const pendientes = href === "/dashboard/remarketing"
+              ? pendientesRemarketing
+              : href === "/dashboard/resenas" ? resenasPendientes : undefined;
 
             const contenido = (
               <>
                 <Icono className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
                 {etiqueta}
-                {href === "/dashboard/remarketing" && pendientesRemarketing !== undefined && pendientesRemarketing > 0 ? (
+                {pendientes !== undefined && pendientes > 0 ? (
                   <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300 ring-1 ring-red-500/40">
-                    {pendientesRemarketing}
+                    {pendientes}
                   </span>
                 ) : null}
               </>

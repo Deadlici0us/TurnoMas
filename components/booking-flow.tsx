@@ -24,6 +24,7 @@ interface BookingFlowProps
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
   readonly horariosNegocio?: Record<string, string> | null;
+  readonly requiereEmail?: boolean;
 }
 
 function formatARS(cents: number): string
@@ -43,7 +44,7 @@ function formatSlot(date: Date): string
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 
 export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos, bloqueos,
-  horariosNegocio = null }: BookingFlowProps)
+  horariosNegocio = null, requiereEmail = false }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -149,6 +150,12 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
     if (!WHATSAPP_PATTERN.test(whatsapp.trim()))
     {
       setError("Revisá tu WhatsApp para que te lleguen los recordatorios.");
+      return;
+    }
+
+    if (requiereEmail && email.trim().length === 0)
+    {
+      setError("Dejanos tu email para confirmar y avisarte.");
       return;
     }
 
@@ -406,7 +413,10 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
             </div>
             <div>
               <label htmlFor="booking-email" className="block text-sm font-medium text-slate-300 mb-1">
-                Email <span className="font-normal text-slate-500">(opcional, para confirmación)</span>
+                Email{" "}
+                <span className="font-normal text-slate-500">
+                  {requiereEmail ? "(para confirmar y avisarte)" : "(opcional, para confirmación)"}
+                </span>
               </label>
               <input
                 id="booking-email"
@@ -414,6 +424,7 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Ej: juan@ejemplo.com"
                 inputMode="email"
+                required={requiereEmail}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl
                   outline-none placeholder:text-slate-500
                   focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"

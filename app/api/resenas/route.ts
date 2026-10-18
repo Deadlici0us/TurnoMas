@@ -1,19 +1,15 @@
 /**
- * Recepción de reseñas (Módulo 5, Recolector de Reseñas).
+ * Feedback privado de reseñas (Módulo 5, canal interno de la Opción B).
  *
- * `POST { turnoId, estrellas, comentario? }`: 4-5 estrellas derivan a
- * Google Maps; 1-3 guardan feedback interno en la ficha del cliente.
+ * `POST { turnoId, estrellas, comentario? }`: guarda el feedback del cliente
+ * en la tabla `resenas`. El link a Google se ofrece en el email para todos
+ * (sin gating); esta ruta es solo el canal privado opcional.
  */
 
 import { NextResponse } from "next/server";
 
-import { resolveReviewDestination } from "@/lib/automations/resenas";
+import { esEstrellasValidas } from "@/lib/automations/resenas";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-
-function mapsUrl(negocio: string): string
-{
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio)}`;
-}
 
 export async function POST(request: Request)
 {
@@ -33,18 +29,7 @@ export async function POST(request: Request)
     return NextResponse.json({ error: "Falta el turno a calificar." }, { status: 400 });
   }
 
-  if (typeof body.estrellas !== "number")
-  {
-    return NextResponse.json({ error: "Elegí de 1 a 5 estrellas." }, { status: 400 });
-  }
-
-  let destino: ReturnType<typeof resolveReviewDestination>;
-
-  try
-  {
-    destino = resolveReviewDestination(body.estrellas);
-  }
-  catch
+  if (!esEstrellasValidas(body.estrellas))
   {
     return NextResponse.json({ error: "Elegí de 1 a 5 estrellas." }, { status: 400 });
   }
@@ -60,50 +45,39 @@ export async function POST(request: Request)
     return NextResponse.json({ error: "Calificación no disponible ahora." }, { status: 503 });
   }
 
+  const turnoId = body.turnoId.trim();
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, cliente_id, negocio:negocios(nombre, google_maps_url)")
-    .eq("id", body.turnoId.trim()).single();
+    .select("id, negocio_id, cliente_id")
+    .eq("id", turnoId).single();
 
   if (turno === null)
   {
     return NextResponse.json({ error: "No encontramos ese turno." }, { status: 404 });
   }
 
-  const turnoRow = turno as unknown as {
-    estado: string; cliente_id: string; negocio: { nombre: string; google_maps_url?: unknown } | null;
-  };
-  const nombreNegocio = turnoRow.negocio?.nombre ?? "tu negocio";
-  const mapsConfigurado = typeof turnoRow.negocio?.google_maps_url === "string"
-    && turnoRow.negocio.google_maps_url.length > 0
-    ? turnoRow.negocio.google_maps_url
-    : null;
+  const turnoRow = turno as unknown as { negocio_id: string; cliente_id: string };
+  const comentario = typeof body.comentario === "string"
+    ? body.comentario.trim().slice(0, 500)
+    : "";
 
-  await admin.from("turnos").update({ resena_pedida: true }).eq("id", body.turnoId.trim());
+  // Idempotente: una fila por turno (reintentos actualizan la misma).
+  const { error } = await admin.from("resenas").upsert({
+    negocio_id: turnoRow.negocio_id,
+    turno_id: turnoId,
+    cliente_id: turnoRow.cliente_id,
+    estrellas: body.estrellas,
+    comentario: comentario.length > 0 ? comentario : null,
+    destino: "feedback-interno",
+  }, { onConflict: "turno_id" });
 
-  if (destino === "google-maps")
+  if (error !== null)
   {
-    return NextResponse.json({ success: true, destino, mapsUrl: mapsConfigurado ?? mapsUrl(nombreNegocio) });
+    return NextResponse.json({ error: "No pudimos guardar tu calificación." }, { status: 502 });
   }
 
-  const comentario = typeof body.comentario === "string" ? body.comentario.trim().slice(0, 500) : "";
+  await admin.from("turnos").update({ resena_pedida: true }).eq("id", turnoId);
 
-  try
-  {
-    const { data: cliente } = await admin.from("clientes").select("notas")
-      .eq("id", turnoRow.cliente_id).single();
-    const previas = (cliente as { notas?: unknown } | null)?.notas;
-    const sufijoComentario = comentario.length > 0 ? ` ${comentario}` : "";
-    const linea = `[Reseña ${body.estrellas}/5]${sufijoComentario}`;
-    const notas = typeof previas === "string" && previas.length > 0 ? `${previas}\n${linea}` : linea;
-
-    await admin.from("clientes").update({ notas }).eq("id", turnoRow.cliente_id);
-  }
-  catch
-  {
-    // Best-effort: la calificación ya quedó registrada como pedida.
-  }
-
-  return NextResponse.json({ success: true, destino });
+  return NextResponse.json({ success: true });
 }
 
 export async function GET()

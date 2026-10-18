@@ -73,13 +73,27 @@ describe("plantillaRemarketing",
 describe("plantillaResena",
 () =>
 {
-  it("debería pedir calificación con link de respuesta",
+  it("debería invitar a Google (para todos) y ofrecer feedback privado",
   () =>
   {
-    const t = plantillaResena({ ...base, resenaUrl: "https://app/resena/123" });
+    const t = plantillaResena({
+      ...base,
+      googleReviewUrl: "https://search.google.com/local/writereview?placeid=ChIJ1",
+      feedbackUrl: "https://app/resena/123",
+    });
 
     expect(t.subject).toContain("opinión");
+    expect(t.html).toContain("https://search.google.com/local/writereview?placeid=ChIJ1");
     expect(t.html).toContain("https://app/resena/123");
+  });
+
+  it("debería omitir el botón de Google si no hay link",
+  () =>
+  {
+    const t = plantillaResena({ ...base, googleReviewUrl: "", feedbackUrl: "https://app/resena/9" });
+
+    expect(t.html).not.toContain("writereview");
+    expect(t.html).toContain("https://app/resena/9");
   });
 });
 

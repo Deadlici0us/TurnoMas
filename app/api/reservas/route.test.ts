@@ -88,6 +88,8 @@ function negocioFullFixture(overrides: Record<string, unknown> = {})
     blacklist_penalidad: "fullDeposit",
     timezone: "America/Argentina/Buenos_Aires",
     pais: "ar",
+    resena_activa: false,
+    recordatorio_activo: false,
     msg_confirmacion_subject: null,
     msg_confirmacion_cuerpo: null,
     ...overrides,
@@ -289,6 +291,18 @@ describe("POST /api/reservas",
 
     expect(response.status).toBe(400);
     expect(body.error).toBe("Revisá tu email para que te lleguen las confirmaciones.");
+  });
+
+  it("debería exigir email cuando el negocio tiene reseñas o recordatorios activos",
+  async () =>
+  {
+    flujoFeliz({ tablas: { negocios: negocioFullFixture({ resena_activa: true, recordatorio_activo: true }) } });
+
+    const response = await POST(requestWith({ ...BASE, email: null }));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Dejanos tu email para confirmar y avisarte.");
   });
 
   it("debería devolver 400 con cuerpo ilegible",

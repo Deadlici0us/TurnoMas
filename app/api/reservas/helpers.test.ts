@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluarRiesgo, filtrarBloqueos, parseReservaBody, retieneSlot } from "./helpers";
+import {
+  evaluarRiesgo,
+  filtrarBloqueos,
+  parseReservaBody,
+  requiereEmailObligatorio,
+  retieneSlot,
+} from "./helpers";
+
+describe("requiereEmailObligatorio", () =>
+{
+  it("exige email por defecto (features activas)", () =>
+  {
+    expect(requiereEmailObligatorio(null)).toBe(true);
+    expect(requiereEmailObligatorio({})).toBe(true);
+    expect(requiereEmailObligatorio({ resena_activa: true })).toBe(true);
+    expect(requiereEmailObligatorio({ recordatorio_activo: true })).toBe(true);
+  });
+
+  it("no lo exige si el negocio apagó reseñas y recordatorios", () =>
+  {
+    expect(requiereEmailObligatorio({ resena_activa: false, recordatorio_activo: false })).toBe(false);
+  });
+});
 
 describe("parseReservaBody", () =>
 {

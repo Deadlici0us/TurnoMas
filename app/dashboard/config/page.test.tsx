@@ -26,6 +26,7 @@ vi.mock("./actions", () =>
 {
   return {
     actualizarGoogleMapsUrl: vi.fn(),
+    actualizarGooglePlaceId: vi.fn(),
     actualizarHorariosNegocio: vi.fn(),
     actualizarNombreNegocio: vi.fn(),
     actualizarPlantillaMensaje: vi.fn(),

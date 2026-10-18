@@ -67,13 +67,24 @@ export function plantillaRemarketing(input: DatosTurno & { portalUrl: string }):
   return { subject: `¿Renovamos tu ${input.servicio}?`, html };
 }
 
-/** Recolector de reseñas 2h post-turno. */
-export function plantillaResena(input: DatosTurno & { resenaUrl: string }): EmailTemplate
+/** Recolector de reseñas 2h post-turno (Opción B: Google para todos + privado). */
+export function plantillaResena(
+  input: DatosTurno & { readonly googleReviewUrl: string; readonly feedbackUrl: string },
+): EmailTemplate
 {
+  const botonGoogle = input.googleReviewUrl.trim().length > 0
+    ? `<p style="margin:24px 0"><a href="${escapeHtml(input.googleReviewUrl)}" `
+      + `style="background:#2563eb;color:#ffffff;padding:12px 20px;border-radius:8px;`
+      + `text-decoration:none;font-weight:600">Escribí tu reseña en Google</a></p>`
+    : "";
+  const botonPrivado = input.feedbackUrl.trim().length > 0
+    ? `<p style="color:#64748b;font-size:14px">¿Algo para mejorar? `
+      + `<a href="${escapeHtml(input.feedbackUrl)}">Contanos en privado</a></p>`
+    : "";
   const html = layout("¿Cómo te fue en tu turno?",
     `<p>Hola, contanos tu opinión sobre <strong>${escapeHtml(input.servicio)}</strong> ` +
     `con ${escapeHtml(input.profesional)} en ${escapeHtml(input.negocio)}.</p>` +
-    `<p><a href="${escapeHtml(input.resenaUrl)}">Calificar del 1 al 5</a></p>`);
+    botonGoogle + botonPrivado);
 
   return { subject: `¿Cómo te fue en ${input.negocio}? Dejanos tu opinión`, html };
 }

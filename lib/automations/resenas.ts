@@ -1,6 +1,8 @@
 /**
  * Recolector de reseñas (Módulo 5): pide calificación 2h post-turno.
- * 4-5 estrellas derivan a Google Maps; 1-3 generan feedback interno.
+ *
+ * El email invita a TODOS a escribir la reseña en Google (link directo) y, de
+ * forma opcional, a dejar feedback privado (sin gating por estrellas).
  *
  * Funciones puras para facilitar TDD y reutilización en
  * Route Handlers llamados por QStash.
@@ -11,8 +13,6 @@ export interface TurnoParaResena
   readonly fin: Date;
   readonly resenaPedida: boolean;
 }
-
-export type DestinoResena = "google-maps" | "feedback-interno";
 
 export const RESENA_DEFAULT_HS = 2;
 export const RESENA_MIN_HS = 1;
@@ -51,13 +51,8 @@ export function shouldAskReview(
   return ahora.getTime() - turno.fin.getTime() >= resolverResenaHs(demoraHs) * 3_600_000;
 }
 
-/** Resuelve el destino de la reseña según las estrellas. */
-export function resolveReviewDestination(estrellas: number): DestinoResena
+/** Indica si un valor es una calificación válida de 1 a 5 estrellas. */
+export function esEstrellasValidas(valor: unknown): valor is number
 {
-  if (!Number.isInteger(estrellas) || estrellas < 1 || estrellas > 5)
-  {
-    throw new RangeError("Las estrellas deben ser un entero entre 1 y 5.");
-  }
-
-  return estrellas >= 4 ? "google-maps" : "feedback-interno";
+  return typeof valor === "number" && Number.isInteger(valor) && valor >= 1 && valor <= 5;
 }
