@@ -6,19 +6,25 @@ import { useSearchParams } from "next/navigation";
 export interface VerificarPagoProps
 {
   readonly recargar?: (url: string) => void;
+  readonly intervaloEstadoMs?: number;
+  readonly intervaloVerificarMs?: number;
+  readonly limiteMs?: number;
 }
 
 const DESTINO = "/dashboard/facturacion";
+const INTERVALO_ESTADO_MS = 5000;
+const INTERVALO_VERIFICAR_MS = 30000;
+const LIMITE_MS = 600000;
 
 /**
- * Reconciliación manual/automática del pago de la suscripción.
+ * Reconciliación automática/manual del pago de la suscripción.
  *
- * Al volver del checkout (`?suscripcion=ok`) verifica una vez contra
- * MercadoPago; el botón permite reintentar. Si el plan queda activo, recarga
- * el dashboard para quitar el paywall sin volver a pagar.
+ * Al volver del checkout (`?suscripcion=ok`) verifica contra MercadoPago y,
+ * mientras el paywall está montado, sondea el estado local para levantarlo solo
+ * cuando el plan queda activo (sin recargar a mano). El botón permite
+ * reintentar; el sondeo y la reconciliación se detienen tras `limiteMs`.
  *
- * @param props `recargar` se inyecta en tests; por defecto usa
- *   `window.location.assign`.
+ * @param props Inyectables para tests: `recargar`, intervalos y límite.
  * @return Botón de verificación con su mensaje de estado.
  */
 export default function VerificarPago(props: VerificarPagoProps)
@@ -32,9 +38,12 @@ export default function VerificarPago(props: VerificarPagoProps)
     (props.recargar ?? ((destino: string): void => { window.location.assign(destino); }))(url);
   }, [props.recargar]);
 
-  const verificar = useCallback(async (): Promise<void> =>
+  const verificar = useCallback(async (silencioso = false): Promise<void> =>
   {
-    setVerificando(true);
+    if (!silencioso)
+    {
+      setVerificando(true);
+    }
 
     try
     {
@@ -44,6 +53,11 @@ export default function VerificarPago(props: VerificarPagoProps)
       if (data.activado === true)
       {
         recargar(DESTINO);
+        return;
+      }
+
+      if (silencioso)
+      {
         return;
       }
 
@@ -60,14 +74,40 @@ export default function VerificarPago(props: VerificarPagoProps)
     }
     catch
     {
-      setMensaje("No pudimos verificar el pago. Probá de nuevo.");
+      if (!silencioso)
+      {
+        setMensaje("No pudimos verificar el pago. Probá de nuevo.");
+      }
     }
     finally
     {
-      setVerificando(false);
+      if (!silencioso)
+      {
+        setVerificando(false);
+      }
     }
   }, [recargar]);
 
+  // Lectura liviana del estado local: levanta el paywall sin llamar a MP.
+  const consultarEstado = useCallback(async (): Promise<void> =>
+  {
+    try
+    {
+      const response = await fetch("/api/suscripcion/estado");
+      const data = await response.json() as { bloqueado?: unknown };
+
+      if (data.bloqueado === false)
+      {
+        recargar(DESTINO);
+      }
+    }
+    catch
+    {
+      // Best-effort: el sondeo no debe romper el paywall.
+    }
+  }, [recargar]);
+
+  // Verificación automática al volver del checkout.
   useEffect(() =>
   {
     if (params.get("suscripcion") !== "ok")
@@ -79,6 +119,58 @@ export default function VerificarPago(props: VerificarPagoProps)
 
     return () => clearTimeout(timer);
   }, [params, verificar]);
+
+  // Sondeo del estado + reconciliación de respaldo mientras el paywall vive.
+  useEffect(() =>
+  {
+    const intervaloEstado = props.intervaloEstadoMs ?? INTERVALO_ESTADO_MS;
+    const intervaloVerificar = props.intervaloVerificarMs ?? INTERVALO_VERIFICAR_MS;
+    const fin = Date.now() + (props.limiteMs ?? LIMITE_MS);
+
+    const idEstado = setInterval(() =>
+    {
+      if (Date.now() >= fin)
+      {
+        clearInterval(idEstado);
+        return;
+      }
+
+      void consultarEstado();
+    }, intervaloEstado);
+
+    const idVerificar = setInterval(() =>
+    {
+      if (Date.now() >= fin)
+      {
+        clearInterval(idVerificar);
+        return;
+      }
+
+      void verificar(true);
+    }, intervaloVerificar);
+
+    return () =>
+    {
+      clearInterval(idEstado);
+      clearInterval(idVerificar);
+    };
+  }, [consultarEstado, verificar, props.intervaloEstadoMs, props.intervaloVerificarMs, props.limiteMs]);
+
+  // Al volver el foco se re-verifica (pudo pagar en otra pestaña).
+  useEffect(() =>
+  {
+    const alVolver = (): void =>
+    {
+      if (document.visibilityState === "visible")
+      {
+        void verificar(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [verificar]);
 
   return (
     <div className="mt-3 text-center">

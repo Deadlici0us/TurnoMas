@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import VerificarPago from "./verificar-pago";
@@ -23,6 +23,7 @@ function instalarFetch(respuesta: unknown)
 beforeEach(() =>
 {
   navegacion.params = new URLSearchParams();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -90,6 +91,84 @@ describe("VerificarPago",
       render(<VerificarPago recargar={recargar} />);
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/verificar", { method: "POST" }));
+      await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
+    });
+
+    it("debería levantar el paywall solo cuando el estado deja de estar bloqueado",
+    async () =>
+    {
+      vi.useFakeTimers();
+      const recargar = vi.fn();
+      const fetchMock = vi.fn(async (url: string) =>
+      {
+        if (url === "/api/suscripcion/estado")
+        {
+          return { ok: true, json: async () => ({ success: true, estado: "active", bloqueado: false }) };
+        }
+
+        return { ok: true, json: async () => ({ activado: false, estado: "none" }) };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      render(
+        <VerificarPago
+          recargar={recargar}
+          intervaloEstadoMs={1000}
+          intervaloVerificarMs={1000000}
+          limiteMs={1000000}
+        />,
+      );
+
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(fetchMock).toHaveBeenCalledWith("/api/suscripcion/estado");
+      expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion");
+    });
+
+    it("no debería levantar el paywall si sigue bloqueado",
+    async () =>
+    {
+      vi.useFakeTimers();
+      const recargar = vi.fn();
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ success: true, estado: "blocked", bloqueado: true }),
+      })));
+
+      render(
+        <VerificarPago
+          recargar={recargar}
+          intervaloEstadoMs={1000}
+          intervaloVerificarMs={1000000}
+          limiteMs={1000000}
+        />,
+      );
+
+      await vi.advanceTimersByTimeAsync(3100);
+
+      expect(recargar).not.toHaveBeenCalled();
+    });
+
+    it("debería re-verificar al volver el foco",
+    async () =>
+    {
+      const recargar = vi.fn();
+      instalarFetch({ ok: true, json: async () => ({ activado: true, estado: "active" }) });
+
+      render(
+        <VerificarPago
+          recargar={recargar}
+          intervaloEstadoMs={1000000}
+          intervaloVerificarMs={1000000}
+          limiteMs={1000000}
+        />,
+      );
+
+      act(() =>
+      {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
       await waitFor(() => expect(recargar).toHaveBeenCalledWith("/dashboard/facturacion"));
     });
   });
