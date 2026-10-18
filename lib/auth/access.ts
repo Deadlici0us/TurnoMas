@@ -81,8 +81,10 @@ async function consultarNegocio(userId: string): Promise<NegocioRow | null>
   try
   {
     const admin = getSupabaseAdmin();
+    // `select("*")` para tolerar despliegues previos a la migración 0018
+    // (suscripcion_mp_status/verificada_en); los campos ausentes llegan undefined.
     const { data } = await admin.from("negocios")
-      .select("id, created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde, suscripcion_vence_en, suscripcion_cancelada_en, suscripcion_mp_status, suscripcion_verificada_en")
+      .select("*")
       .eq("duenio_id", userId)
       .maybeSingle();
 

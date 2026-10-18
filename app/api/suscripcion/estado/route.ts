@@ -52,8 +52,9 @@ export async function GET()
     }
 
     const admin = getSupabaseAdmin();
+    // `select("*")` tolera entornos previos a la migración 0018.
     const { data: negocio } = await admin.from("negocios")
-      .select("created_at, suscripcion_estado, suscripcion_mp_id, suscripcion_mora_desde, suscripcion_vence_en, suscripcion_cancelada_en, suscripcion_mp_status")
+      .select("*")
       .eq("duenio_id", user.id).single();
 
     if (negocio === null)
