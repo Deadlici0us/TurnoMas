@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     "Sistema B2B de reservas para profesionales independientes. Eliminá las inasistencias cobrando señas y automatizando notificaciones.",
 };
 
+// El CSP con nonce por request (proxy) exige render dinámico: un HTML
+// pregenerado tendría un nonce viejo y bloquearía sus propios scripts.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({ children }: { readonly children: React.ReactNode })
 {
   const common = (await import("../messages/es-AR/common.json")).default;
