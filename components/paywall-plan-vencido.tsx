@@ -23,11 +23,13 @@ export interface PaywallPlanVencidoProps
 {
   readonly etiquetaPlan: string;
   readonly logout: () => Promise<void>;
+  readonly emailInicial?: string;
 }
 
 export default function PaywallPlanVencido({
   etiquetaPlan,
   logout,
+  emailInicial,
 }: PaywallPlanVencidoProps)
 {
   return (
@@ -67,7 +69,7 @@ export default function PaywallPlanVencido({
           ))}
         </ul>
         <div className="mt-8">
-          <SuscripcionForm idPrefix="paywall" />
+          <SuscripcionForm idPrefix="paywall" emailInicial={emailInicial} />
         </div>
         <form action={logout} className="mt-3 text-center">
           <button

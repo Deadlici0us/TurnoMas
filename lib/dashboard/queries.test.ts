@@ -104,8 +104,20 @@ describe("getDashboardData",
 
     expect(result.error).toBeNull();
     expect(result.isDemo).toBe(true);
+    expect(result.userEmail).toBeNull();
     expect(result.data.negocio).toMatchObject({ nombre: "Barbería Diego" });
     expect(mockAdmin).not.toHaveBeenCalled();
+  });
+
+  it("debería devolver el email del dueño para precargar el pago",
+  async () =>
+  {
+    sesionUsuario({ id: "user-1", email: "dueno@negocio.com" });
+    stubDashboard(NEGOCIO);
+
+    const result = await getDashboardData();
+
+    expect(result.userEmail).toBe("dueno@negocio.com");
   });
 
   it("debería devolver seed demo con usuario nulo",

@@ -50,6 +50,22 @@ describe("PaywallPlanVencido",
       }
     });
 
+    it("debería precargar el email de la cuenta en el pago",
+    () =>
+    {
+      render(
+        <PaywallPlanVencido
+          etiquetaPlan="$ 14.999 ARS/mes"
+          logout={vi.fn()}
+          emailInicial="dueno@negocio.com"
+        />,
+      );
+
+      const input = screen.getByLabelText("Email de tu cuenta de MercadoPago") as HTMLInputElement;
+
+      expect(input.value).toBe("dueno@negocio.com");
+    });
+
     it("debería ofrecer cerrar sesión",
     () =>
     {

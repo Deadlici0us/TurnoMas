@@ -6,6 +6,7 @@ export interface SuscripcionFormProps
 {
   readonly idPrefix: string;
   readonly navegar?: (url: string) => void;
+  readonly emailInicial?: string;
 }
 
 const MENSAJE_GENERICO = "No pudimos activar el plan. Probá de nuevo.";
@@ -19,13 +20,13 @@ const MENSAJE_SIN_EMAIL = "Ingresá el email de tu cuenta de MercadoPago.";
  * en error conserva el email y muestra el mensaje inline (sin recargar).
  * `navegar` se inyecta en tests; por defecto usa `window.location.assign`.
  *
- * @param props Prefijo de IDs único por contexto (`paywall`/`facturacion`) y
- *   navegador opcional para tests.
+ * @param props Prefijo de IDs único por contexto (`paywall`/`facturacion`),
+ *   navegador opcional para tests y email inicial editable de la cuenta.
  * @return Formulario con control de email y botón de pago.
  */
 export default function SuscripcionForm(props: SuscripcionFormProps)
 {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(props.emailInicial ?? "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const emailId = `${props.idPrefix}-payer-email`;

@@ -14,7 +14,7 @@ export default async function DashboardLayout({
   readonly children: React.ReactNode;
 })
 {
-  const { data: dashboard, isDemo } = await getDashboardData();
+  const { data: dashboard, isDemo, userEmail } = await getDashboardData();
   const candidatos = candidatosDesdeDashboard(dashboard);
   const negocio = dashboard.negocio as {
     created_at?: unknown;
@@ -49,6 +49,7 @@ export default async function DashboardLayout({
         <PaywallPlanVencido
           etiquetaPlan={plan.etiqueta}
           logout={logout}
+          emailInicial={userEmail ?? undefined}
         />
       ) : null}
     </>

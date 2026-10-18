@@ -43,6 +43,7 @@ export async function getDashboardData()
       },
       error: null as string | null,
       isDemo,
+      userEmail,
     };
   }
 
@@ -69,6 +70,7 @@ export async function getDashboardData()
       },
       error: null as string | null,
       isDemo,
+      userEmail,
     };
   }
 
@@ -94,6 +96,7 @@ export async function getDashboardData()
     },
     error: null as string | null,
     isDemo,
+    userEmail,
   };
 }
 

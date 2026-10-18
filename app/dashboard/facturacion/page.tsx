@@ -30,7 +30,7 @@ export default async function FacturacionPage(
   props?: { readonly searchParams?: Promise<{ suscripcion?: string; error?: string }> },
 )
 {
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, userEmail } = await getDashboardData();
   const negocio = dashboard.negocio as {
     created_at?: unknown;
     pais?: unknown;
@@ -125,7 +125,7 @@ export default async function FacturacionPage(
               Completá el pago en el aviso para reactivar tu plan.
             </p>
           ) : (
-            <SuscripcionForm idPrefix="facturacion" />
+            <SuscripcionForm idPrefix="facturacion" emailInicial={userEmail ?? undefined} />
           )}
           {suscripcionId !== null && !demo ? (
             <p className="text-xs text-slate-400 mt-4">

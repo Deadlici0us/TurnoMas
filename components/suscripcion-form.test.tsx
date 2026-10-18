@@ -38,6 +38,16 @@ describe("SuscripcionForm",
       expect(screen.getByRole("button", { name: "Pagar con MercadoPago" })).toBeDefined();
     });
 
+    it("debería precargar el email de la cuenta",
+    () =>
+    {
+      render(<SuscripcionForm idPrefix="paywall" emailInicial="dueno@negocio.com" />);
+
+      const input = screen.getByLabelText("Email de tu cuenta de MercadoPago") as HTMLInputElement;
+
+      expect(input.value).toBe("dueno@negocio.com");
+    });
+
     it("debería enviar el email y navegar al checkout de MercadoPago",
     async () =>
     {
