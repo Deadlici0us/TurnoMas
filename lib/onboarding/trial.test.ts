@@ -5,7 +5,7 @@ import
   avisoSuscripcion,
   diasSuscripcionRestantes,
   diasTrialRestantes,
-  GRACIA_PAST_DUE_DIAS,
+  MARGEN_RENOVACION_HORAS_DEFAULT,
   TRIAL_DAYS,
   evaluateSubscription,
 } from "./trial";
@@ -95,20 +95,36 @@ describe("evaluateSubscription",
     expect(result).toBe("trial");
   });
 
-  it("debería dar 5 días de gracia en mora",
+  it("debería dar el margen de renovación como gracia en mora",
   () =>
   {
-    expect(GRACIA_PAST_DUE_DIAS).toBe(5);
+    expect(MARGEN_RENOVACION_HORAS_DEFAULT).toBe(24);
     const result = evaluateSubscription(
       input({
-        now: new Date("2026-10-20T00:00:00Z"),
+        now: new Date("2026-10-20T12:00:00Z"),
         suscripcionEstado: "past_due",
         suscripcionMpId: "mp-123",
-        suscripcionMoraDesde: new Date("2026-10-18T00:00:00Z"),
+        suscripcionMoraDesde: new Date("2026-10-20T00:00:00Z"),
       }),
     );
 
     expect(result).toBe("past_due");
+  });
+
+  it("debería respetar un margen de renovación configurable",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-10-20T12:00:00Z"),
+        suscripcionEstado: "past_due",
+        suscripcionMpId: "mp-123",
+        suscripcionMoraDesde: new Date("2026-10-20T00:00:00Z"),
+        margenHoras: 1,
+      }),
+    );
+
+    expect(result).toBe("blocked");
   });
 
   it("debería bloquear vencida la gracia de mora",
@@ -157,12 +173,12 @@ describe("evaluateSubscription",
     expect(result).toBe("active");
   });
 
-  it("debería bloquear una suscripción cancelada pasada su fecha de vencimiento",
+  it("debería bloquear una suscripción cancelada pasada su fecha de vencimiento y el margen",
   () =>
   {
     const result = evaluateSubscription(
       input({
-        now: new Date("2026-11-02T00:00:00Z"),
+        now: new Date("2026-11-03T00:00:00Z"),
         suscripcionEstado: "active",
         suscripcionMpId: "mp-123",
         suscripcionCanceladaEn: new Date("2026-10-18T00:00:00Z"),
@@ -173,12 +189,12 @@ describe("evaluateSubscription",
     expect(result).toBe("blocked");
   });
 
-  it("debería seguir activa sin cancelar aunque tenga vencimiento",
+  it("debería seguir activa sin cancelar dentro del margen del vencimiento",
   () =>
   {
     const result = evaluateSubscription(
       input({
-        now: new Date("2026-11-02T00:00:00Z"),
+        now: new Date("2026-11-01T12:00:00Z"),
         suscripcionEstado: "active",
         suscripcionMpId: "mp-123",
         suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
@@ -186,6 +202,37 @@ describe("evaluateSubscription",
     );
 
     expect(result).toBe("active");
+  });
+
+  it("debería no bloquear si MercadoPago confirma la suscripción autorizada",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-11-05T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
+        suscripcionMpStatus: "authorized",
+      }),
+    );
+
+    expect(result).toBe("active");
+  });
+
+  it("debería bloquear sin confirmación de MP pasados el vencimiento y el margen",
+  () =>
+  {
+    const result = evaluateSubscription(
+      input({
+        now: new Date("2026-11-05T00:00:00Z"),
+        suscripcionEstado: "active",
+        suscripcionMpId: "mp-123",
+        suscripcionVenceEn: new Date("2026-11-01T00:00:00Z"),
+      }),
+    );
+
+    expect(result).toBe("blocked");
   });
 
   it("debería seguir activa si no conoce el vencimiento de la cancelada",

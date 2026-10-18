@@ -52,6 +52,10 @@ const SUSCRIPCION_PAGOS = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0016_suscripcion_pagos.sql"),
   "utf8",
 );
+const SUSCRIPCION_RECONCILIACION = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0018_suscripcion_reconciliacion.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -278,5 +282,15 @@ describe("esquema Supabase",
     expect(SUSCRIPCION_PAGOS).toMatch(/enable row level security/);
     expect(SUSCRIPCION_PAGOS).toContain("suscripcion_pagos_owner_all");
     expect(SUSCRIPCION_PAGOS).not.toMatch(/policy[^;]*to anon/);
+  });
+
+  it("debería espejar el estado de MP y permitir reconciliación dirigida",
+  () =>
+  {
+    expect(SUSCRIPCION_RECONCILIACION).toContain("suscripcion_mp_status");
+    expect(SUSCRIPCION_RECONCILIACION).toContain("suscripcion_verificada_en");
+    expect(SUSCRIPCION_RECONCILIACION).toMatch(/alter table negocios add column/i);
+    expect(SUSCRIPCION_RECONCILIACION).toContain("negocios_suscripcion_riesgo");
+    expect(SUSCRIPCION_RECONCILIACION).toMatch(/create index if not exists/i);
   });
 });

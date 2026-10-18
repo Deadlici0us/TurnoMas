@@ -96,7 +96,7 @@ describe("ciclo de vida de la suscripción",
       expect(getNegocioSubscriptionStatus(filaActual(), new Date(desde.getTime() + 1000)))
         .toBe("active");
 
-      const trasVencer = new Date(new Date(vence).getTime() + MS_PER_DAY);
+      const trasVencer = new Date(new Date(vence).getTime() + 2 * MS_PER_DAY);
       expect(getNegocioSubscriptionStatus(filaActual(), trasVencer)).toBe("blocked");
 
       const nuevoVence = new Date(Date.now() + 30 * MS_PER_DAY).toISOString();

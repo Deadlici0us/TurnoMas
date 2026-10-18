@@ -4,15 +4,20 @@ import { NextRequest, NextResponse } from "next/server";
 vi.mock("@/lib/auth/auth-mode", () => ({ resolveAuthMode: vi.fn(() => "demo") }));
 vi.mock("@/lib/supabase/proxy-client", () => ({ createSupabaseProxyClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: vi.fn() }));
+vi.mock("@/lib/services/subscription", () => ({
+  subscriptionService: { verificarPreapproval: vi.fn() },
+}));
 
 import { resolveAccess } from "./access";
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { createSupabaseProxyClient } from "@/lib/supabase/proxy-client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { subscriptionService } from "@/lib/services/subscription";
 
 const mockMode = vi.mocked(resolveAuthMode);
 const mockProxy = vi.mocked(createSupabaseProxyClient);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
+const mockVerificar = vi.mocked(subscriptionService.verificarPreapproval);
 
 const HEADERS = new Headers();
 
@@ -138,5 +143,72 @@ describe("resolveAccess (supabase)",
     const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
 
     expect(snapshot).toEqual({ session: "authenticated", subscription: "trial", hasBusiness: false });
+  });
+
+  it("debería rescatar en línea cuando MP confirma authorized",
+  async () =>
+  {
+    stubProxy("user-1");
+    stubNegocio({
+      id: "neg-1",
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "mp-1",
+      suscripcion_mora_desde: null,
+      suscripcion_vence_en: "2026-01-02T00:00:00Z",
+      suscripcion_cancelada_en: null,
+      suscripcion_mp_status: null,
+      suscripcion_verificada_en: null,
+    });
+    mockVerificar.mockResolvedValueOnce({ status: "authorized", activo: true, nextPaymentDate: null });
+
+    const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
+
+    expect(snapshot.subscription).toBe("active");
+    expect(mockVerificar).toHaveBeenCalledWith("neg-1", "mp-1");
+  });
+
+  it("debería mantener bloqueado si MP no responde",
+  async () =>
+  {
+    stubProxy("user-1");
+    stubNegocio({
+      id: "neg-1",
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "mp-1",
+      suscripcion_mora_desde: null,
+      suscripcion_vence_en: "2026-01-02T00:00:00Z",
+      suscripcion_cancelada_en: null,
+      suscripcion_mp_status: null,
+      suscripcion_verificada_en: null,
+    });
+    mockVerificar.mockRejectedValueOnce(new Error("MP caído"));
+
+    const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
+
+    expect(snapshot.subscription).toBe("blocked");
+  });
+
+  it("no debería reverificar si la verificación es reciente",
+  async () =>
+  {
+    stubProxy("user-1");
+    stubNegocio({
+      id: "neg-1",
+      created_at: "2026-01-01T00:00:00Z",
+      suscripcion_estado: "active",
+      suscripcion_mp_id: "mp-1",
+      suscripcion_mora_desde: null,
+      suscripcion_vence_en: "2026-01-02T00:00:00Z",
+      suscripcion_cancelada_en: null,
+      suscripcion_mp_status: "cancelled",
+      suscripcion_verificada_en: new Date().toISOString(),
+    });
+
+    const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
+
+    expect(snapshot.subscription).toBe("blocked");
+    expect(mockVerificar).not.toHaveBeenCalled();
   });
 });

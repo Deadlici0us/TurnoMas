@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getNegocioSubscriptionStatus } from "./subscription-gate";
+import { getNegocioSubscriptionStatus, resolverMargenRenovacionHoras } from "./subscription-gate";
 
 describe("getNegocioSubscriptionStatus",
 () =>
@@ -61,7 +61,7 @@ describe("getNegocioSubscriptionStatus",
     ).toBe("trial");
   });
 
-  it("debería dar gracia en mora reciente",
+  it("debería dar el margen de renovación en mora reciente",
   () =>
   {
     expect(
@@ -70,7 +70,7 @@ describe("getNegocioSubscriptionStatus",
           created_at: "2026-01-01T00:00:00Z",
           suscripcion_estado: "past_due",
           suscripcion_mp_id: "mp-123",
-          suscripcion_mora_desde: "2026-09-26T00:00:00Z",
+          suscripcion_mora_desde: "2026-09-27T12:00:00Z",
         },
         new Date("2026-09-28T00:00:00Z"),
       ),
@@ -125,5 +125,35 @@ describe("getNegocioSubscriptionStatus",
         new Date("2026-09-28T00:00:00Z"),
       ),
     ).toBe("blocked");
+  });
+
+  it("debería no bloquear por vencimiento si MP confirma authorized",
+  () =>
+  {
+    expect(
+      getNegocioSubscriptionStatus(
+        {
+          created_at: "2026-01-01T00:00:00Z",
+          suscripcion_estado: "active",
+          suscripcion_mp_id: "mp-123",
+          suscripcion_vence_en: "2026-09-25T00:00:00Z",
+          suscripcion_mp_status: "authorized",
+        },
+        new Date("2026-09-28T00:00:00Z"),
+      ),
+    ).toBe("active");
+  });
+});
+
+describe("resolverMargenRenovacionHoras",
+() =>
+{
+  it("debería usar 24 por defecto y aceptar un override válido",
+  () =>
+  {
+    expect(resolverMargenRenovacionHoras({})).toBe(24);
+    expect(resolverMargenRenovacionHoras({ MP_MARGEN_RENOVACION_HORAS: "48" })).toBe(48);
+    expect(resolverMargenRenovacionHoras({ MP_MARGEN_RENOVACION_HORAS: "0" })).toBe(24);
+    expect(resolverMargenRenovacionHoras({ MP_MARGEN_RENOVACION_HORAS: "abc" })).toBe(24);
   });
 });

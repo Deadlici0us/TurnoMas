@@ -24,6 +24,7 @@ export default async function DashboardLayout({
     suscripcion_mora_desde?: unknown;
     suscripcion_vence_en?: unknown;
     suscripcion_cancelada_en?: unknown;
+    suscripcion_mp_status?: unknown;
   };
   const bloqueado = getNegocioSubscriptionStatus({
     created_at: typeof negocio.created_at === "string" ? negocio.created_at : null,
@@ -37,6 +38,8 @@ export default async function DashboardLayout({
       typeof negocio.suscripcion_vence_en === "string" ? negocio.suscripcion_vence_en : null,
     suscripcion_cancelada_en:
       typeof negocio.suscripcion_cancelada_en === "string" ? negocio.suscripcion_cancelada_en : null,
+    suscripcion_mp_status:
+      typeof negocio.suscripcion_mp_status === "string" ? negocio.suscripcion_mp_status : null,
   }) === "blocked";
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
 

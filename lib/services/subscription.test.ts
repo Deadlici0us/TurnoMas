@@ -132,7 +132,7 @@ describe("subscriptionService.reconciliar",
       stubUpdate(updates);
       const { urls } = instalarBusqueda({
         authorized: [
-          { id: "pre-a", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T14:00:00.000Z" },
+          { id: "pre-a", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T14:00:00.000Z", next_payment_date: "2026-11-17T14:00:00.000Z" },
           { id: "pre-b", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T13:00:00.000Z" },
           { id: "pre-otro", status: "authorized", external_reference: "neg-2", last_modified: "2026-10-18T00:00:00.000Z" },
         ],
@@ -149,11 +149,45 @@ describe("subscriptionService.reconciliar",
         suscripcion_mp_id: "pre-a",
         suscripcion_mora_desde: null,
         suscripcion_cancelada_en: null,
+        suscripcion_vence_en: "2026-11-17T14:00:00.000Z",
+        suscripcion_mp_status: "authorized",
+        suscripcion_verificada_en: expect.any(String),
       }]);
       expect(urls.filter((url) => url.startsWith("PUT "))).toEqual([
         "PUT https://api.mercadopago.com/preapproval/pre-b",
         "PUT https://api.mercadopago.com/preapproval/pre-p",
       ]);
+    });
+
+    it("debería recuperar el próximo vencimiento con GET cuando el search lo omite",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+      {
+        if (url.includes("status=authorized"))
+        {
+          return { ok: true, status: 200, json: async () => ({ results: [
+            { id: "pre-a", status: "authorized", external_reference: "neg-1", last_modified: "2026-10-17T14:00:00.000Z" },
+          ] }) };
+        }
+
+        if (url.includes("status=pending"))
+        {
+          return { ok: true, status: 200, json: async () => ({ results: [] }) };
+        }
+
+        return { ok: true, status: 200, json: async () => ({ id: "pre-a", status: "authorized", next_payment_date: "2026-12-01T00:00:00.000Z" }) };
+      }));
+
+      await subscriptionService.reconciliar("neg-1");
+
+      expect(updates).toEqual([expect.objectContaining({
+        suscripcion_mp_id: "pre-a",
+        suscripcion_vence_en: "2026-12-01T00:00:00.000Z",
+      })]);
     });
 
     it("debería devolver el init_point de la pendiente y cancelar las otras",
@@ -200,41 +234,48 @@ describe("subscriptionService.reconciliar",
   });
 
 describe("subscriptionService.activarSuscripcion",
-() =>
-{
-  it("debería guardar estado active con mp_id, vencimiento y limpiar la mora",
-  async () =>
+  () =>
   {
-    const updates: unknown[] = [];
-    stubUpdate(updates);
+    it("debería guardar estado active con mp_id, vencimiento y limpiar la mora",
+    async () =>
+    {
+      const updates: unknown[] = [];
+      stubUpdate(updates);
 
-    await subscriptionService.activarSuscripcion("neg-1", "pre-1", "2026-11-01T00:00:00Z");
+      await subscriptionService.activarSuscripcion(
+        "neg-1", "pre-1", "2026-11-01T00:00:00Z", new Date("2026-10-18T00:00:00Z"));
 
-    expect(updates).toEqual([{
-      suscripcion_estado: "active",
-      suscripcion_mp_id: "pre-1",
-      suscripcion_mora_desde: null,
-      suscripcion_cancelada_en: null,
-      suscripcion_vence_en: "2026-11-01T00:00:00Z",
-    }]);
+      expect(updates).toEqual([{
+        suscripcion_estado: "active",
+        suscripcion_mp_id: "pre-1",
+        suscripcion_mora_desde: null,
+        suscripcion_cancelada_en: null,
+        suscripcion_vence_en: "2026-11-01T00:00:00Z",
+        suscripcion_mp_status: "authorized",
+        suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
+      }]);
+    });
+
+    it("debería calcular el vencimiento a un mes cuando MP no lo informa",
+    async () =>
+    {
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+
+      await subscriptionService.activarSuscripcion(
+        "neg-1", "pre-1", null, new Date("2026-10-01T00:00:00Z"));
+
+      expect(updates).toEqual([{
+        suscripcion_estado: "active",
+        suscripcion_mp_id: "pre-1",
+        suscripcion_mora_desde: null,
+        suscripcion_cancelada_en: null,
+        suscripcion_vence_en: "2026-11-01T00:00:00.000Z",
+        suscripcion_mp_status: "authorized",
+        suscripcion_verificada_en: "2026-10-01T00:00:00.000Z",
+      }]);
+    });
   });
-
-  it("debería conservar el vencimiento previo cuando MP no lo informa",
-  async () =>
-  {
-    const updates: unknown[] = [];
-    stubUpdate(updates);
-
-    await subscriptionService.activarSuscripcion("neg-1", "pre-1");
-
-    expect(updates).toEqual([{
-      suscripcion_estado: "active",
-      suscripcion_mp_id: "pre-1",
-      suscripcion_mora_desde: null,
-      suscripcion_cancelada_en: null,
-    }]);
-  });
-});
 
 describe("subscriptionService.marcarPastDue",
 () =>
@@ -272,6 +313,8 @@ describe("subscriptionService.cancelarParaNegocio",
       suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
       suscripcion_estado: "active",
       suscripcion_vence_en: "2026-11-01T00:00:00Z",
+      suscripcion_mp_status: "cancelled",
+      suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
     }];
 
     it("debería cancelar en MP y conservar el acceso hasta el vencimiento",
@@ -351,6 +394,8 @@ describe("subscriptionService.marcarCancelada",
         suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
         suscripcion_estado: "active",
         suscripcion_vence_en: "2026-11-01T00:00:00Z",
+        suscripcion_mp_status: "cancelled",
+        suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
       }]);
     });
 
@@ -365,6 +410,76 @@ describe("subscriptionService.marcarCancelada",
       expect(updates).toEqual([{
         suscripcion_cancelada_en: "2026-10-18T00:00:00.000Z",
         suscripcion_estado: "active",
+        suscripcion_mp_status: "cancelled",
+        suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
+      }]);
+    });
+  });
+
+describe("subscriptionService.marcarVerificado",
+  () =>
+  {
+    it("debería refrescar el espejo de estado sin cortar el acceso",
+    async () =>
+    {
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+
+      await subscriptionService.marcarVerificado("neg-1", "paused", new Date("2026-10-18T00:00:00Z"));
+
+      expect(updates).toEqual([{
+        suscripcion_mp_status: "paused",
+        suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
+      }]);
+    });
+  });
+
+describe("subscriptionService.verificarPreapproval",
+  () =>
+  {
+    it("debería activar cuando MP confirma authorized",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "pre-1", status: "authorized", next_payment_date: "2026-12-01T00:00:00.000Z" }),
+      })));
+
+      const result = await subscriptionService.verificarPreapproval(
+        "neg-1", "pre-1", new Date("2026-10-18T00:00:00Z"));
+
+      expect(result).toEqual({ status: "authorized", activo: true, nextPaymentDate: "2026-12-01T00:00:00.000Z" });
+      expect(updates).toEqual([expect.objectContaining({
+        suscripcion_estado: "active",
+        suscripcion_mp_id: "pre-1",
+        suscripcion_vence_en: "2026-12-01T00:00:00.000Z",
+        suscripcion_mp_status: "authorized",
+      })]);
+    });
+
+    it("debería sólo espejar el estado cuando MP no autoriza",
+    async () =>
+    {
+      vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+      const updates: unknown[] = [];
+      stubUpdate(updates);
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "pre-1", status: "cancelled" }),
+      })));
+
+      const result = await subscriptionService.verificarPreapproval(
+        "neg-1", "pre-1", new Date("2026-10-18T00:00:00Z"));
+
+      expect(result).toEqual({ status: "cancelled", activo: false, nextPaymentDate: null });
+      expect(updates).toEqual([{
+        suscripcion_mp_status: "cancelled",
+        suscripcion_verificada_en: "2026-10-18T00:00:00.000Z",
       }]);
     });
   });
@@ -384,6 +499,7 @@ describe("subscriptionService.cancelarSuscripcionLocal",
       suscripcion_estado: "blocked",
       suscripcion_mp_id: null,
       suscripcion_mora_desde: null,
+      suscripcion_mp_status: null,
     }]);
   });
 });

@@ -7,6 +7,7 @@ import {
   consultarCobroSuscripcion,
   consultarPreapproval,
   crearPreapproval,
+  primerVencimiento,
   resolverPlanPais,
   type PreapprovalResumen,
 } from "@/lib/payments/subscription";
@@ -125,7 +126,12 @@ export class SubscriptionService
     if (autorizadas.length > 0)
     {
       const elegida = autorizadas[0];
-      await this.activarSuscripcion(negocioId, elegida.id, elegida.nextPaymentDate);
+      // El `preapproval/search` a veces omite `next_payment_date`; el GET
+      // individual sí lo expone. Sin fecha, se cae a +1 mes para no arrastrar
+      // un vencimiento viejo que dejaría la suscripción "vencida".
+      const vence = elegida.nextPaymentDate
+        ?? (await consultarPreapproval(elegida.id, platformToken)).nextPaymentDate;
+      await this.activarSuscripcion(negocioId, elegida.id, vence);
 
       for (const duplicada of [...autorizadas.slice(1), ...pendientes])
       {
@@ -150,28 +156,35 @@ export class SubscriptionService
     return { estado: "none", preapprovalId: null, initPoint: null };
   }
 
-  /** Activa el plan del negocio con el ID del preapproval autorizado. */
+  /**
+   * Activa/renueva el plan del negocio con el ID del preapproval autorizado.
+   *
+   * Siempre deja el período vigente: si MP no informa `venceEn`, calcula un mes
+   * desde `desde`. Marca el espejo `suscripcion_mp_status = "authorized"` y la
+   * verificación, para que el gate no bloquee mientras MP renueva.
+   *
+   * @param negocioId Negocio dueño del plan.
+   * @param preapprovalId Suscripción autorizada en MP.
+   * @param venceEn Fin del período pago (ISO 8601) o null para calcular +1 mes.
+   * @param desde Momento de la activación/verificación.
+   */
   async activarSuscripcion(
     negocioId: string,
     preapprovalId: string,
     venceEn: string | null = null,
+    desde: Date = new Date(),
   ): Promise<void>
   {
     const admin = getSupabaseAdmin();
-    const cambios: Record<string, unknown> = {
+    const { error } = await admin.from("negocios").update({
       suscripcion_estado: "active",
       suscripcion_mp_id: preapprovalId,
       suscripcion_mora_desde: null,
       suscripcion_cancelada_en: null,
-    };
-
-    // Sin fecha de MP se conserva el vencimiento previo en vez de borrarlo.
-    if (venceEn !== null)
-    {
-      cambios.suscripcion_vence_en = venceEn;
-    }
-
-    const { error } = await admin.from("negocios").update(cambios).eq("id", negocioId);
+      suscripcion_vence_en: venceEn ?? primerVencimiento(desde.toISOString()),
+      suscripcion_mp_status: "authorized",
+      suscripcion_verificada_en: desde.toISOString(),
+    }).eq("id", negocioId);
 
     if (error !== null)
     {
@@ -215,6 +228,8 @@ export class SubscriptionService
     const cambios: Record<string, unknown> = {
       suscripcion_estado: "active",
       suscripcion_cancelada_en: desde.toISOString(),
+      suscripcion_mp_status: "cancelled",
+      suscripcion_verificada_en: desde.toISOString(),
     };
 
     if (venceEn !== null)
@@ -238,12 +253,81 @@ export class SubscriptionService
       suscripcion_estado: "blocked",
       suscripcion_mp_id: null,
       suscripcion_mora_desde: null,
+      suscripcion_mp_status: null,
     }).eq("id", negocioId);
 
     if (error !== null)
     {
       throw new Error("No pudimos cancelar la suscripción. Probá de nuevo.");
     }
+  }
+
+  /**
+   * Registra el espejo del estado de MP tras una verificación que no autoriza.
+   *
+   * Se usa cuando MP informa `cancelled`/`paused`/`pending`: refresca
+   * `suscripcion_mp_status` y `suscripcion_verificada_en` sin cortar el acceso
+   * (el gate conserva la ventana paga hasta `suscripcion_vence_en` + margen).
+   *
+   * @param negocioId Negocio dueño del plan.
+   * @param mpStatus Estado del preapproval en MercadoPago.
+   * @param desde Momento de la verificación.
+   */
+  async marcarVerificado(
+    negocioId: string,
+    mpStatus: string,
+    desde: Date = new Date(),
+  ): Promise<void>
+  {
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("negocios").update({
+      suscripcion_mp_status: mpStatus,
+      suscripcion_verificada_en: desde.toISOString(),
+    }).eq("id", negocioId);
+
+    if (error !== null)
+    {
+      throw new Error("No pudimos registrar la verificación. Probá de nuevo.");
+    }
+  }
+
+  /**
+   * Consulta el preapproval en MP y sincroniza el plan local.
+   *
+   * Si está `authorized`, activa/renueva (avanza el período y limpia mora y
+   * cancelación). Si no, sólo refresca el espejo de estado. Devuelve el estado
+   * para que el llamador decida (cron y rescate en línea del middleware).
+   *
+   * @param negocioId Negocio dueño del plan.
+   * @param preapprovalId Suscripción a consultar.
+   * @param desde Momento de la verificación.
+   * @return Estado de MP, si quedó activa y su próximo vencimiento.
+   */
+  async verificarPreapproval(
+    negocioId: string,
+    preapprovalId: string,
+    desde: Date = new Date(),
+  ): Promise<{ readonly status: string; readonly activo: boolean; readonly nextPaymentDate: string | null }>
+  {
+    const platformToken = readEnv("MP_ACCESS_TOKEN");
+
+    if (platformToken === null)
+    {
+      throw new Error("Falta configurar MP_ACCESS_TOKEN en el entorno.");
+    }
+
+    const estado = await consultarPreapproval(preapprovalId, platformToken);
+
+    if (estado.status === "authorized")
+    {
+      await this.activarSuscripcion(negocioId, preapprovalId, estado.nextPaymentDate, desde);
+
+      return { status: estado.status, activo: true, nextPaymentDate: estado.nextPaymentDate };
+    }
+
+    await this.marcarVerificado(negocioId, estado.status, desde);
+
+    return { status: estado.status, activo: false, nextPaymentDate: estado.nextPaymentDate };
   }
 
   /** Consulta un preapproval con el token de plataforma. */

@@ -201,6 +201,10 @@ async function aplicarAltaSuscripcion(
     return NextResponse.json({ success: true, status: estado.status });
   }
 
+  // Estados intermedios (pending/paused…): se refresca el espejo de MP para que
+  // el gate y la reconciliación no trabajen con un estado desactualizado.
+  await subscriptionService.marcarVerificado(estado.externalReference, estado.status);
+
   console.info(
     `[webhooks/suscripcion] preapproval ${preapprovalId} en estado ${estado.status}; sin cambios.`,
   );

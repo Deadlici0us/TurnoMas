@@ -2,15 +2,23 @@
  * Paywall de suscripción (Módulo 1): 14 días de prueba, luego
  * bloqueo si no hay plan de MercadoPago activo (`suscripcion_mp_id`).
  *
- * Con mora (`past_due`) hay 5 días de gracia desde `suscripcion_mora_desde`
- * antes de bloquear. Función pura para facilitar TDD y reutilización en
- * Route Handlers, Server Components y Server Actions.
+ * El bloqueo nunca es "duro" en el borde del período: se concede un margen
+ * (`MP_MARGEN_RENOVACION_HORAS`, default 24) tanto para la mora como para el
+ * vencimiento del período pago. Así, mientras MercadoPago renueva o el cron
+ * de reconciliación confirma el pago, el cliente conserva el acceso. Con el
+ * espejo `suscripcion_mp_status = "authorized"` no se bloquea por vencimiento.
+ *
+ * Función pura para facilitar TDD y reutilización en Route Handlers, Server
+ * Components y Server Actions.
  */
 
 export const TRIAL_DAYS = 14;
-export const GRACIA_PAST_DUE_DIAS = 5;
+
+/** Margen por defecto (horas) para confirmar una renovación antes de bloquear. */
+export const MARGEN_RENOVACION_HORAS_DEFAULT = 24;
 
 const MS_PER_DAY = 86_400_000;
+const MS_PER_HOUR = 3_600_000;
 
 export type SubscriptionStatus = "trial" | "active" | "past_due" | "blocked";
 
@@ -23,10 +31,18 @@ export interface SubscriptionInput
   readonly suscripcionMoraDesde?: Date | null;
   readonly suscripcionVenceEn?: Date | null;
   readonly suscripcionCanceladaEn?: Date | null;
+  /** Espejo del estado del preapproval en MP (`authorized`/`cancelled`/`paused`). */
+  readonly suscripcionMpStatus?: string | null;
+  /** Margen de confirmación en horas; default `MARGEN_RENOVACION_HORAS_DEFAULT`. */
+  readonly margenHoras?: number;
 }
 
-/** Indica si la mora sigue dentro de la gracia. */
-function moraEnGracia(moraDesde: Date | null | undefined, now: Date): boolean
+/** Indica si la mora sigue dentro del margen de confirmación. */
+function moraEnMargen(
+  moraDesde: Date | null | undefined,
+  now: Date,
+  margenMs: number,
+): boolean
 {
   if (moraDesde === null || moraDesde === undefined || Number.isNaN(moraDesde.getTime()))
   {
@@ -35,7 +51,7 @@ function moraEnGracia(moraDesde: Date | null | undefined, now: Date): boolean
 
   const elapsedMs = now.getTime() - moraDesde.getTime();
 
-  return elapsedMs >= 0 && elapsedMs / MS_PER_DAY <= GRACIA_PAST_DUE_DIAS;
+  return elapsedMs >= 0 && elapsedMs <= margenMs;
 }
 
 /** Días restantes de prueba desde la creación (null sin fecha válida). */
@@ -82,34 +98,28 @@ export function diasSuscripcionRestantes(venceEn: string | null, now: Date = new
 }
 
 /**
- * Indica si una suscripción activa ya venció estando cancelada.
+ * Indica si una suscripción activa ya pasó el período pago más el margen.
  *
- * Tras cancelar se conserva el acceso hasta `suscripcion_vence_en`; pasada
- * esa fecha el gate bloquea. Sin vencimiento conocido (dato legado) se sigue
- * tratando como activa para no cortar el acceso de forma prematura.
+ * Sin vencimiento conocido (dato legado) se sigue tratando como vigente para
+ * no cortar el acceso de forma prematura.
  *
  * @param venceEn Fin del período pago.
- * @param canceladaEn Marca de cancelación (null = auto-renueva).
  * @param now Momento de referencia.
- * @return `true` cuando corresponde bloquear por vencimiento post-cancelación.
+ * @param margenMs Margen de confirmación en milisegundos.
+ * @return `true` cuando corresponde bloquear por vencimiento.
  */
-function canceladaVencida(
+function vencimientoSuperado(
   venceEn: Date | null | undefined,
-  canceladaEn: Date | null | undefined,
   now: Date,
+  margenMs: number,
 ): boolean
 {
-  if (canceladaEn === null || canceladaEn === undefined)
-  {
-    return false;
-  }
-
   if (venceEn === null || venceEn === undefined || Number.isNaN(venceEn.getTime()))
   {
     return false;
   }
 
-  return now.getTime() > venceEn.getTime();
+  return now.getTime() > venceEn.getTime() + margenMs;
 }
 
 /** Aviso de suscripción para el dashboard (null sin nada que avisar). */
@@ -137,13 +147,28 @@ export function avisoSuscripcion(
 /** Evalúa si la cuenta está en prueba, activa, en mora o bloqueada. */
 export function evaluateSubscription(input: SubscriptionInput): SubscriptionStatus
 {
+  const margenMs = (input.margenHoras ?? MARGEN_RENOVACION_HORAS_DEFAULT) * MS_PER_HOUR;
   const hasActiveSubscription = input.suscripcionEstado === "active"
     && input.suscripcionMpId !== null
     && input.suscripcionMpId.length > 0;
 
   if (hasActiveSubscription)
   {
-    if (canceladaVencida(input.suscripcionVenceEn, input.suscripcionCanceladaEn, input.now))
+    // Canceló: conserva el acceso hasta `vence_en` + margen y recién ahí bloquea.
+    if (input.suscripcionCanceladaEn !== null && input.suscripcionCanceladaEn !== undefined
+      && vencimientoSuperado(input.suscripcionVenceEn, input.now, margenMs))
+    {
+      return "blocked";
+    }
+
+    // MercadoPago confirma la suscripción autorizada: no se bloquea por fecha.
+    if (input.suscripcionMpStatus === "authorized")
+    {
+      return "active";
+    }
+
+    // Sin confirmación de MP, se concede el margen antes de bloquear.
+    if (vencimientoSuperado(input.suscripcionVenceEn, input.now, margenMs))
     {
       return "blocked";
     }
@@ -151,7 +176,7 @@ export function evaluateSubscription(input: SubscriptionInput): SubscriptionStat
     return "active";
   }
 
-  if (input.suscripcionEstado === "past_due" && moraEnGracia(input.suscripcionMoraDesde, input.now))
+  if (input.suscripcionEstado === "past_due" && moraEnMargen(input.suscripcionMoraDesde, input.now, margenMs))
   {
     return "past_due";
   }

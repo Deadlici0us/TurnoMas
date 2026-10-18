@@ -8,7 +8,7 @@ import VerificarPago from "@/components/verificar-pago";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
-import { diasSuscripcionRestantes, diasTrialRestantes, GRACIA_PAST_DUE_DIAS } from "@/lib/onboarding/trial";
+import { diasSuscripcionRestantes, diasTrialRestantes } from "@/lib/onboarding/trial";
 import { esRetornoCheckout } from "@/lib/payments/checkout-return";
 import { resolverPlanPais } from "@/lib/payments/subscription";
 import { subscriptionService, type PagoSuscripcion } from "@/lib/services/subscription";
@@ -171,6 +171,7 @@ export default async function SuscripcionPage(
     suscripcion_mora_desde?: unknown;
     suscripcion_vence_en?: unknown;
     suscripcion_cancelada_en?: unknown;
+    suscripcion_mp_status?: unknown;
   };
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
   const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
@@ -188,6 +189,8 @@ export default async function SuscripcionPage(
       typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
     suscripcion_vence_en: venceEn,
     suscripcion_cancelada_en: canceladaEn,
+    suscripcion_mp_status:
+      typeof negocio.suscripcion_mp_status === "string" ? negocio.suscripcion_mp_status : null,
   });
   const diasRestantes = diasTrialRestantes(creado);
   const planCancelado = estado === "active" && canceladaEn !== null;
@@ -225,6 +228,13 @@ export default async function SuscripcionPage(
         </p>
       )}
 
+      {estado === "active" && !planCancelado && venceEn !== null && diasPlan === 0 && (
+        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
+          bg-amber-500/10 text-amber-300 border-amber-500/30">
+          Estamos confirmando la renovación de tu plan con MercadoPago. Conservás el acceso mientras tanto.
+        </p>
+      )}
+
       <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-slate-100">Plan mensual</h3>
@@ -232,7 +242,7 @@ export default async function SuscripcionPage(
               bg-white/10 text-slate-400 border-white/10">
               {estado === "active"
                 ? planCancelado ? "Cancelado" : "Activo"
-                : estado === "past_due" ? `En mora (${GRACIA_PAST_DUE_DIAS} días de gracia)`
+                : estado === "past_due" ? "En mora"
                 : estado === "blocked" ? "Bloqueado"
                 : diasRestantes !== null ? `Prueba: ${diasRestantes} días restantes` : "Prueba"}
             </span>
