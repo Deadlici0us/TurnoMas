@@ -268,14 +268,14 @@ describe("consultarPreapproval",
 describe("cancelarPreapproval",
 () =>
 {
-  it("debería cancelar con PUT usando el estado canceled",
+  it("debería cancelar con PUT usando el estado cancelled",
   async () =>
   {
-    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "canceled" }));
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1", status: "cancelled" }));
 
     await cancelarPreapproval("pre-1", "APP_USR-platform", fetchMock);
 
-    expect(ultimoBody(cuerpos)).toMatchObject({ status: "canceled" });
+    expect(ultimoBody(cuerpos)).toMatchObject({ status: "cancelled" });
   });
 });
 

@@ -371,7 +371,7 @@ describe("POST /api/webhooks suscripciones",
   async () =>
   {
     mockSubEstado.mockResolvedValueOnce({
-      status: "canceled",
+      status: "cancelled",
       externalReference: "neg-1",
       nextPaymentDate: null,
     });
@@ -381,7 +381,7 @@ describe("POST /api/webhooks suscripciones",
     const body = await response.json() as { success: boolean; status: string };
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ success: true, status: "canceled" });
+    expect(body).toMatchObject({ success: true, status: "cancelled" });
     expect(mockSubCancelada).toHaveBeenCalledWith("neg-1", null);
   });
 

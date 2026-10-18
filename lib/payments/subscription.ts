@@ -387,7 +387,7 @@ export async function cancelarPreapproval(
       Authorization: `Bearer ${platformToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ status: "canceled" }),
+    body: JSON.stringify({ status: "cancelled" }),
   });
 
   if (!response.ok)
