@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import StatusBadge from "@/components/ui/status-badge";
@@ -141,10 +142,20 @@ export default function AgendaCitasDia(props: AgendaCitasDiaProps)
   return (
     <section className="ui-card">
       <div className="p-5 sm:p-6">
-        <h2 className="ui-section-title">Citas del día seleccionado</h2>
-        <p className="mt-1 mb-3 text-sm text-muted-foreground">
-          {`Turnos del día ${etiquetaDia(props.diaClave)} en orden por horario`}
-        </p>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="ui-section-title">Citas del día seleccionado</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {`Turnos del día ${etiquetaDia(props.diaClave)} en orden por horario`}
+            </p>
+          </div>
+          <Link
+            href={`/dashboard/agenda/nuevo?fecha=${props.diaClave}`}
+            className="ui-btn ui-btn-outline ui-btn-sm"
+          >
+            Agregar turno
+          </Link>
+        </div>
         <div className="space-y-3">
           {delDia.map((cita) =>
           {

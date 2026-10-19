@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import AgendaCalendar from "@/components/agenda-calendar";
@@ -8,7 +10,7 @@ import { readEnv } from "@/lib/env/env";
 import { linkWhatsapp } from "@/lib/notifications/whatsapp";
 import { textoWhatsapp } from "@/lib/notifications/custom-templates";
 import { calendarService } from "@/lib/services/calendar";
-import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { claveDiaEnZona, formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 interface StaffRow
 {
@@ -163,11 +165,23 @@ export default async function AgendaPage(props?: {
     whatsappHref: linkRefuerzo(t),
   }));
 
+  const fechaParaNuevo = typeof params?.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.fecha)
+    ? params.fecha
+    : claveDiaEnZona(new Date(), timeZone);
+
   return (
     <div className="space-y-4 sm:space-y-6">
     <PageHeader
       title="Agenda"
       subtitle="Organizá tus turnos por día, semana o mes y actualizá el estado en un clic."
+      actions={(
+        <Link
+          href={`/dashboard/agenda/nuevo?fecha=${fechaParaNuevo}`}
+          className="ui-btn ui-btn-primary"
+        >
+          Agregar turno
+        </Link>
+      )}
     />
     <AgendaCalendar
       base={hoy.toISOString()}

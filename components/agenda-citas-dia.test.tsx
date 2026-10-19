@@ -98,4 +98,13 @@ describe("AgendaCitasDia",
     expect(screen.getByRole("link", { name: "WhatsApp" }).getAttribute("href"))
       .toContain("wa.me/5491112345678");
   });
+
+  it("debería ofrecer agregar un turno en el día seleccionado",
+  () =>
+  {
+    render(<AgendaCitasDia {...propsBase()} />);
+
+    expect(screen.getByRole("link", { name: "Agregar turno" }).getAttribute("href"))
+      .toBe("/dashboard/agenda/nuevo?fecha=2026-10-06");
+  });
 });

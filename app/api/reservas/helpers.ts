@@ -9,12 +9,13 @@
 
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
-import { getBlockedInterval } from "@/lib/availability/availability";
 import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { resolveCheckout } from "@/lib/checkout/checkout";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
 import { esEmailValido } from "@/lib/validation/email";
 import { limpiarControl } from "@/lib/validation/texto";
+
+export { filtrarBloqueos, retieneSlot } from "@/lib/reservas/disponibilidad";
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
@@ -162,58 +163,6 @@ export function requiereEmailObligatorio(
   const recordatorio = negocio?.recordatorio_activo !== false;
 
   return resena || recordatorio;
-}
-
-/**
- * Indica si un turno existente retiene su slot durante la gracia de pago.
- *
- * @param estado Estado del turno.
- * @param createdAt Fecha de creación ISO.
- * @param ahoraMs Ahora en milisegundos.
- * @return Verdadero cuando bloquea agenda.
- */
-export function retieneSlot(estado: string, createdAt: string, ahoraMs: number): boolean
-{
-  if (estado === "confirmado" || estado === "pagado")
-  {
-    return true;
-  }
-
-  if (estado !== "pendiente")
-  {
-    return false;
-  }
-
-  const creado = new Date(createdAt).getTime();
-
-  return !Number.isNaN(creado) && ahoraMs - creado < 15 * 60_000;
-}
-
-/**
- * Filtra los turnos existentes a intervalos de bloqueo.
- *
- * @param turnos Turnos futuros del staff.
- * @param duracionPorServicio Mapa de duraciones por servicio.
- * @param duracionDefault Duración del servicio actual.
- * @param ahoraMs Ahora en milisegundos.
- * @return Intervalos que bloquean agenda.
- */
-export function filtrarBloqueos(
-  turnos: ReadonlyArray<{ readonly inicio: string; readonly servicio_id: string;
-    readonly estado: string; readonly created_at: string }>,
-  duracionPorServicio: ReadonlyMap<string, { readonly duracion_min: number }>,
-  duracionDefault: number,
-  ahoraMs: number,
-): Array<{ readonly start: Date; readonly end: Date }>
-{
-  return turnos
-    .filter((t) => retieneSlot(t.estado, t.created_at, ahoraMs))
-    .map((t) =>
-    {
-      const ref = duracionPorServicio.get(t.servicio_id);
-
-      return getBlockedInterval(new Date(t.inicio), ref?.duracion_min ?? duracionDefault);
-    });
 }
 
 /**

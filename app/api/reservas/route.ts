@@ -10,44 +10,22 @@
 
 import { NextResponse } from "next/server";
 
-import { isSlotAvailable } from "@/lib/availability/availability";
 import { requierePagoSena } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { NegocioSinMpError } from "@/lib/payments/mp-token";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
-import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
+import { formatearFechaEnZona, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
+import { estaOcupado } from "@/lib/reservas/disponibilidad";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 import type { ReservaBody, ReservaValidada } from "./helpers";
-import { evaluarRiesgo, filtrarBloqueos, parseReservaBody, requiereEmailObligatorio } from "./helpers";
-
-/** Formatea fecha/hora en hora del negocio (DD/MM/YYYY HH:mm). */
-function formatearFechaEnZona(fecha: Date, timeZone: string): string
-{
-  const etiqueta = formatearEnZona(fecha, timeZone);
-  const [diaMes, hora] = etiqueta.split(" ");
-  const [dia, mes] = (diaMes ?? "").split("/");
-
-  return `${dia}/${mes}/${fecha.getFullYear()} ${hora ?? ""}`.trim();
-}
-
-/** Inicio del día local (ventana para freebusy de Google). */
-function inicioDelDia(fecha: Date): Date
-{
-  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
-}
-
-/** Fin del día local (ventana para freebusy de Google). */
-function finDelDia(fecha: Date): Date
-{
-  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 0, 0, 0, 0);
-}
+import { evaluarRiesgo, parseReservaBody, requiereEmailObligatorio } from "./helpers";
 
 /**
  * Resuelve el cliente existente o crea uno nuevo.
@@ -89,111 +67,6 @@ async function resolverCliente(
   }
 
   return (nuevo as { id: string }).id;
-}
-
-/**
- * Sincroniza Google Calendar y email de confirmación (best-effort).
- *
- * @param params Datos del turno confirmado.
- */
-async function sincronizarConfirmado(params: {
-  readonly admin: ReturnType<typeof getSupabaseAdmin>;
-  readonly negocioId: string;
-  readonly negocioNombre: string;
-  readonly servicioNombre: string;
-  readonly staffNombre: string;
-  readonly clienteId: string;
-  readonly clienteNombre: string;
-  readonly whatsapp: string;
-  readonly email: string | null;
-  readonly inicio: Date;
-  readonly fin: Date;
-  readonly turnoId: string;
-  readonly timeZone: string;
-  readonly plantillaSubject: unknown;
-  readonly plantillaCuerpo: unknown;
-}): Promise<void>
-{
-  try
-  {
-    const gcalEventId = await calendarService.createEventForNegocio(params.negocioId, {
-      ...buildTurnoEvent({
-        negocio: params.negocioNombre,
-        servicio: params.servicioNombre,
-        profesional: params.staffNombre,
-        cliente: params.clienteNombre,
-        whatsapp: params.whatsapp,
-        inicio: params.inicio,
-        fin: params.fin,
-      }),
-      timeZone: params.timeZone,
-    });
-
-    if (gcalEventId !== null)
-    {
-      await params.admin.from("turnos").update({ google_calendar_event_id: gcalEventId })
-        .eq("id", params.turnoId);
-    }
-  }
-  catch
-  {
-    // Best-effort: la reserva ya existe aunque falle Google.
-  }
-
-  if (params.email === null)
-  {
-    return;
-  }
-
-  try
-  {
-    const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
-      ? `https://${readEnv("VERCEL_URL") as string}` : null);
-    const secreto = readEnv("CANCELACION_SECRET");
-    let cancelacionUrl = "";
-    const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
-
-    if (base !== null && secreto !== null && secreto.trim().length >= 16)
-    {
-      const token = firmarTokenCancelacion({
-        turnoId: params.turnoId,
-        clienteId: params.clienteId,
-        inicio: params.inicio,
-      }, secreto);
-
-      cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), params.turnoId, token);
-    }
-
-    const datos = {
-      negocio: params.negocioNombre,
-      servicio: params.servicioNombre,
-      profesional: params.staffNombre,
-      fecha: formatearFechaEnZona(params.inicio, params.timeZone),
-    };
-    const plantilla = cancelacionUrl.length > 0
-      ? resolverPlantilla("confirmacion", {
-        subject: params.plantillaSubject,
-        cuerpo: typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
-          ? `${params.plantillaCuerpo}\nSi no podés venir, cancelá acá: {link}`
-          : `Hola, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-            `en {negocio} está confirmada.\nSi no podés venir, cancelá acá: {link}`,
-      }, datos, cancelacionUrl)
-      : resolverPlantilla("confirmacion", {
-        subject: params.plantillaSubject,
-        cuerpo: params.plantillaCuerpo,
-      }, datos);
-
-    await new ResendAdapter().send({
-      to: params.email,
-      subject: plantilla.subject,
-      fromName: params.negocioNombre,
-      html: plantilla.html,
-    });
-  }
-  catch
-  {
-    // Best-effort: la reserva ya existe aunque falle el email.
-  }
 }
 
 /**
@@ -398,47 +271,6 @@ async function cargarContextoNegocio(
 function esRespuesta(valor: unknown): valor is ReturnType<typeof NextResponse.json>
 {
   return typeof valor === "object" && valor !== null && "status" in valor;
-}
-
-/**
- * Verifica que el slot siga libre en agenda y Google.
- *
- * @param admin Cliente admin de Supabase.
- * @param negocioId ID del negocio.
- * @param staffId ID del staff.
- * @param inicio Inicio solicitado.
- * @param duracionMin Duración del servicio.
- * @return Verdadero cuando está ocupado.
- */
-async function estaOcupado(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  negocioId: string,
-  staffId: string,
-  inicio: Date,
-  duracionMin: number,
-): Promise<boolean>
-{
-  const ahoraMs = Date.now();
-  const { data: turnosExistentes } = await admin.from("turnos")
-    .select("inicio, servicio_id, estado, created_at")
-    .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date(ahoraMs).toISOString());
-  const { data: serviciosTodos } = await admin.from("servicios")
-    .select("id, duracion_min").eq("negocio_id", negocioId);
-  const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
-    id: string; duracion_min: number;
-  }) => [s.id, s]));
-  const bloqueos = filtrarBloqueos(
-    ((turnosExistentes ?? []) as Array<{
-      inicio: string; servicio_id: string; estado: string; created_at: string;
-    }>),
-    duracionPorServicio,
-    duracionMin,
-    ahoraMs,
-  );
-  const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
-    negocioId, inicioDelDia(inicio), finDelDia(inicio));
-
-  return !isSlotAvailable(inicio, duracionMin, [...bloqueos, ...ocupadoGoogle]);
 }
 
 /**
@@ -726,8 +558,7 @@ export async function POST(request: Request)
     // acreditarse el pago (webhook o marca manual cash).
     if (!conSena)
     {
-      await sincronizarConfirmado({
-        admin,
+      await sincronizarTurnoConfirmado({
         negocioId,
         negocioNombre: negocio.nombre as string,
         servicioNombre,

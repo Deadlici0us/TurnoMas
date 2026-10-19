@@ -78,6 +78,18 @@ describe("ClientesPage",
     expect(screen.queryByRole("link", { name: "WhatsApp" })).toBeNull();
   });
 
+  it("debería ofrecer agregar un turno con los datos del cliente",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+
+    render(await ClientesPage({ searchParams: params() }));
+
+    const links = screen.getAllByRole("link", { name: "Agregar turno" });
+
+    expect(links[0]?.getAttribute("href")).toBe("/dashboard/agenda/nuevo?clienteId=cli-1");
+  });
+
   it("debería marcar bloqueados manualmente",
   async () =>
   {

@@ -87,6 +87,8 @@ describe("AgendaPage",
     expect(screen.getByText("Citas del día seleccionado")).toBeDefined();
     expect(screen.getByRole("button", { name: "Marcar seña pagada" })).toBeDefined();
     expect(screen.queryByRole("link", { name: "WhatsApp" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Agregar turno" })[0]?.getAttribute("href"))
+      .toBe("/dashboard/agenda/nuevo?fecha=2026-10-06");
   });
 
   it("debería mostrar completar, ausente y WhatsApp en confirmado",

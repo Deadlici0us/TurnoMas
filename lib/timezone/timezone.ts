@@ -320,6 +320,68 @@ export function formatearEnZonaConSegundos(valor: Date | string, timeZone: strin
     `${dos(partes.hora)}:${dos(partes.minuto)}:${dos(partes.segundo)}`;
 }
 
+const FECHA_CIVIL_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const HORA_CIVIL_PATTERN = /^(\d{2}):(\d{2})$/;
+
+/**
+ * Convierte fecha y hora civiles de una zona a un instante UTC.
+ *
+ * Se usa para el alta manual de turnos: el dueño elige "2026-10-06 10:00"
+ * en la zona del negocio y hay que persistir el instante absoluto correcto,
+ * sin depender de la zona del servidor ni del navegador. Ajusta el offset
+ * IANA iterando (2 vueltas alcanzan para resolver DST).
+ *
+ * @param entrada Fecha `YYYY-MM-DD` y hora `HH:mm` civiles.
+ * @param timeZone Zona IANA del negocio.
+ * @return Instante absoluto correspondiente.
+ */
+export function instanteDesdeZonaCivil(
+  entrada: { readonly fecha: string; readonly hora: string },
+  timeZone: string,
+): Date
+{
+  const zona = validarTimezone(timeZone);
+  const fechaMatch = FECHA_CIVIL_PATTERN.exec(entrada.fecha);
+  const horaMatch = HORA_CIVIL_PATTERN.exec(entrada.hora);
+
+  if (fechaMatch === null || horaMatch === null)
+  {
+    throw new RangeError("Elegí una fecha y una hora válidas.");
+  }
+
+  const anio = Number(fechaMatch[1]);
+  const mes = Number(fechaMatch[2]);
+  const dia = Number(fechaMatch[3]);
+  const hora = Number(horaMatch[1]);
+  const minuto = Number(horaMatch[2]);
+  const objetivo = Date.UTC(anio, mes - 1, dia, hora, minuto);
+  const verificado = new Date(objetivo);
+
+  if (verificado.getUTCFullYear() !== anio || verificado.getUTCMonth() !== mes - 1
+    || verificado.getUTCDate() !== dia || hora > 23 || minuto > 59)
+  {
+    throw new RangeError("Elegí una fecha y una hora válidas.");
+  }
+
+  let candidato = objetivo;
+
+  for (let iteracion = 0; iteracion < 3; iteracion += 1)
+  {
+    const partes = obtenerPartesCiviles(new Date(candidato), zona);
+    const actual = Date.UTC(partes.anio, partes.mes - 1, partes.dia, partes.hora, partes.minuto);
+    const diferencia = objetivo - actual;
+
+    if (diferencia === 0)
+    {
+      break;
+    }
+
+    candidato += diferencia;
+  }
+
+  return new Date(candidato);
+}
+
 /**
  * Suma días calendario a un día civil (sin depender de DST).
  *

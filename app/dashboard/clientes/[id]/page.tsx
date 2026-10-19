@@ -120,17 +120,25 @@ export default async function ClienteDetallePage({
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{cliente.whatsapp}</p>
         </div>
-        {numeroWhatsapp !== null ? (
-          <a
-            href={`https://wa.me/${numeroWhatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
-              hover:bg-success-soft"
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
+            className="ui-btn ui-btn-primary ui-btn-sm"
           >
-            WhatsApp
-          </a>
-        ) : null}
+            Agregar turno
+          </Link>
+          {numeroWhatsapp !== null ? (
+            <a
+              href={`https://wa.me/${numeroWhatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                hover:bg-success-soft"
+            >
+              WhatsApp
+            </a>
+          ) : null}
+        </div>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div className="ui-card p-4 sm:p-5">

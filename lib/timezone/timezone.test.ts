@@ -8,6 +8,7 @@ import
   formatearEnZonaConFecha,
   formatearEnZonaConSegundos,
   formatearHoraEnZona,
+  instanteDesdeZonaCivil,
   minutosEnZona,
   resolverTimezoneNegocio,
   validarTimezone,
@@ -94,5 +95,54 @@ describe("timezone por negocio",
     expect(formatearEnZonaConSegundos(new Date("2026-01-15T05:30:45.000Z"), "America/Cancun"))
       .toBe("15/01/2026 00:30:45");
     expect(formatearEnZonaConSegundos("no-fecha", "America/Argentina/Buenos_Aires")).toBe("no-fecha");
+  });
+});
+
+describe("instanteDesdeZonaCivil",
+() =>
+{
+  it("debería convertir hora civil de Buenos Aires a UTC",
+  () =>
+  {
+    expect(instanteDesdeZonaCivil({ fecha: "2026-10-06", hora: "10:00" },
+      "America/Argentina/Buenos_Aires").toISOString()).toBe("2026-10-06T13:00:00.000Z");
+    expect(instanteDesdeZonaCivil({ fecha: "2026-01-15", hora: "09:30" },
+      "America/Argentina/Buenos_Aires").toISOString()).toBe("2026-01-15T12:30:00.000Z");
+  });
+
+  it("debería respetar husos distintos y DST",
+  () =>
+  {
+    expect(instanteDesdeZonaCivil({ fecha: "2026-01-15", hora: "09:30" },
+      "America/Mexico_City").toISOString()).toBe("2026-01-15T15:30:00.000Z");
+    // Tijuana en verano: UTC-7.
+    expect(instanteDesdeZonaCivil({ fecha: "2026-07-04", hora: "08:00" },
+      "America/Tijuana").toISOString()).toBe("2026-07-04T15:00:00.000Z");
+    // Tijuana en invierno: UTC-8.
+    expect(instanteDesdeZonaCivil({ fecha: "2026-01-04", hora: "08:00" },
+      "America/Tijuana").toISOString()).toBe("2026-01-04T16:00:00.000Z");
+  });
+
+  it("debería rechazar fecha u hora inválidas",
+  () =>
+  {
+    expect(() => instanteDesdeZonaCivil({ fecha: "2026-02-30", hora: "10:00" },
+      "America/Argentina/Buenos_Aires")).toThrow(RangeError);
+    expect(() => instanteDesdeZonaCivil({ fecha: "06/10/2026", hora: "10:00" },
+      "America/Argentina/Buenos_Aires")).toThrow(RangeError);
+    expect(() => instanteDesdeZonaCivil({ fecha: "2026-10-06", hora: "25:00" },
+      "America/Argentina/Buenos_Aires")).toThrow(RangeError);
+    expect(() => instanteDesdeZonaCivil({ fecha: "2026-10-06", hora: "10:70" },
+      "America/Argentina/Buenos_Aires")).toThrow(RangeError);
+  });
+
+  it("debería ser idempotente con formatearEnZonaConFecha",
+  () =>
+  {
+    const instante = instanteDesdeZonaCivil({ fecha: "2026-10-06", hora: "10:00" },
+      "America/Argentina/Buenos_Aires");
+
+    expect(formatearEnZonaConFecha(instante, "America/Argentina/Buenos_Aires"))
+      .toBe("06/10/2026 10:00");
   });
 });

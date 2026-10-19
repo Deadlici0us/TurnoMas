@@ -15,6 +15,7 @@ interface ClienteRow
   readonly id: string;
   readonly nombre: string;
   readonly whatsapp: string;
+  readonly email?: string | null;
   readonly ausencias: number;
   readonly bloqueado: boolean;
 }
@@ -269,6 +270,12 @@ export default async function ClientesPage({
                     </td>
                     <td className="ui-td px-6">
                       <div className="flex flex-wrap justify-end gap-2">
+                        <Link
+                          href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
+                          className="ui-btn ui-btn-outline ui-btn-sm"
+                        >
+                          Agregar turno
+                        </Link>
                         {(() =>
                         {
                           const wa = linkRemarketing(cliente, ultimo !== undefined
@@ -372,6 +379,12 @@ export default async function ClientesPage({
                       ))}
                     </ul>
                     <div className="flex flex-wrap gap-2 mt-3">
+                      <Link
+                        href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
+                        className="ui-btn ui-btn-outline ui-btn-sm"
+                      >
+                        Agregar turno
+                      </Link>
                       {(() =>
                       {
                         const ultimoMovil = historial[0];

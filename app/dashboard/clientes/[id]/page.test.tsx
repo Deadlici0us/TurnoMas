@@ -103,6 +103,8 @@ describe("ClienteDetallePage",
     expect(screen.getAllByText("Diego").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Completado").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/15[.,]?000/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: "Agregar turno" }).getAttribute("href"))
+      .toBe("/dashboard/agenda/nuevo?clienteId=cli-1");
   });
 
   it("debería mostrar el estado de lista negra del cliente",
