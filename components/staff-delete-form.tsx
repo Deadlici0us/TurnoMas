@@ -21,8 +21,7 @@ export default function StaffDeleteForm({ action }: StaffDeleteFormProps)
     >
       <button
         type="submit"
-        className="text-xs font-semibold px-4 py-2 rounded-lg border border-red-500/30
-          text-red-400 hover:bg-red-500/20 transition-colors"
+        className="ui-btn ui-btn-danger ui-btn-sm"
       >
         Eliminar
       </button>

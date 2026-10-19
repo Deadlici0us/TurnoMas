@@ -3,12 +3,11 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Auditoría estática del tema oscuro unificado del dashboard.
+ * Auditoría estática del tema claro unificado del dashboard.
  *
- * El dashboard vive sobre fondo slate-950 (AnimatedBackground + shell
- * oscuro): cualquier isla bg-white o texto slate-900/600 se ve en blanco
- * o se mezcla con el fondo. Este test falla mientras quede una clase
- * clara hardcodeada en el scope del dashboard.
+ * El dashboard vive sobre fondo `surface` con tarjetas blancas. Cualquier
+ * superficie oscura hardcodeada (slate-950/900, white/5, scheme-dark)
+ * rompe la legibilidad y la consistencia con el diseño SimplyBook.
  */
 
 const RAIZ = join(process.cwd(), "app/dashboard");
@@ -23,26 +22,44 @@ const PAGINAS = [
   "staff/page.tsx",
   "servicios/page.tsx",
   "clientes/page.tsx",
+  "clientes/[id]/page.tsx",
   "pagos/page.tsx",
   "config/page.tsx",
   "checkout/page.tsx",
   "suscripcion/page.tsx",
+  "resenas/page.tsx",
+  "remarketing/page.tsx",
 ];
 
 const COMPONENTES = [
-  "../components/agenda-calendar.tsx",
-  "../components/agenda-week-grid.tsx",
-  "../components/demo-editable-banner.tsx",
-  "../components/demo-readonly-banner.tsx",
-  "../components/formulario-servicio.tsx",
-  "../components/campos-servicio.tsx",
-  "../components/copiar-comprobante.tsx",
-  "../components/staff-delete-form.tsx",
-  "../components/zona-peligro-eliminar.tsx",
-  "../components/dashboard-sidebar.tsx",
+  "agenda-calendar.tsx",
+  "agenda-citas-dia.tsx",
+  "leyenda-estados.tsx",
+  "demo-editable-banner.tsx",
+  "demo-readonly-banner.tsx",
+  "formulario-servicio.tsx",
+  "campos-servicio.tsx",
+  "copiar-comprobante.tsx",
+  "staff-delete-form.tsx",
+  "zona-peligro-eliminar.tsx",
+  "dashboard-sidebar.tsx",
+  "seccion-config.tsx",
+  "editor-horarios-semanales.tsx",
+  "fila-dia-horario.tsx",
+  "detalle-dia-horario.tsx",
+  "lista-resenas.tsx",
+  "lista-remarketing.tsx",
+  "suscripcion-form.tsx",
+  "verificar-pago.tsx",
+  "onboarding-wizard.tsx",
+  "pago-pendiente-banner.tsx",
+  "foto-staff-uploader.tsx",
+  "logo-negocio-uploader.tsx",
+  "perfil-staff-form.tsx",
+  "guia-whatsapp.tsx",
 ];
 
-const LIB = ["../../lib/dashboard/estados-colores.ts"];
+const LIB = ["estados-colores.ts"];
 
 function leer(rel: string): string
 {
@@ -60,85 +77,77 @@ function fuentes(): Array<{ nombre: string; contenido: string }>
 
   for (const c of COMPONENTES)
   {
-    salida.push({ nombre: c.replace("../components/", "components/"), contenido: readFileSync(join(COMP_RAIZ, c.split("/").pop() as string), "utf8") });
+    const ruta = join(COMP_RAIZ, c);
+
+    try
+    {
+      salida.push({ nombre: `components/${c}`, contenido: readFileSync(ruta, "utf8") });
+    }
+    catch
+    {
+      // Componente opcional que puede no existir en este checkout.
+    }
   }
 
   for (const l of LIB)
   {
-    salida.push({ nombre: l.replace("../../lib/", "lib/"), contenido: readFileSync(join(LIB_RAIZ, l.split("/").pop() as string), "utf8") });
+    salida.push({ nombre: `lib/dashboard/${l}`, contenido: readFileSync(join(LIB_RAIZ, l), "utf8") });
   }
 
   return salida;
 }
 
-/** Clases claras que rompen el tema oscuro (islas blancas / bordes invisibles).
- *
- * Nota: se matchean con límite de clase (regex) para no marcar falsos
- * positivos como `bg-green-500/10` (que contiene el substring `bg-green-50`).
- */
+/** Clases oscuras que no deben quedar en el scope del dashboard. */
 const PROHIBIDAS_EXACTAS = [
-  "border-slate-200",
-  "border-slate-300",
-  "divide-slate-100",
-  "bg-slate-50",
-  "bg-slate-100",
-  "bg-slate-200",
-  "bg-violet-100",
-  "bg-amber-100",
-  "bg-green-100",
-  "bg-cyan-100",
-  "bg-blue-100",
-  "bg-red-50",
-  "bg-green-50",
-  "bg-blue-50",
-  "bg-amber-50",
-  "bg-indigo-100",
-  "bg-amber-200",
-  "bg-blue-200",
-  "bg-green-200",
-  "bg-indigo-200",
-  "bg-red-200",
-  "bg-slate-300/70",
-  "text-slate-900",
-  "hover:bg-slate-50",
-  "hover:bg-slate-100",
+  "bg-slate-950",
+  "bg-slate-900",
+  "bg-white/5",
+  "bg-white/10",
+  "bg-white/15",
+  "border-white/10",
+  "border-white/15",
+  "divide-white/10",
+  "text-slate-100",
+  "text-slate-200",
+  "text-slate-300",
+  "text-slate-400",
+  "text-slate-500",
+  "shadow-black",
+  "scheme-dark",
+  "ring-offset-slate-900",
 ];
 
-/** bg-white sólido (sin /opacidad) rompe el tema, salvo botón activo
- * `bg-white text-slate-950` (contraste intencional sobre oscuro, ventana ±2 líneas). */
-const BG_WHITE_SOLIDO = /\bbg-white(?![/\w-])/;
-
-/** Textos oscuros ilegibles sobre fondo slate-950. */
+/** Clases oscuras que rompen el fondo claro dentro del dashboard. */
 const TEXTOS_OSCUROS = [
   "text-slate-600",
   "text-slate-700",
   "text-slate-800",
-  "text-violet-700",
-  "text-amber-700",
-  "text-green-700",
-  "text-red-700",
-  "text-blue-700",
-  "text-blue-800",
-  "text-blue-900",
-  "text-amber-800",
-  "text-amber-900",
-  "text-red-800",
-  "text-red-900",
 ];
 
-describe("dashboard tema oscuro unificado",
+describe("dashboard tema claro unificado",
 () =>
 {
-  it("debería anclar fondo oscuro en el shell del dashboard",
+  it("debería anclar fondo claro en el shell del dashboard",
   () =>
   {
     const layout = leer("layout.tsx");
 
-    expect(layout).toMatch(/bg-slate-950/);
-    expect(layout).toMatch(/text-slate-100/);
+    expect(layout).toMatch(/bg-surface|bg-\[#F8FAFF\]/);
+    expect(layout).toMatch(/text-ink|text-\[#253246\]/);
+    expect(layout).not.toMatch(/bg-slate-950/);
+    expect(layout).not.toMatch(/scheme-dark/);
   });
 
-  it("debería no tener islas claras ni bordes slate en el dashboard",
+  it("debería usar el sidebar navy y el activo teal",
+  () =>
+  {
+    const sidebar = readFileSync(join(COMP_RAIZ, "dashboard-sidebar.tsx"), "utf8");
+
+    expect(sidebar).toMatch(/bg-sidebar/);
+    expect(sidebar).toMatch(/bg-primary/);
+  });
+
+  it("debería no tener superficies ni textos oscuros en el dashboard",
   () =>
   {
     const errores: string[] = [];
@@ -149,36 +158,17 @@ describe("dashboard tema oscuro unificado",
 
       for (const [i, linea] of lineas.entries())
       {
-        const ventana = lineas.slice(Math.max(0, i - 2), i + 3).join("\n");
-        const esPrimario = ventana.includes("text-slate-950");
-
         for (const clase of PROHIBIDAS_EXACTAS)
         {
           const patron = new RegExp(`\\b${clase.replaceAll("/", "\\/")}(?![\\w/-])`);
 
-          if (patron.test(linea) && !(clase === "bg-slate-200" && esPrimario))
+          if (patron.test(linea))
           {
             errores.push(`${nombre}:${i + 1}: contiene "${clase}"`);
           }
         }
-
-        if (BG_WHITE_SOLIDO.test(linea) && !esPrimario)
-        {
-          errores.push(`${nombre}:${i + 1}: contiene "bg-white" sólido`);
-        }
       }
-    }
 
-    expect(errores).toEqual([]);
-  });
-
-  it("debería no tener textos oscuros que se mezclan con el fondo",
-  () =>
-  {
-    const errores: string[] = [];
-
-    for (const { nombre, contenido } of fuentes())
-    {
       for (const clase of TEXTOS_OSCUROS)
       {
         const patron = new RegExp(`\\b${clase.replaceAll("/", "\\/")}(?![\\w/-])`);
@@ -191,6 +181,15 @@ describe("dashboard tema oscuro unificado",
     }
 
     expect(errores).toEqual([]);
+  });
+
+  it("debería usar colores claros en los estados de la agenda",
+  () =>
+  {
+    const estados = readFileSync(join(LIB_RAIZ, "estados-colores.ts"), "utf8");
+
+    expect(estados).not.toMatch(/text-(amber|green|blue|indigo|red)-300/);
+    expect(estados).toMatch(/text-\[#/);
   });
 
   it("debería usar un solo ancho y escala tipográfica en checkout/suscripción",

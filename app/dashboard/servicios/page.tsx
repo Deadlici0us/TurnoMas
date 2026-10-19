@@ -1,4 +1,7 @@
 import { cambiarEstadoServicio, eliminarServicio, guardarServicio } from "./actions";
+import ActionForm from "@/components/ui/action-form";
+import PageHeader from "@/components/ui/page-header";
+import SubmitButton from "@/components/ui/submit-button";
 import FormularioServicio from "@/components/formulario-servicio";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
@@ -72,26 +75,27 @@ export default async function ServiciosPage()
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-100">Servicios</h1>
-        <p className="text-slate-400 mt-1 text-sm">Duración, precios y seña por servicio.</p>
-      </div>
+      <PageHeader
+        title="Servicios"
+        subtitle="Duración, precios y seña por servicio."
+      />
       <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
 
         {(dashboard.servicios as ServicioRow[]).map((servicio) => (
-          <div key={servicio.id} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-4">
+          <div key={servicio.id} className="ui-card mb-4 p-5 sm:p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-300 font-bold">
+              <div className="flex size-12 items-center justify-center rounded-full bg-info-soft
+                font-heading font-bold text-[#0b6e93]">
                 {servicio.nombre.charAt(0)}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-100">
+                <h3 className="font-semibold text-ink">
                   {servicio.nombre}
                   {servicio.activo === false ? (
-                    <span className="ml-2 text-xs font-semibold text-slate-400">(Inactivo)</span>
+                    <span className="ml-2 text-xs font-semibold text-muted-foreground">(Inactivo)</span>
                   ) : null}
                 </h3>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2 text-sm text-slate-400">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2 text-sm text-muted-foreground">
                   <span>Duración: {servicio.duracion_min} min</span>
                   <span>Precio: $ {servicio.precio_base.toLocaleString("es-AR")}</span>
                   {servicio.precio_promocional !== null && (
@@ -106,30 +110,28 @@ export default async function ServiciosPage()
             </div>
             <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  <form action={alternarServicio.bind(null, servicio.id, servicio.activo === false)}>
-                    <button
-                      type="submit"
-                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                        text-slate-400 hover:bg-white/10 transition-colors"
-                    >
+                  <ActionForm
+                    action={alternarServicio.bind(null, servicio.id, servicio.activo === false)}
+                    successMessage={servicio.activo === false ? "Servicio activado." : "Servicio desactivado."}
+                  >
+                    <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                       {servicio.activo === false ? "Activar" : "Desactivar"}
-                    </button>
-                  </form>
-                  <form action={borrarServicio.bind(null, servicio.id)}>
-                    <button
-                      type="submit"
-                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-red-500/30
-                        text-red-400 hover:bg-red-500/20 transition-colors"
-                    >
+                    </SubmitButton>
+                  </ActionForm>
+                  <ActionForm
+                    action={borrarServicio.bind(null, servicio.id)}
+                    successMessage="Servicio eliminado."
+                  >
+                    <SubmitButton className="ui-btn ui-btn-danger ui-btn-sm">
                       Eliminar
-                    </button>
-                  </form>
+                    </SubmitButton>
+                  </ActionForm>
                 </div>
-                <details className="border border-white/10 rounded-lg">
-                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-white/10">
+                <details className="border border-line rounded-lg">
+                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-ink hover:bg-soft">
                     Editar
                   </summary>
-                  <div className="p-4 border-t border-white/10">
+                  <div className="p-4 border-t border-line">
                     <FormularioServicio
                       action={editarServicio.bind(null, servicio.id)}
                       titulo="Editar servicio"

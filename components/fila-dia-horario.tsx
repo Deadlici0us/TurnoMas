@@ -45,8 +45,8 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
   const [expandido, setExpandido] = useState(false);
   const resumen = abierto ? resumirFranjas(diaNormalizado) : "Cerrado";
   const accion = expandido ? "colapsar" : "editar";
-  const claseContenedor = abierto ? "border-amber-400/30 bg-amber-400/5" : "border-white/10 bg-white/5";
-  const claseResumen = abierto ? "text-amber-200/90" : "text-slate-500";
+  const claseContenedor = abierto ? "border-primary/40 bg-info-soft" : "border-line bg-white";
+  const claseResumen = abierto ? "text-navy" : "text-muted-foreground";
   const claseFlecha = expandido ? "rotate-180" : "";
   const claseThumb = abierto ? "translate-x-7" : "translate-x-1";
   const detalleVisible = abierto && expandido;
@@ -64,22 +64,22 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
   }
 
   return (
-    <div className={`rounded-2xl border transition-colors ${claseContenedor}`}>
+    <div className={`rounded-lg border transition-colors ${claseContenedor}`}>
       <button
         type="button"
         onClick={() => setExpandido((previo) => !previo)}
         aria-expanded={expandido || !abierto}
         aria-label={`${nombre}: ${resumen}. Tocar para ${accion}`}
-        className="w-full flex items-center gap-3 p-4 min-h-[64px] text-left rounded-2xl outline-none
+        className="w-full flex items-center gap-3 p-4 min-h-[64px] text-left rounded-lg outline-none
           focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-100">{nombre}</p>
+          <p className="text-sm font-semibold text-ink">{nombre}</p>
           <p className={`text-xs tabular-nums truncate ${claseResumen}`}>
             {resumen}
           </p>
         </div>
-        <span className={`text-slate-500 transition-transform ${claseFlecha}`} aria-hidden="true">
+        <span className={`text-muted-foreground transition-transform ${claseFlecha}`} aria-hidden="true">
           ▾
         </span>
         <span>
@@ -88,9 +88,9 @@ export default function FilaDiaHorario({ dia, franjas, onChange }: FilaDiaHorari
             onCheckedChange={() => (abierto ? cerrarDia() : abrirDia())}
             onClick={(event) => event.stopPropagation()}
             aria-label={`${nombre} abierto`}
-            className="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full bg-white/15 transition-colors
-              data-checked:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500
-              focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 outline-none"
+            className="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full bg-soft transition-colors
+              data-checked:bg-primary focus-visible:ring-2 focus-visible:ring-primary
+              focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none"
           >
             <Switch.Thumb
               className={`block size-6 rounded-full bg-white shadow transition-transform ${claseThumb}`}

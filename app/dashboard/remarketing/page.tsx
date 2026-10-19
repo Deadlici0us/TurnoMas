@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
+import PageHeader from "@/components/ui/page-header";
 import ListaRemarketing from "@/components/lista-remarketing";
 
 export default async function RemarketingPage()
@@ -10,12 +11,10 @@ export default async function RemarketingPage()
   const { data: dashboard } = await getDashboardData();
 
   const encabezado = (
-    <div className="mb-4">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-100">Remarketing</h1>
-      <p className="text-slate-400 mt-1 text-sm">
-        Acá ves a quién ya le toca volver a hacerse el servicio. Se calcula solo, según cuánto dura el efecto de cada uno.
-      </p>
-    </div>
+    <PageHeader
+      title="Remarketing"
+      subtitle="Acá ves a quién ya le toca volver a hacerse el servicio. Se calcula solo, según cuánto dura el efecto de cada uno."
+    />
   );
 
   if (dashboard.negocio?.remarketing_activo === false)
@@ -23,15 +22,14 @@ export default async function RemarketingPage()
     return (
       <div className="space-y-4">
         {encabezado}
-        <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-8 text-center">
-          <h2 className="text-lg font-semibold text-slate-100">Remarketing desactivado.</h2>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="ui-card p-8 text-center">
+          <h2 className="text-lg font-semibold text-ink">Remarketing desactivado.</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             Activá el remarketing en Configuración para ver esta lista.
           </p>
           <Link
             href="/dashboard/config"
-            className="mt-4 inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold
-              text-slate-950 hover:bg-slate-200"
+            className="ui-btn ui-btn-primary mt-4"
           >
             Ir a Configuración
           </Link>
@@ -57,9 +55,9 @@ export default async function RemarketingPage()
     return (
       <div className="space-y-4">
         {encabezado}
-        <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-8 text-center">
-          <h2 className="text-lg font-semibold text-slate-100">No hay nadie para hacer remarketing.</h2>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="ui-card p-8 text-center">
+          <h2 className="text-lg font-semibold text-ink">No hay nadie para hacer remarketing.</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             La lista se arma sola cuando a un cliente ya le toca repetir su servicio.
           </p>
         </div>

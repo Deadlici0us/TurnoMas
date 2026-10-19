@@ -117,58 +117,61 @@ export default async function PagosPage()
 
   return (
     <div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="ui-card p-4 sm:p-6">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100 mb-1">Pagos</h1>
-              <p className="text-sm text-slate-400">Seguimiento financiero de señas</p>
+              <h1 className="ui-page-title">Pagos</h1>
+              <p className="ui-page-subtitle">Seguimiento financiero de señas.</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-slate-400">Pendiente cobrar</div>
-              <div className="text-2xl font-bold text-blue-400">{formatearARS(totalPendiente)}</div>
+              <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Pendiente cobrar
+              </div>
+              <div className="font-heading text-2xl font-bold text-navy tabular-nums">
+                {formatearARS(totalPendiente)}
+              </div>
             </div>
           </div>
           <div className="mb-4"><LeyendaEstados /></div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="ui-table">
               <thead>
-                <tr className="border-b border-white/10 text-slate-400">
-                  <th className="pb-3 font-semibold">Cliente</th>
-                  <th className="pb-3 font-semibold">Servicio</th>
-                  <th className="pb-3 font-semibold">Total</th>
-                  <th className="pb-3 font-semibold">Seña</th>
-                  <th className="pb-3 font-semibold">Saldo</th>
-                  <th className="pb-3 font-semibold">Estado</th>
-                  <th className="pb-3 font-semibold">Inicio</th>
-                  <th className="pb-3 font-semibold">Pago seña</th>
-                  <th className="pb-3 font-semibold">Comprobante</th>
+                <tr>
+                  <th className="ui-th">Cliente</th>
+                  <th className="ui-th">Servicio</th>
+                  <th className="ui-th">Total</th>
+                  <th className="ui-th">Seña</th>
+                  <th className="ui-th">Saldo</th>
+                  <th className="ui-th">Estado</th>
+                  <th className="ui-th">Inicio</th>
+                  <th className="ui-th">Pago seña</th>
+                  <th className="ui-th">Comprobante</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-line">
                 {turnos.map((turno) => (
-                  <tr key={turno.id} className="hover:bg-white/10">
-                    <td className="py-3 font-medium text-slate-100">
+                  <tr key={turno.id} className="ui-tr">
+                    <td className="ui-td font-medium text-ink">
                       {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="ui-td text-muted-foreground">
                       {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
                     </td>
-                    <td className="py-3 text-slate-400">{formatearARS(turno.monto_total)}</td>
-                    <td className="py-3 text-slate-400">{formatearARS(turno.sena_monto)}</td>
-                    <td className="py-3 text-slate-400">{formatearARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
-                    <td className="py-3">
-                      <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
-                        + claseBadgePara(turno.estado)}>
+                    <td className="ui-td text-muted-foreground">{formatearARS(turno.monto_total)}</td>
+                    <td className="ui-td text-muted-foreground">{formatearARS(turno.sena_monto)}</td>
+                    <td className="ui-td text-muted-foreground">{formatearARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
+                    <td className="ui-td">
+                      <span className={`ui-badge ${claseBadgePara(turno.estado)}`}>
                         {etiquetaEstadoPara(turno.estado)}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatearEnZonaConFecha(turno.inicio, timeZone)}
                     </td>
-                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
                       {celdaPagoSena(turno, timeZone)}
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="ui-td text-muted-foreground">
                       {celdaComprobante(turno.mp_payment_id)}
                     </td>
                   </tr>
@@ -176,7 +179,7 @@ export default async function PagosPage()
               </tbody>
             </table>
           </div>
-          {turnos.length === 0 ? <p className="text-sm text-slate-400 mt-4">Todavía no hay movimientos.</p> : null}
+          {turnos.length === 0 ? <p className="text-sm text-muted-foreground mt-4">Todavía no hay movimientos.</p> : null}
         </div>
     </div>
   );

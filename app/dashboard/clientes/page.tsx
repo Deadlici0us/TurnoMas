@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
+import ActionForm from "@/components/ui/action-form";
+import PageHeader from "@/components/ui/page-header";
+import SubmitButton from "@/components/ui/submit-button";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -135,27 +138,31 @@ export default async function ClientesPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-100">Clientes</h1>
-        <p className="text-slate-400 mt-1 text-sm">CRM local con ausencias y lista negra automática</p>
+      <PageHeader
+        title="Clientes"
+        subtitle="CRM local con ausencias y lista negra automática."
+      />
+      <div className="mb-6 grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase">Total</p>
+          <p className="mt-2 text-2xl font-bold text-ink tabular-nums">{clientes.length}</p>
+        </div>
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase">Activos</p>
+          <p className="mt-2 text-2xl font-bold text-[#0c6b45] tabular-nums">{totalActivos}</p>
+        </div>
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase">Lista negra</p>
+          <p className="mt-2 text-2xl font-bold text-danger tabular-nums">{totalListaNegra}</p>
+        </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Total</p>
-          <p className="text-2xl font-bold text-slate-100">{clientes.length}</p>
-        </div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Activos</p>
-          <p className="text-2xl font-bold text-slate-100">{totalActivos}</p>
-        </div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Lista negra</p>
-          <p className="text-2xl font-bold text-slate-100">{totalListaNegra}</p>
-        </div>
-      </div>
-      <form action={crearCliente} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6">
-        <h2 className="font-semibold text-slate-100 mb-4">Nuevo cliente</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <ActionForm
+        action={crearCliente}
+        successMessage="Cliente agregado."
+        className="ui-card mb-6 p-5 sm:p-6"
+      >
+        <h2 className="ui-section-title mb-4">Nuevo cliente</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <input
             type="text"
             name="nombre"
@@ -163,8 +170,7 @@ export default async function ClientesPage({
             minLength={2}
             maxLength={80}
             placeholder="Nombre y apellido"
-            className="px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="ui-input"
           />
           <input
             type="tel"
@@ -173,78 +179,52 @@ export default async function ClientesPage({
             minLength={6}
             maxLength={20}
             placeholder="WhatsApp (+549...)"
-            className="px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="ui-input"
           />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-              hover:bg-blue-700 transition-colors"
-          >
-            Agregar cliente
-          </button>
+          <SubmitButton pendingLabel="Agregando...">Agregar cliente</SubmitButton>
         </div>
-      </form>
-      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6">
-        <form method="get" className="flex flex-col sm:flex-row gap-3">
+      </ActionForm>
+      <div className="ui-card mb-6 p-5 sm:p-6">
+        <form method="get" className="flex flex-col gap-3 sm:flex-row">
           <input
             type="search"
             name="q"
             defaultValue={q ?? ""}
             placeholder="Buscar por nombre o WhatsApp"
-            className="flex-1 px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="ui-input flex-1"
           />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              name="filtro"
-              value="todos"
-              className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
-                + (filtroActivo === "todos"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "border-white/15 text-slate-400 hover:bg-white/10")}
-            >
-              Todos
-            </button>
-            <button
-              type="submit"
-              name="filtro"
-              value="activos"
-              className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
-                + (filtroActivo === "activos"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "border-white/15 text-slate-400 hover:bg-white/10")}
-            >
-              Activos
-            </button>
-            <button
-              type="submit"
-              name="filtro"
-              value="lista-negra"
-              className={"text-xs font-semibold px-4 py-2 rounded-lg border transition-colors "
-                + (filtroActivo === "lista-negra"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "border-white/15 text-slate-400 hover:bg-white/10")}
-            >
-              Lista negra
-            </button>
+          <div className="flex flex-wrap gap-1">
+            {([
+              ["todos", "Todos"],
+              ["activos", "Activos"],
+              ["lista-negra", "Lista negra"],
+            ] as const).map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                type="submit"
+                name="filtro"
+                value={valor}
+                className={`ui-tab ${filtroActivo === valor ? "ui-tab-active" : ""}`}
+              >
+                {etiqueta}
+              </button>
+            ))}
           </div>
         </form>
       </div>
-      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur overflow-hidden">
+      <div className="ui-card overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="ui-table">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400">
-                <th className="px-6 py-3 font-semibold">Cliente</th>
-                <th className="px-6 py-3 font-semibold">Turnos</th>
-                <th className="px-6 py-3 font-semibold">Ausencias</th>
-                <th className="px-6 py-3 font-semibold">Estado</th>
-                <th className="px-6 py-3 font-semibold text-right">Acciones</th>
+              <tr>
+                <th className="ui-th px-6">Cliente</th>
+                <th className="ui-th px-6">Turnos</th>
+                <th className="ui-th px-6">Ausencias</th>
+                <th className="ui-th px-6">Estado</th>
+                <th className="ui-th px-6 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-line">
               {filtrados.map((cliente) =>
               {
                 const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
@@ -254,42 +234,40 @@ export default async function ClientesPage({
                 const enListaNegra = decision !== "allowed";
 
                 return (
-                  <tr key={cliente.id} className="hover:bg-white/10 align-top">
-                    <td className="px-6 py-4">
+                  <tr key={cliente.id} className="ui-tr align-top">
+                    <td className="ui-td px-6">
                       <Link
                         href={"/dashboard/clientes/" + cliente.id}
-                        className="font-medium text-slate-100 hover:text-blue-300"
+                        className="font-medium text-ink hover:text-[#0b6e93]"
                       >
                         {cliente.nombre}
                       </Link>
-                      <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
-                      <p className="text-slate-400 text-xs mt-1">
+                      <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
+                      <p className="text-muted-foreground text-xs mt-1">
                         {ultimo
                           ? "Último: " + (nombrePorServicio.get(ultimo.servicio_id) ?? "Servicio")
                             + " · " + ultimo.estado
                           : "Sin turnos"}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-slate-400">{historial.length}</td>
-                    <td className="px-6 py-4">
+                    <td className="ui-td px-6 text-muted-foreground">{historial.length}</td>
+                    <td className="ui-td px-6">
                       <span className={cliente.ausencias >= umbral
-                        ? "text-red-400 font-semibold"
-                        : "text-slate-400"}>
+                        ? "text-danger font-semibold"
+                        : "text-muted-foreground"}>
                         {cliente.ausencias}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="ui-td px-6">
                       {enListaNegra ? (
-                        <span className="inline-flex px-2 py-0.5 bg-red-500/10 text-red-300 rounded-full text-xs font-semibold">
+                        <span className="ui-badge ui-badge-danger">
                           {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
                         </span>
                       ) : (
-                        <span className="inline-flex px-2 py-0.5 bg-green-500/10 text-green-300 rounded-full text-xs font-semibold">
-                          Activo
-                        </span>
+                        <span className="ui-badge ui-badge-success">Activo</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="ui-td px-6">
                       <div className="flex flex-wrap justify-end gap-2">
                         {(() =>
                         {
@@ -302,37 +280,45 @@ export default async function ClientesPage({
                               href={wa}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                                border-green-500/40 text-green-300 hover:bg-green-500/20"
+                              className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                                hover:bg-success-soft"
                             >
                               WhatsApp
                             </a>
                           ) : null;
                         })()}
-                        <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-white/15 hover:bg-white/10" title="Sumar ausencia">
+                        <ActionForm
+                          action={ajustarAusencia.bind(null, cliente.id, 1)}
+                          successMessage="Ausencia registrada."
+                        >
+                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                             + Falta
-                          </button>
-                        </form>
-                        <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-white/15 hover:bg-white/10" title="Quitar ausencia">
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm
+                          action={ajustarAusencia.bind(null, cliente.id, -1)}
+                          successMessage="Ausencia descontada."
+                        >
+                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                             − Falta
-                          </button>
-                        </form>
-                        <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                            border-white/15 hover:bg-white/10">
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm
+                          action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}
+                          successMessage={cliente.bloqueado ? "Cliente desbloqueado." : "Cliente bloqueado."}
+                        >
+                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                             {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
-                          </button>
-                        </form>
-                        <form action={eliminarCliente.bind(null, cliente.id)}>
-                          <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/30
-                            text-red-400 hover:bg-red-500/20">
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm
+                          action={eliminarCliente.bind(null, cliente.id)}
+                          successMessage="Cliente eliminado."
+                        >
+                          <SubmitButton className="ui-btn ui-btn-danger ui-btn-sm">
                             Eliminar
-                          </button>
-                        </form>
+                          </SubmitButton>
+                        </ActionForm>
                       </div>
                     </td>
                   </tr>
@@ -341,7 +327,7 @@ export default async function ClientesPage({
             </tbody>
           </table>
         </div>
-        <div className="md:hidden divide-y divide-white/10">
+        <div className="md:hidden divide-y divide-line">
           {filtrados.map((cliente) =>
           {
             const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
@@ -355,31 +341,29 @@ export default async function ClientesPage({
                   <div>
                     <Link
                       href={"/dashboard/clientes/" + cliente.id}
-                      className="font-medium text-slate-100 hover:text-blue-300"
+                      className="font-medium text-ink hover:text-[#0b6e93]"
                     >
                       {cliente.nombre}
                     </Link>
-                    <p className="text-slate-400 text-xs mt-0.5">{cliente.whatsapp}</p>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
+                    <p className="text-muted-foreground text-xs mt-1">
                       {historial.length} turnos · {cliente.ausencias} faltas
                     </p>
                   </div>
                   {enListaNegra ? (
-                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-red-500/10 text-red-300 rounded-full text-xs font-semibold">
+                    <span className="ui-badge ui-badge-danger shrink-0">
                       {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
                     </span>
                   ) : (
-                    <span className="shrink-0 inline-flex px-2 py-0.5 bg-green-500/10 text-green-300 rounded-full text-xs font-semibold">
-                      Activo
-                    </span>
+                    <span className="ui-badge ui-badge-success shrink-0">Activo</span>
                   )}
                 </div>
-                <details className="mt-3 border border-white/10 rounded-lg">
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-300">
+                <details className="mt-3 border border-line rounded-lg">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">
                     Historial y acciones
                   </summary>
-                  <div className="px-3 pb-3 pt-1 border-t border-white/10">
-                    <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                  <div className="px-3 pb-3 pt-1 border-t border-line">
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                       {historial.length === 0 ? <li>Sin turnos todavía.</li> : null}
                       {historial.slice(0, 5).map((turno) => (
                         <li key={turno.id}>
@@ -400,37 +384,39 @@ export default async function ClientesPage({
                             href={wa}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                              border-green-500/40 text-green-300 hover:bg-green-500/20"
+                            className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                              hover:bg-success-soft"
                           >
                             WhatsApp
                           </a>
                         ) : null;
                       })()}
-                      <form action={ajustarAusencia.bind(null, cliente.id, 1)}>
-                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-white/15 hover:bg-white/10">
-                          + Falta
-                        </button>
-                      </form>
-                      <form action={ajustarAusencia.bind(null, cliente.id, -1)}>
-                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-white/15 hover:bg-white/10">
-                          − Falta
-                        </button>
-                      </form>
-                      <form action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}>
-                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                          border-white/15 hover:bg-white/10">
+                      <ActionForm
+                        action={ajustarAusencia.bind(null, cliente.id, 1)}
+                        successMessage="Ausencia registrada."
+                      >
+                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">+ Falta</SubmitButton>
+                      </ActionForm>
+                      <ActionForm
+                        action={ajustarAusencia.bind(null, cliente.id, -1)}
+                        successMessage="Ausencia descontada."
+                      >
+                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">− Falta</SubmitButton>
+                      </ActionForm>
+                      <ActionForm
+                        action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}
+                        successMessage={cliente.bloqueado ? "Cliente desbloqueado." : "Cliente bloqueado."}
+                      >
+                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                           {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
-                        </button>
-                      </form>
-                      <form action={eliminarCliente.bind(null, cliente.id)}>
-                        <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/30
-                          text-red-400 hover:bg-red-500/20">
-                          Eliminar
-                        </button>
-                      </form>
+                        </SubmitButton>
+                      </ActionForm>
+                      <ActionForm
+                        action={eliminarCliente.bind(null, cliente.id)}
+                        successMessage="Cliente eliminado."
+                      >
+                        <SubmitButton className="ui-btn ui-btn-danger ui-btn-sm">Eliminar</SubmitButton>
+                      </ActionForm>
                     </div>
                   </div>
                 </details>
@@ -439,7 +425,7 @@ export default async function ClientesPage({
           })}
         </div>
         {filtrados.length === 0 ? (
-          <p className="text-sm text-slate-400 px-6 py-6">
+          <p className="text-sm text-muted-foreground px-6 py-6">
             {clientes.length === 0 ? "Todavía no tenés clientes." : "Ningún cliente coincide con la búsqueda."}
           </p>
         ) : null}

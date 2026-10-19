@@ -28,29 +28,24 @@ export interface SiteHeaderNavProps
  * menú de cuenta (panel, configuración, suscripción y cerrar sesión).
  *
  * @param props autenticación, identidad del negocio, etiquetas i18n y logout.
- * @return Header con marca y acción de cuenta según sesión.
+ * @return Header blanco con marca y acción de cuenta según sesión.
  */
 export default function SiteHeaderNav(props: SiteHeaderNavProps)
 {
   return (
-    <header
-      className="sticky top-0 z-40 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur-xl"
-    >
+    <header className="sticky top-0 z-40 w-full border-b border-line bg-white/95 backdrop-blur">
       <nav
-        className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8"
+        className="mx-auto flex h-[60px] max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-8"
         aria-label="Principal"
       >
         <Link
           href={props.isAuthenticated ? "/dashboard" : "/"}
-          className="flex items-center gap-2 font-bold text-white"
+          className="flex items-center gap-2.5 text-navy"
         >
-          <span
-            className="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-br
-              from-brand-500 to-cyan-400 text-slate-950 shadow-[0_0_20px_-4px_var(--brand-500)]"
-          >
+          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary text-white">
             <CalendarClock className="size-4" aria-hidden="true" />
           </span>
-          <span>{props.appName}</span>
+          <span className="font-heading text-lg font-extrabold tracking-tight">{props.appName}</span>
         </Link>
         <div className="flex items-center gap-3 text-sm">
           {props.isAuthenticated ? (
@@ -68,18 +63,17 @@ export default function SiteHeaderNav(props: SiteHeaderNavProps)
             <>
               <Link
                 href="/"
-                className="hidden text-slate-300 transition-colors hover:text-white sm:block"
+                className="hidden text-ink transition-colors hover:text-primary sm:block"
               >
                 {props.homeLabel}
               </Link>
-              <Link href="/login" className="text-slate-300 transition-colors hover:text-white">
+              <Link
+                href="/login"
+                className="px-2 py-2 font-semibold text-navy transition-colors hover:text-primary"
+              >
                 {props.loginLabel}
               </Link>
-              <Link
-                href="/register"
-                className="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white
-                  shadow-[0_0_28px_-8px_var(--brand-500)] transition-colors hover:bg-brand-500"
-              >
+              <Link href="/register" className="ui-btn ui-btn-cta ui-btn-sm">
                 {props.registerLabel}
               </Link>
             </>

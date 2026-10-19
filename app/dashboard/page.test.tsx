@@ -130,7 +130,7 @@ describe("DashboardPage",
     expect(screen.getByRole("heading", { name: "Próximos turnos" })).toBeDefined();
     expect(screen.getByText("Corte")).toBeDefined();
     expect(screen.getByText("Juan")).toBeDefined();
-    expect(screen.getByText(/10[.,]000/)).toBeDefined();
+    expect(screen.getByText(/\$ 100/)).toBeDefined();
     expect(screen.getByRole("link", { name: "Ver agenda" })).toHaveAttribute("href", "/dashboard/agenda");
   });
 

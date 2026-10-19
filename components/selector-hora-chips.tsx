@@ -62,7 +62,7 @@ export default function SelectorHoraChips({ etiqueta, valor, onChange, id }: Sel
     <div className="space-y-1">
       <label
         htmlFor={inputId}
-        className="block text-xs font-semibold text-slate-300"
+        className="block text-xs font-semibold text-ink"
       >
         {etiqueta}
       </label>
@@ -73,11 +73,9 @@ export default function SelectorHoraChips({ etiqueta, valor, onChange, id }: Sel
         value={valorTexto}
         onChange={(event) => manejarCambio(event.target.value)}
         aria-label={etiqueta}
-        className="w-full min-h-[48px] px-4 rounded-xl border border-white/15 bg-white/5 text-slate-100 text-base
-          font-semibold tabular-nums outline-none [color-scheme:dark]
-          focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+        className="ui-input h-11 text-base font-semibold tabular-nums"
       />
-      <p className="text-[11px] text-slate-500">Tocá la hora y elegí con el reloj de tu celu.</p>
+      <p className="text-[11px] text-muted-foreground">Tocá la hora y elegí con el reloj de tu celu.</p>
     </div>
   );
 }

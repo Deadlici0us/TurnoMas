@@ -65,63 +65,66 @@ export default function OnboardingWizard()
 
   return (
     <div className="max-w-xl w-full px-8 py-12">
-      <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 space-y-8
-        backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
+      <div className="animate-reveal-up ui-card space-y-8 p-6 sm:p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">{t("onboarding.title")}</h1>
-          <p className="text-sm text-slate-400">{t("onboarding.subtitle")}</p>
+          <h1 className="ui-page-title">{t("onboarding.title")}</h1>
+          <p className="ui-page-subtitle mx-auto">{t("onboarding.subtitle")}</p>
         </div>
+        <ol className="grid grid-cols-4 gap-2" aria-label="Progreso del onboarding">
+          {[1, 2, 3, 4].map((n) => (
+            <li
+              key={n}
+              className={`h-1.5 rounded-full transition-colors duration-300
+                ${n <= paso ? "bg-primary" : "bg-line"}`}
+            />
+          ))}
+        </ol>
 
         {paso === 1 && (
           <form action={createBusiness} className="space-y-4">
-            <h2 className="font-semibold text-white">{t("onboarding.step1Title")}</h2>
-            <p className="text-sm text-slate-400">{t("onboarding.step1Desc")}</p>
+            <h2 className="ui-section-title">{t("onboarding.step1Title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("onboarding.step1Desc")}</p>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink mb-1">
                 {t("auth.businessName")}
               </label>
               <input
                 name="nombre"
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-                  focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+                className="ui-input h-11"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink mb-1">
                 {t("onboarding.country")}
               </label>
               <select
                 name="pais"
                 value={pais}
                 onChange={(event) => setPais(event.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-                  focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+                className="ui-input h-11"
               >
                 <option value="ar">Argentina (ar)</option>
                 <option value="mx">México (mx)</option>
               </select>
             </div>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {t("onboarding.urlPreview")}:{" "}
-              <span className="font-mono font-semibold text-white">{preview}</span>
+              <span className="font-mono font-semibold text-navy">{preview}</span>
             </p>
             <input type="hidden" name="timezone" value={timezoneDetectada} />
-            <p className="text-xs text-slate-400">Zona horaria detectada: {timezoneDetectada}.</p>
+            <p className="text-xs text-muted-foreground">Zona horaria detectada: {timezoneDetectada}.</p>
             <div>
-              <p className="block text-sm font-medium text-slate-300 mb-2">
+              <p className="block text-sm font-medium text-ink mb-2">
                 Horarios del negocio (podés cambiarlos después)
               </p>
               <EditorHorariosSemanales inicial={HORARIOS_POR_DEFECTO} />
             </div>
             <button
               type="submit"
-              className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-                rounded-xl hover:bg-brand-500 transition-all duration-300"
+              className="ui-btn ui-btn-primary w-full"
             >
-              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
               {t("onboarding.crearNegocio")}
             </button>
           </form>
@@ -129,18 +132,16 @@ export default function OnboardingWizard()
 
         {paso === 2 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-white">{t("onboarding.step2Title")}</h2>
-            <p className="text-sm text-slate-400">{t("onboarding.step2Desc")}</p>
+            <h2 className="ui-section-title">{t("onboarding.step2Title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("onboarding.step2Desc")}</p>
             {mpOk ? (
               <>
-                <p className="text-sm font-semibold text-emerald-300 bg-emerald-500/10 border
-                  border-emerald-500/30 rounded-xl p-3">
+                <p className="ui-alert ui-alert-success text-sm font-semibold">
                   {"✓ "}{t("onboarding.mpConectado")}
                 </p>
                 <button
                   onClick={() => setPaso(3)}
-                  className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
-                    hover:bg-brand-500 transition-colors"
+                  className="ui-btn ui-btn-primary w-full"
                 >
                   {t("onboarding.continuar")}
                 </button>
@@ -149,12 +150,11 @@ export default function OnboardingWizard()
               <>
                 <Link
                   href={mpAuthorizeHref}
-                  className="block text-center w-full bg-brand-600 text-white font-semibold py-3
-                    rounded-xl hover:bg-brand-500 transition-colors"
+                  className="ui-btn ui-btn-primary w-full"
                 >
                   {t("onboarding.connectMp")}
                 </Link>
-                <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-xl p-3">
+                <p className="ui-alert ui-alert-info text-xs">
                   {t("onboarding.mpObligatorio")}
                 </p>
               </>
@@ -162,8 +162,7 @@ export default function OnboardingWizard()
             <div className="flex gap-3">
               <button
                 onClick={() => setPaso(1)}
-                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
-                  rounded-xl hover:bg-white/10 transition-colors"
+                className="ui-btn ui-btn-outline w-full"
               >
                 ←
               </button>
@@ -173,24 +172,22 @@ export default function OnboardingWizard()
 
         {paso === 3 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-white">{t("onboarding.step3Title")}</h2>
-            <p className="text-sm text-slate-400">{t("onboarding.step3Desc")}</p>
+            <h2 className="ui-section-title">{t("onboarding.step3Title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("onboarding.step3Desc")}</p>
             {errorPaso3 === "whatsapp" && (
-              <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
-                border-red-500/30 rounded-xl p-3">
+              <p role="alert" className="ui-alert ui-alert-danger text-sm font-semibold">
                 {t("onboarding.whatsappError")}
               </p>
             )}
             {errorPaso3 === "guardado" && (
-              <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
-                border-red-500/30 rounded-xl p-3">
+              <p role="alert" className="ui-alert ui-alert-danger text-sm font-semibold">
                 {t("onboarding.whatsappGuardadoError")}
               </p>
             )}
             <form action={saveBusinessWhatsapp} className="space-y-4">
               <div>
                 <label htmlFor="business-whatsapp"
-                  className="block text-sm font-medium text-slate-300 mb-1">
+                  className="block text-sm font-medium text-ink mb-1">
                   {t("onboarding.whatsappLabel")}
                 </label>
                 <input
@@ -201,25 +198,14 @@ export default function OnboardingWizard()
                   maxLength={25}
                   autoComplete="tel"
                   placeholder={t("onboarding.whatsappPlaceholder")}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl
-                    outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500
-                    focus:border-brand-500 transition"
+                  className="ui-input h-11"
                 />
-                <p className="text-xs text-slate-400 mt-2">{t("onboarding.whatsappHelp")}</p>
+                <p className="text-xs text-muted-foreground mt-2">{t("onboarding.whatsappHelp")}</p>
               </div>
-              <button
-                type="submit"
-                className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
-                  hover:bg-brand-500 transition-colors"
-              >
+              <button type="submit" className="ui-btn ui-btn-primary w-full">
                 {t("onboarding.guardarWhatsapp")}
               </button>
-              <button
-                type="button"
-                onClick={() => setPaso(2)}
-                className="w-full border border-white/15 text-slate-200 font-semibold py-3
-                  rounded-xl hover:bg-white/10 transition-colors"
-              >
+              <button type="button" onClick={() => setPaso(2)} className="ui-btn ui-btn-outline w-full">
                 ←
               </button>
             </form>
@@ -228,30 +214,21 @@ export default function OnboardingWizard()
 
         {paso === 4 && (
           <section className="space-y-4">
-            <h2 className="font-semibold text-white">{t("onboarding.step4Title")}</h2>
-            <p className="text-sm text-slate-400">{t("onboarding.step4Desc")}</p>
+            <h2 className="ui-section-title">{t("onboarding.step4Title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("onboarding.step4Desc")}</p>
             <button
               onClick={() => setGcalConectado(true)}
-              className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
-                hover:bg-brand-500 transition-colors"
+              className="ui-btn ui-btn-primary w-full"
             >
               {gcalConectado ? "✓ " : ""}{t("onboarding.connectGcal")}
             </button>
-            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-xl p-3">
+            <p className="ui-alert ui-alert-info text-xs">
               {t("onboarding.trialNote")}
             </p>
-            <Link
-              href="/dashboard"
-              className="block text-center w-full bg-brand-600 text-white font-semibold py-3
-                rounded-xl hover:bg-brand-500 transition-colors"
-            >
+            <Link href="/dashboard" className="ui-btn ui-btn-primary w-full">
               {t("onboarding.finish")}
             </Link>
-            <button
-              onClick={() => setPaso(3)}
-              className="w-full border border-white/15 text-slate-200 font-semibold py-3
-                rounded-xl hover:bg-white/10 transition-colors"
-            >
+            <button onClick={() => setPaso(3)} className="ui-btn ui-btn-outline w-full">
               ←
             </button>
           </section>

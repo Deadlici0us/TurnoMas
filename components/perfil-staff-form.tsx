@@ -37,8 +37,8 @@ export default function PerfilStaffForm(
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="staff-descripcion" className="block text-sm font-medium text-slate-300">
-          Descripción breve <span className="font-normal text-slate-500">(opcional)</span>
+        <label htmlFor="staff-descripcion" className="block text-sm font-medium text-ink">
+          Descripción breve <span className="font-normal text-muted-foreground">(opcional)</span>
         </label>
         <textarea
           id="staff-descripcion"
@@ -47,15 +47,14 @@ export default function PerfilStaffForm(
           maxLength={280}
           defaultValue={descripcion ?? ""}
           placeholder="Contá qué hacés y tu especialidad"
-          className="w-full px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg
-            outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="ui-textarea"
         />
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-slate-300">Servicios que brinda</legend>
+        <legend className="text-sm font-medium text-ink">Servicios que brinda</legend>
         {servicios.length === 0 ? (
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Todavía no cargaste servicios. Creá uno en la sección Servicios para asignarlo.
           </p>
         ) : (
@@ -63,15 +62,15 @@ export default function PerfilStaffForm(
             {servicios.map((servicio) => (
               <label
                 key={servicio.id}
-                className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2
-                  text-sm text-slate-200 hover:bg-white/5 cursor-pointer"
+                className="flex items-center gap-2 rounded-lg border border-line px-3 py-2
+                  text-sm text-ink hover:bg-surface cursor-pointer"
               >
                 <input
                   type="checkbox"
                   name="servicios"
                   value={servicio.id}
                   defaultChecked={marcados.has(servicio.id)}
-                  className="size-4 accent-blue-600"
+                  className="ui-checkbox"
                 />
                 <span>{servicio.nombre}</span>
               </label>
@@ -81,8 +80,7 @@ export default function PerfilStaffForm(
       </fieldset>
 
       {error !== null ? (
-        <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
-          border-red-500/30 rounded-lg p-3">
+        <p role="alert" className="ui-alert ui-alert-danger">
           {error}
         </p>
       ) : null}
@@ -90,8 +88,7 @@ export default function PerfilStaffForm(
       <button
         type="submit"
         disabled={pending}
-        className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-          hover:bg-blue-700 transition-colors disabled:opacity-60"
+        className="ui-btn ui-btn-primary"
       >
         {pending ? "Guardando..." : "Guardar perfil"}
       </button>

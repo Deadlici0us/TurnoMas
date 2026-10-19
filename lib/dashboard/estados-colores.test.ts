@@ -28,8 +28,8 @@ describe("estados-colores",
   it("debería devolver clases conocidas y un fallback para estados raros",
   () =>
   {
-    expect(claseBadgePara("pagado")).toContain("bg-green-500/15");
-    expect(claseGrillaPara("pendiente")).toContain("bg-amber-500/25");
+    expect(claseBadgePara("pagado")).toContain("ui-badge-success");
+    expect(claseGrillaPara("pendiente")).toContain("bg-warning-soft");
     expect(claseBadgePara("inexistente")).toBe(claseBadgePara("cancelado"));
     expect(claseGrillaPara("inexistente")).toBe(claseGrillaPara("cancelado"));
   });
@@ -39,8 +39,8 @@ describe("estados-colores",
   {
     expect(claseBadgePara("completado")).not.toBe(claseBadgePara("cancelado"));
     expect(claseGrillaPara("completado")).not.toBe(claseGrillaPara("cancelado"));
-    expect(claseBadgePara("completado")).toContain("bg-indigo-500/15");
-    expect(claseGrillaPara("completado")).toContain("bg-indigo-500/25");
+    expect(claseBadgePara("completado")).toContain("text-navy");
+    expect(claseGrillaPara("completado")).toContain("bg-[#eef2f8]");
   });
 
   it("debería etiquetar pagado como seña y no como pago total",

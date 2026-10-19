@@ -15,6 +15,7 @@ import
   type SemanaUI,
 } from "@/lib/horarios/modelo-ui";
 import FilaDiaHorario from "./fila-dia-horario";
+import { useToast } from "@/components/ui/use-toast";
 
 interface EditorHorariosSemanalesProps
 {
@@ -45,6 +46,8 @@ interface EditorHorariosSemanalesProps
  */
 export default function EditorHorariosSemanales({ inicial, action, submitLabel }: EditorHorariosSemanalesProps)
 {
+  const { showToast } = useToast();
+  const [enviando, setEnviando] = useState(false);
   const [semana, setSemana] = useState<SemanaUI>(() => convertirHorariosAUI(inicial));
   const [errorSemana, setErrorSemana] = useState<string | null>(null);
 
@@ -107,47 +110,44 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
 
   const cuerpo = (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-blue-500/25 bg-blue-500/10 p-4" aria-live="polite">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-blue-300">Cómo queda tu semana</p>
-        <p className="text-base font-semibold text-slate-100 mt-0.5">{resumenSemana(semana)}</p>
+      <div className="rounded-lg border border-info/30 bg-info-soft p-4" aria-live="polite">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-[#0b5f7f]">Cómo queda tu semana</p>
+        <p className="text-base font-semibold text-ink mt-0.5">{resumenSemana(semana)}</p>
       </div>
       <div className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           Si atendés siempre igual, tocá un botón
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={aplicarCorrido}
-            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
-              hover:bg-white/10 transition-colors min-h-[44px]"
+            className="ui-btn ui-btn-outline ui-btn-sm"
           >
             Trabajo de corrido 9 a 19
           </button>
           <button
             type="button"
             onClick={aplicarCortado}
-            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
-              hover:bg-white/10 transition-colors min-h-[44px]"
+            className="ui-btn ui-btn-outline ui-btn-sm"
           >
             Corto al mediodía 9 a 13 y 15 a 20
           </button>
           <button
             type="button"
             onClick={copiarLunes}
-            className="text-xs font-semibold px-4 rounded-full border border-white/15 text-slate-200
-              hover:bg-white/10 transition-colors min-h-[44px]"
+            className="ui-btn ui-btn-outline ui-btn-sm"
           >
             Copiar el lunes a todos los días
           </button>
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Consejo: primero tocá un botón rápido y después ajustá solo el día que sea distinto.
         </p>
       </div>
       {campos}
       {errorSemana !== null ? (
-        <p className="text-xs text-red-400 font-semibold rounded-xl border border-red-500/30 bg-red-500/10 p-3"
+        <p className="ui-alert ui-alert-danger text-xs font-semibold"
           role="alert">
           {errorSemana}
         </p>
@@ -167,21 +167,41 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
         if (errores.length > 0)
         {
           setErrorSemana("Revisá los días marcados en rojo antes de guardar.");
+          showToast({ tone: "error", title: "Revisá los horarios", message: "Hay días marcados en rojo." });
           return;
         }
 
         setErrorSemana(null);
-        await action(formData);
+        setEnviando(true);
+
+        try
+        {
+          await action(formData);
+          showToast({ tone: "success", title: "Listo", message: "Horarios guardados." });
+        }
+        catch
+        {
+          showToast({ tone: "error", title: "No se pudo guardar", message: "Probá de nuevo." });
+        }
+        finally
+        {
+          setEnviando(false);
+        }
       }}
       className="space-y-3"
     >
       {cuerpo}
       <button
         type="submit"
-        className="w-full sm:w-auto bg-blue-600 text-white text-sm font-semibold px-8 py-3 rounded-xl
-          hover:bg-blue-500 transition-colors min-h-[48px] shadow-lg shadow-blue-600/25"
+        disabled={enviando}
+        className="ui-btn ui-btn-primary w-full sm:w-auto"
       >
-        {submitLabel ?? "Guardar horarios"}
+        {enviando ? (
+          <>
+            <span className="ui-spinner" aria-hidden="true" />
+            Guardando...
+          </>
+        ) : (submitLabel ?? "Guardar horarios")}
       </button>
     </form>
   );

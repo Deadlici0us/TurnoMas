@@ -60,15 +60,15 @@ function resolverEstadoFicha(
 
   if (decision === "blocked")
   {
-    return { etiqueta: "Bloqueado", clase: "bg-red-500/10 text-red-300" };
+    return { etiqueta: "Bloqueado", clase: "ui-badge-danger" };
   }
 
   if (decision === "fullDeposit")
   {
-    return { etiqueta: "Seña 100%", clase: "bg-red-500/10 text-red-300" };
+    return { etiqueta: "Seña 100%", clase: "ui-badge-danger" };
   }
 
-  return { etiqueta: "Activo", clase: "bg-green-500/10 text-green-300" };
+  return { etiqueta: "Activo", clase: "ui-badge-success" };
 }
 
 /** Ficha del cliente con su historial completo de servicios (solo lectura). */
@@ -109,90 +109,87 @@ export default async function ClienteDetallePage({
 
   return (
     <div>
-      <Link href="/dashboard/clientes" className="text-sm font-semibold text-slate-400 hover:text-slate-100">
+      <Link href="/dashboard/clientes" className="ui-link text-sm">
         ← Clientes
       </Link>
       <div className="mt-4 mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-100">{cliente.nombre}</h1>
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${estado.clase}`}>
-              {estado.etiqueta}
-            </span>
+            <h1 className="ui-page-title">{cliente.nombre}</h1>
+            <span className={`ui-badge ${estado.clase}`}>{estado.etiqueta}</span>
           </div>
-          <p className="text-slate-400 mt-1 text-sm">{cliente.whatsapp}</p>
+          <p className="text-muted-foreground mt-1 text-sm">{cliente.whatsapp}</p>
         </div>
         {numeroWhatsapp !== null ? (
           <a
             href={`https://wa.me/${numeroWhatsapp}`}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-              border-green-500/40 text-green-300 hover:bg-green-500/20"
+            className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+              hover:bg-success-soft"
           >
             WhatsApp
           </a>
         ) : null}
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Turnos</p>
-          <p className="text-2xl font-bold text-slate-100">{resumen.total}</p>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase">Turnos</p>
+          <p className="text-2xl font-bold text-ink">{resumen.total}</p>
         </div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Completados</p>
-          <p className="text-2xl font-bold text-slate-100">{resumen.completados}</p>
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase">Completados</p>
+          <p className="text-2xl font-bold text-ink">{resumen.completados}</p>
         </div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Ausencias</p>
-          <p className={`text-2xl font-bold ${cliente.ausencias >= umbral ? "text-red-400" : "text-slate-100"}`}>
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase">Ausencias</p>
+          <p className={`text-2xl font-bold ${cliente.ausencias >= umbral ? "text-danger" : "text-ink"}`}>
             {cliente.ausencias}
           </p>
         </div>
-        <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-          <p className="text-xs font-medium text-slate-400 uppercase">Señas cobradas</p>
-          <p className="text-2xl font-bold text-slate-100">{formatearARS(resumen.totalSenas)}</p>
+        <div className="ui-card p-4 sm:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase">Señas cobradas</p>
+          <p className="text-2xl font-bold text-ink">{formatearARS(resumen.totalSenas)}</p>
         </div>
       </div>
-      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur overflow-hidden">
-        <h2 className="px-6 pt-5 font-semibold text-slate-100">Historial de servicios</h2>
+      <div className="ui-card overflow-hidden">
+        <h2 className="ui-section-title px-6 pt-5">Historial de servicios</h2>
         {historial.length === 0 ? (
-          <p className="text-sm text-slate-400 px-6 py-6">Este cliente todavía no tuvo turnos.</p>
+          <p className="text-sm text-muted-foreground px-6 py-6">Este cliente todavía no tuvo turnos.</p>
         ) : (
           <div className="overflow-x-auto mt-4">
-            <table className="w-full text-left text-sm">
+            <table className="ui-table">
               <thead>
-                <tr className="border-b border-white/10 text-slate-400">
-                  <th className="px-6 py-3 font-semibold">Fecha</th>
-                  <th className="px-6 py-3 font-semibold">Servicio</th>
-                  <th className="px-6 py-3 font-semibold">Profesional</th>
-                  <th className="px-6 py-3 font-semibold">Estado</th>
-                  <th className="px-6 py-3 font-semibold text-right">Total</th>
-                  <th className="px-6 py-3 font-semibold text-right">Seña</th>
+                <tr>
+                  <th className="ui-th px-6">Fecha</th>
+                  <th className="ui-th px-6">Servicio</th>
+                  <th className="ui-th px-6">Profesional</th>
+                  <th className="ui-th px-6">Estado</th>
+                  <th className="ui-th px-6 text-right">Total</th>
+                  <th className="ui-th px-6 text-right">Seña</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-line">
                 {historial.map((turno) => (
-                  <tr key={turno.id} className="hover:bg-white/10">
-                    <td className="px-6 py-4 text-slate-400 tabular-nums whitespace-nowrap">
+                  <tr key={turno.id} className="ui-tr">
+                    <td className="ui-td px-6 text-muted-foreground tabular-nums whitespace-nowrap">
                       {formatearEnZonaConFecha(turno.inicio, timeZone)}
                     </td>
-                    <td className="px-6 py-4 text-slate-100">
+                    <td className="ui-td px-6 text-ink">
                       {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
                     </td>
-                    <td className="px-6 py-4 text-slate-400">
+                    <td className="ui-td px-6 text-muted-foreground">
                       {nombrePorStaff.get(turno.staff_id) ?? "Profesional"}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
-                        + claseBadgePara(turno.estado)}>
+                    <td className="ui-td px-6">
+                      <span className={`ui-badge ${claseBadgePara(turno.estado)}`}>
                         {etiquetaEstadoPara(turno.estado)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-400 text-right tabular-nums">
+                    <td className="ui-td px-6 text-right text-muted-foreground tabular-nums">
                       {formatearARS(turno.monto_total)}
                     </td>
-                    <td className="px-6 py-4 text-slate-400 text-right tabular-nums">
+                    <td className="ui-td px-6 text-right text-muted-foreground tabular-nums">
                       {formatearARS(turno.sena_monto)}
                     </td>
                   </tr>

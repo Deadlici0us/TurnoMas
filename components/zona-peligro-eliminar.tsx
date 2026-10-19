@@ -57,17 +57,17 @@ export default function ZonaPeligroEliminar()
   }
 
   return (
-    <div className="p-4 border border-red-500/30 bg-red-500/10 rounded-lg space-y-3">
+    <div className="ui-alert ui-alert-danger space-y-3 p-4">
       <div>
-        <div className="text-sm font-semibold text-red-200">Eliminar mi negocio</div>
-        <p className="text-xs text-red-300">
+        <div className="text-sm font-semibold">Eliminar mi negocio</div>
+        <p className="text-xs text-danger">
           Borra turnos, clientes, servicios, staff e integraciones, y cierra tu cuenta. No se puede deshacer.
         </p>
       </div>
-      {error !== null ? <p className="text-xs font-semibold text-red-300" role="alert">{error}</p> : null}
+      {error !== null ? <p className="text-xs font-semibold text-danger" role="alert">{error}</p> : null}
       {paso === "codigo" ? (
         <div className="space-y-2">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {`Enviamos un código de 6 dígitos a ${email}. Ingresalo junto con la palabra ${TEXTO_CONFIRMACION_ELIMINACION}.`}
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -80,8 +80,7 @@ export default function ZonaPeligroEliminar()
               value={codigo}
               onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="Código del email"
-              className="flex-1 px-3 py-2 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-                focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="ui-input flex-1"
             />
             <input
               type="text"
@@ -90,8 +89,7 @@ export default function ZonaPeligroEliminar()
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               placeholder={TEXTO_CONFIRMACION_ELIMINACION}
-              className="flex-1 px-3 py-2 text-sm bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-                focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="ui-input flex-1"
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -99,16 +97,14 @@ export default function ZonaPeligroEliminar()
               type="button"
               onClick={() => void confirmar()}
               disabled={paso !== "codigo" || codigo.length !== 6 || texto.length === 0}
-              className="bg-red-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-                hover:bg-red-700 transition-colors disabled:opacity-50"
+              className="ui-btn ui-btn-cta"
             >
               Eliminar definitivamente
             </button>
             <button
               type="button"
               onClick={() => void pedirCodigo()}
-              className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                text-slate-400 hover:bg-white/10 transition-colors"
+              className="ui-btn ui-btn-outline ui-btn-sm"
             >
               Reenviar código
             </button>
@@ -119,8 +115,7 @@ export default function ZonaPeligroEliminar()
           type="button"
           onClick={() => void pedirCodigo()}
           disabled={paso === "enviando" || paso === "eliminando"}
-          className="bg-red-500/15 text-red-200 text-sm font-semibold px-6 py-2 rounded-lg border
-            border-red-500/40 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+          className="ui-btn ui-btn-danger"
         >
           {paso === "enviando" ? "Enviando código…" : "Eliminar mi cuenta y mis datos"}
         </button>

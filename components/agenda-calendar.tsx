@@ -103,9 +103,9 @@ function etiquetaDiaCorta(dia: DiaCivil): { readonly semana: string; readonly nu
  */
 function claseEncabezadoSemana(esHoy: boolean): string
 {
-  const base = "px-2 py-1.5 text-center";
+  const base = "px-2 py-2 text-center";
 
-  return esHoy ? `${base} bg-violet-500/15 ring-2 ring-inset ring-violet-500` : `${base} bg-white/5`;
+  return esHoy ? `${base} bg-info-soft` : `${base} bg-surface`;
 }
 
 /**
@@ -118,7 +118,7 @@ function claseEncabezadoSemana(esHoy: boolean): string
  */
 function claseEtiquetaHora(esPrimera: boolean): string
 {
-  const base = "absolute left-1 z-10 bg-slate-950 px-1 font-mono text-slate-400 tabular-nums";
+  const base = "absolute left-1 z-10 bg-white px-1 font-mono text-muted-foreground tabular-nums";
 
   return esPrimera ? `${base} top-0 text-[11px]` : `${base} -top-2 text-[11px]`;
 }
@@ -164,24 +164,24 @@ function renderVistaDia(props: {
   const esHoy = claveDeBase(props.base) === props.claveHoy;
 
   return (
-    <div className="grid grid-cols-[56px_1fr] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-      <div className="bg-white/5 px-2 py-2 text-center">
-        <div className="text-[11px] font-semibold text-slate-400 uppercase">
+    <div className="grid grid-cols-[56px_1fr] gap-px overflow-hidden rounded-lg border border-line bg-line">
+      <div className="bg-surface px-2 py-2 text-center">
+        <div className="text-[11px] font-semibold text-muted-foreground uppercase">
           {etiquetaDiaCorta(props.base).semana}
         </div>
         <div className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold
-          ${esHoy ? "bg-violet-600 text-white" : "text-slate-100"}`}>
+          ${esHoy ? "bg-primary text-white" : "text-navy"}`}>
           {etiquetaDiaCorta(props.base).numero}
         </div>
-        <div className="mt-1 text-[11px] font-semibold text-slate-400">
+        <div className="mt-1 text-[11px] font-semibold text-muted-foreground">
           {esHoy ? "Hoy" : etiquetaDiaCorta(props.base).fecha}
         </div>
       </div>
-      <div className="bg-slate-950/60 relative" style={{ height: props.altoDia }}>
+      <div className="relative bg-white" style={{ height: props.altoDia }}>
         {props.horas.map((h, indice) => (
           <div
             key={h}
-            className="absolute inset-x-0 border-t border-white/10"
+            className="absolute inset-x-0 border-t border-line"
             style={{ top: (h - props.rango.horaDesde) * PX_POR_HORA_DIA }}
           >
             <span className={claseEtiquetaHora(indice === 0)}>
@@ -193,14 +193,16 @@ function renderVistaDia(props: {
           <div
             key={b.key}
             title={b.titulo}
-            className={`absolute inset-x-1 rounded-[10px] border p-2 text-xs leading-[18px] font-semibold overflow-hidden ${b.clase}`}
+            className={`absolute inset-x-1 overflow-hidden rounded-md border p-2 text-xs leading-[18px]
+              font-semibold shadow-sm transition-all duration-200 hover:-translate-y-px
+              hover:shadow-md ${b.clase}`}
             style={{ top: b.top, height: b.height }}
           >
             {b.titulo}
           </div>
         ))}
         {props.bloques.length === 0 ? (
-          <p className="absolute inset-x-0 top-1/2 text-center text-sm text-slate-400">
+          <p className="absolute inset-x-0 top-1/2 text-center text-sm text-muted-foreground">
             {props.rango.cerrado ? "Sin turnos este día · Cerrado." : "Sin turnos este día."}
           </p>
         ) : null}
@@ -486,240 +488,232 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
   const altoSemana = (rango.horaHasta - rango.horaDesde) * 44;
 
   return (
-    <div className="w-full h-auto space-y-4 sm:space-y-6">
-    <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur
-      p-4 sm:p-6 h-auto w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div>
-          <p className="text-base font-semibold text-slate-100">Calendario</p>
-          <p className="text-xs text-slate-400">
-            {`${etiquetaRango(vista, dias, base)} · ${props.timeZone}`}
-          </p>
+    <div className="w-full space-y-4 sm:space-y-6">
+      <div className="ui-card p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="ui-section-title">Calendario</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {`${etiquetaRango(vista, dias, base)} · ${props.timeZone}`}
+            </p>
+          </div>
+          <fieldset className="m-0 flex flex-wrap items-center gap-1 border-0 p-0" aria-label="Vista de agenda">
+            {VISTAS_AGENDA.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => cambiarVista(v)}
+                aria-pressed={vista === v}
+                className={`ui-tab ${vista === v ? "ui-tab-active" : ""}`}
+              >
+                {ETIQUETA_VISTA[v]}
+              </button>
+            ))}
+          </fieldset>
         </div>
-        <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0" aria-label="Vista de agenda">
-          {VISTAS_AGENDA.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => cambiarVista(v)}
-              aria-pressed={vista === v}
-              className={`h-8 px-3 rounded-xl text-[13px] font-semibold border transition-colors ${
-                vista === v
-                  ? "bg-white text-slate-950 border-white"
-                  : "border-white/15 text-slate-400 hover:bg-white/10"
-              }`}
-            >
-              {ETIQUETA_VISTA[v]}
-            </button>
-          ))}
-        </fieldset>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => mover(-1)}
-          aria-label={`${etiquetaMovimiento} anterior`}
-          className="h-9 min-w-9 px-3 rounded-xl border border-white/15 text-slate-400 text-sm font-semibold hover:bg-white/10"
-        >
-          ←
-        </button>
-        <button
-          type="button"
-          onClick={irHoy}
-          className="h-9 px-4 rounded-xl border border-white/15 text-slate-400 text-[13px] font-semibold hover:bg-white/10"
-        >
-          Hoy
-        </button>
-        <button
-          type="button"
-          onClick={() => mover(1)}
-          aria-label={`${etiquetaMovimiento} siguiente`}
-          className="h-9 min-w-9 px-3 rounded-xl border border-white/15 text-slate-400 text-sm font-semibold hover:bg-white/10"
-        >
-          →
-        </button>
-        <input
-          type="date"
-          defaultValue={claveDeBase(base)}
-          key={claveDeBase(base)}
-          onChange={(e) => elegirFecha(e.target.value)}
-          aria-label="Ir a fecha"
-          className="h-9 px-3 rounded-xl bg-white/5 border border-white/15 text-[13px] text-slate-300 outline-none [color-scheme:dark]
-            focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-        />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <LeyendaEstados incluirExterno />
-        <div className="flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-surface p-2">
           <button
             type="button"
-            onClick={() => setStaffId(null)}
-            className={`h-8 px-3 rounded-xl border text-[13px] font-semibold transition-colors ${
-              staffId === null
-                ? "bg-white text-slate-950 border-white"
-                : "border-white/15 text-slate-400 hover:bg-white/10"
-            }`}
+            onClick={() => mover(-1)}
+            aria-label={`${etiquetaMovimiento} anterior`}
+            className="ui-btn ui-btn-outline ui-btn-icon"
           >
-            Todos
+            ←
           </button>
-          {props.staff.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setStaffId(s.id)}
-              className={`h-8 px-3 rounded-xl border text-[13px] font-semibold transition-colors ${
-                staffId === s.id
-                  ? "bg-white text-slate-950 border-white"
-                  : "border-white/15 text-slate-400 hover:bg-white/10"
-              }`}
-            >
-              {s.nombre}
-            </button>
-          ))}
+          <button type="button" onClick={irHoy} className="ui-btn ui-btn-outline ui-btn-sm">
+            Hoy
+          </button>
+          <button
+            type="button"
+            onClick={() => mover(1)}
+            aria-label={`${etiquetaMovimiento} siguiente`}
+            className="ui-btn ui-btn-outline ui-btn-icon"
+          >
+            →
+          </button>
+          <input
+            type="date"
+            defaultValue={claveDeBase(base)}
+            key={claveDeBase(base)}
+            onChange={(e) => elegirFecha(e.target.value)}
+            aria-label="Ir a fecha"
+            className="ui-input ml-auto h-9 w-auto min-w-[150px]"
+          />
         </div>
-      </div>
-      {vista === "dia"
-        ? renderVistaDia({
-            base,
-            claveHoy,
-            horas,
-            rango,
-            altoDia,
-            bloques: bloquesDelDia(claveDeBase(base)),
-          })
-        : null}
-      {vista === "semana" ? (
-        <section
-          ref={refRegionSemana}
-          aria-label="Calendario semanal, deslizar horizontalmente para ver todos los días"
-          data-testid="agenda-semana-scroll"
-          className="overflow-x-auto"
-        >
-          <div className="min-w-[720px]">
-            <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-              <div className="bg-white/5" />
-              {dias.map((dia) =>
-              {
-                const esHoy = claveDeDiaCivil(dia) === claveHoy;
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <LeyendaEstados incluirExterno />
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => setStaffId(null)}
+              className={`ui-tab ${staffId === null ? "ui-tab-active" : ""}`}
+            >
+              Todos
+            </button>
+            {props.staff.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setStaffId(s.id)}
+                className={`ui-tab ${staffId === s.id ? "ui-tab-active" : ""}`}
+              >
+                {s.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div key={`${vista}-${claveDeBase(base)}`} className="animate-fade-in">
+          {vista === "dia"
+            ? renderVistaDia({
+                base,
+                claveHoy,
+                horas,
+                rango,
+                altoDia,
+                bloques: bloquesDelDia(claveDeBase(base)),
+              })
+            : null}
+          {vista === "semana" ? (
+            <section
+              ref={refRegionSemana}
+              aria-label="Calendario semanal, deslizar horizontalmente para ver todos los días"
+              data-testid="agenda-semana-scroll"
+              className="overflow-x-auto"
+            >
+              <div className="min-w-[720px]">
+                <div className="grid grid-cols-[48px_repeat(7,1fr)] gap-px overflow-hidden rounded-lg
+                  border border-line bg-line">
+                  <div className="bg-surface" />
+                  {dias.map((dia) =>
+                  {
+                    const esHoy = claveDeDiaCivil(dia) === claveHoy;
 
-                return (
-                  <div
-                    key={claveDeDiaCivil(dia)}
-                    data-hoy={esHoy ? "true" : undefined}
-                    className={claseEncabezadoSemana(esHoy)}
-                  >
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase">
-                      {etiquetaDiaCorta(dia).semana}
-                    </div>
-                    <div className="text-sm font-bold text-slate-100">
-                      {etiquetaDiaCorta(dia).fecha}
-                    </div>
+                    return (
+                      <div
+                        key={claveDeDiaCivil(dia)}
+                        data-hoy={esHoy ? "true" : undefined}
+                        className={claseEncabezadoSemana(esHoy)}
+                      >
+                        <div className="text-[11px] font-semibold text-muted-foreground uppercase">
+                          {etiquetaDiaCorta(dia).semana}
+                        </div>
+                        <div className={`text-sm font-bold ${esHoy ? "text-primary" : "text-navy"}`}>
+                          {etiquetaDiaCorta(dia).fecha}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="relative bg-surface" style={{ height: altoSemana }}>
+                    {horas.map((h) => (
+                      <div
+                        key={h}
+                        className="absolute inset-x-0 border-t border-line pl-1 font-mono
+                          text-[11px] text-muted-foreground tabular-nums"
+                        style={{ top: (h - rango.horaDesde) * 44 }}
+                      >
+                        {`${String(h).padStart(2, "0")}:00`}
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
-              <div className="bg-slate-950/60 relative" style={{ height: altoSemana }}>
-                {horas.map((h) => (
-                  <div
-                    key={h}
-                    className="absolute inset-x-0 border-t border-white/10 text-[11px] font-mono text-slate-400 pl-1 tabular-nums"
-                    style={{ top: (h - rango.horaDesde) * 44 }}
-                  >
-                    {`${String(h).padStart(2, "0")}:00`}
-                  </div>
-                ))}
-              </div>
-              {dias.map((dia) => (
-                <div
-                  key={claveDeDiaCivil(dia)}
-                  className={`relative ${claveDeDiaCivil(dia) === claveHoy ? "bg-violet-500/15" : "bg-slate-950/60"}`}
-                  style={{ height: altoSemana }}
-                >
-                  {horas.map((h) => (
+                  {dias.map((dia) => (
                     <div
-                      key={h}
-                      className="absolute inset-x-0 border-t border-white/10"
-                      style={{ top: (h - rango.horaDesde) * 44 }}
-                    />
-                  ))}
-                  {bloquesDelDia(claveDeDiaCivil(dia)).map((b) => (
-                    <div
-                      key={b.key}
-                      title={b.titulo}
-                      className={`absolute inset-x-1 rounded-md border px-1 py-0.5 text-[11px] leading-tight font-semibold overflow-hidden ${b.clase}`}
-                      style={{ top: b.top, height: b.height }}
+                      key={claveDeDiaCivil(dia)}
+                      className={`relative ${claveDeDiaCivil(dia) === claveHoy ? "bg-info-soft" : "bg-white"}`}
+                      style={{ height: altoSemana }}
                     >
-                      {b.titulo}
+                      {horas.map((h) => (
+                        <div
+                          key={h}
+                          className="absolute inset-x-0 border-t border-line"
+                          style={{ top: (h - rango.horaDesde) * 44 }}
+                        />
+                      ))}
+                      {bloquesDelDia(claveDeDiaCivil(dia)).map((b) => (
+                        <div
+                          key={b.key}
+                          title={b.titulo}
+                          className={`absolute inset-x-1 overflow-hidden rounded border px-1 py-0.5
+                            text-[11px] leading-tight font-semibold shadow-sm transition-all
+                            duration-200 hover:-translate-y-px hover:shadow-md ${b.clase}`}
+                          style={{ top: b.top, height: b.height }}
+                        >
+                          {b.titulo}
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-      {vista === "mes" ? (
-        <div>
-          <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-            {NOMBRES_DIA.slice(1).concat(NOMBRES_DIA.slice(0, 1)).map((n) => (
-              <div key={n} className="bg-white/5 px-1 py-1.5 text-center text-[11px] font-semibold text-slate-400 uppercase">
-                {n}
               </div>
-            ))}
-            {dias.map((dia) => (
-              (() =>
-              {
-                const clave = claveDeDiaCivil(dia);
-                const puntos = puntosDelDia(clave);
-                const esHoy = clave === claveHoy;
-                const esOtroMes = dia.mes !== base.mes;
+            </section>
+          ) : null}
+          {vista === "mes" ? (
+            <div>
+              <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line">
+                {NOMBRES_DIA.slice(1).concat(NOMBRES_DIA.slice(0, 1)).map((n) => (
+                  <div key={n} className="bg-surface px-1 py-2 text-center text-[11px] font-semibold
+                    text-muted-foreground uppercase">
+                    {n}
+                  </div>
+                ))}
+                {dias.map((dia) => (
+                  (() =>
+                  {
+                    const clave = claveDeDiaCivil(dia);
+                    const puntos = puntosDelDia(clave);
+                    const esHoy = clave === claveHoy;
+                    const esOtroMes = dia.mes !== base.mes;
 
-                return (
-                  <button
-                    key={clave}
-                    type="button"
-                    onClick={() =>
-                    {
-                      setBase(dia);
-                      setVista("dia");
-                      reflejarUrl("dia", dia);
-                    }}
-                    aria-label={`Ver ${etiquetaDiaCorta(dia).fecha}`}
-                    className={`min-h-[96px] lg:min-h-[112px] p-2 text-left align-top transition-colors
-                      ${esHoy ? "bg-slate-900/60 ring-2 ring-inset ring-violet-500" : "bg-slate-900/60 hover:bg-white/5"}
-                      ${esOtroMes ? "opacity-50" : ""}`}
-                  >
-                    <span className={`text-[13px] font-semibold ${esHoy ? "text-violet-300" : "text-slate-100"}`}>
-                      {dia.dia}
-                    </span>
-                    <span className="mt-1 flex flex-wrap gap-1">
-                      {puntos.slice(0, 4).map((p) => (
-                        <span
-                          key={p.key}
-                          title={p.titulo}
-                          className={`inline-block h-1.5 w-1.5 rounded-full border ${p.clase}`}
-                        />
-                      ))}
-                      {puntos.length > 4 ? (
-                        <span className="text-[10px] font-semibold text-slate-400">+{puntos.length - 4}</span>
-                      ) : null}
-                    </span>
-                  </button>
-                );
-              })()
-            ))}
-          </div>
-          {turnosFiltrados.length === 0 && props.externos.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-400">Sin datos en este rango.</p>
+                    return (
+                      <button
+                        key={clave}
+                        type="button"
+                        onClick={() =>
+                        {
+                          setBase(dia);
+                          setVista("dia");
+                          reflejarUrl("dia", dia);
+                        }}
+                        aria-label={`Ver ${etiquetaDiaCorta(dia).fecha}`}
+                        className={`min-h-[96px] p-2 text-left align-top transition-colors
+                          duration-200 lg:min-h-[112px]
+                          ${esHoy ? "bg-info-soft ring-2 ring-primary ring-inset" : "bg-white hover:bg-surface"}
+                          ${esOtroMes ? "opacity-45" : ""}`}
+                      >
+                        <span className={`text-[13px] font-semibold ${esHoy ? "text-primary" : "text-navy"}`}>
+                          {dia.dia}
+                        </span>
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {puntos.slice(0, 4).map((p) => (
+                            <span
+                              key={p.key}
+                              title={p.titulo}
+                              className={`inline-block size-1.5 rounded-full border ${p.clase}`}
+                            />
+                          ))}
+                          {puntos.length > 4 ? (
+                            <span className="text-[10px] font-semibold text-muted-foreground">
+                              +{puntos.length - 4}
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                    );
+                  })()
+                ))}
+              </div>
+              {turnosFiltrados.length === 0 && props.externos.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">Sin datos en este rango.</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      ) : null}
-    </div>
-    <AgendaCitasDia
-      timeZone={props.timeZone}
-      diaClave={diaSeleccionado}
-      citas={citasFiltradas}
-      onCambiarEstado={props.onCambiarEstado}
-    />
+      </div>
+      <AgendaCitasDia
+        timeZone={props.timeZone}
+        diaClave={diaSeleccionado}
+        citas={citasFiltradas}
+        onCambiarEstado={props.onCambiarEstado}
+      />
     </div>
   );
 }

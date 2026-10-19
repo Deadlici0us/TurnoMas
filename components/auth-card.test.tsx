@@ -66,7 +66,7 @@ describe("AuthCard",
     expect(screen.getByRole("link", { name: "Crear cuenta" })).toBeDefined();
   });
 
-  it("debería dejar ver el fondo animado con raíz transparente y tarjeta glass",
+  it("debería usar la superficie clara y la tarjeta del sistema",
   () =>
   {
     const { container } = render(
@@ -76,8 +76,8 @@ describe("AuthCard",
     );
     const raiz = container.firstChild as HTMLElement;
 
-    expect(raiz.className).toContain("bg-transparent");
-    expect(raiz.className).not.toContain("from-slate-50");
-    expect(raiz.innerHTML).toContain("backdrop-blur");
+    expect(raiz.className).toContain("bg-surface");
+    expect(raiz.innerHTML).toContain("ui-card");
+    expect(raiz.innerHTML).not.toContain("backdrop-blur");
   });
 });

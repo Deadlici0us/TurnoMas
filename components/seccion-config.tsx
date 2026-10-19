@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import
 {
   BellRing,
+  ChevronDown,
   Clock,
   Mail,
   MessageCircle,
@@ -76,18 +77,18 @@ export default function SeccionConfig({ icono, titulo, ayuda, avanzada = false, 
 {
   const Icono = ICONOS[icono];
   const insignia = avanzada ? "Opcional" : "Paso esencial";
-  const claseInsignia = avanzada
-    ? "bg-white/10 text-slate-400 border-white/10"
-    : "bg-green-500/10 text-green-300 border-green-500/30";
+  const claseInsignia = avanzada ? "ui-badge-neutral" : "ui-badge-success";
 
   const contenido = avanzada
     ? (
-      <details className="group rounded-xl border border-white/10 bg-white/5">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-200
-          hover:bg-white/5 rounded-xl min-h-[48px] flex items-center">
+      <details className="group rounded-lg border border-line bg-surface">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between
+          rounded-lg px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-soft">
           Ver opciones avanzadas
+          <ChevronDown className="size-4 text-muted-foreground transition-transform duration-200
+            group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <div className="px-4 pb-4 space-y-3">
+        <div className="animate-fade-in space-y-3 px-4 pb-4">
           {children}
         </div>
       </details>
@@ -95,32 +96,21 @@ export default function SeccionConfig({ icono, titulo, ayuda, avanzada = false, 
     : children;
 
   return (
-    <section
-      aria-label={titulo}
-      className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6
-        space-y-4"
-    >
+    <section aria-label={titulo} className="ui-card space-y-4 p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <span
           aria-hidden="true"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl
-            bg-blue-500/15 text-blue-300"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full
+            bg-info-soft text-primary"
         >
-          <Icono className="h-5 w-5" />
+          <Icono className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-semibold text-slate-100 text-base">
-              {titulo}
-            </h2>
-            <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
-              ${claseInsignia}`}>
-              {insignia}
-            </span>
+            <h2 className="ui-section-title">{titulo}</h2>
+            <span className={`ui-badge ${claseInsignia}`}>{insignia}</span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
-            {ayuda}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{ayuda}</p>
         </div>
       </div>
       {contenido}

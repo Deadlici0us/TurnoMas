@@ -16,13 +16,12 @@ export default function LeyendaEstados({ incluirExterno = false }: LeyendaEstado
     : LEYENDA_ESTADOS;
 
   return (
-    <div className="flex flex-wrap gap-2" aria-label="Significado de los colores">
+    <div className="flex flex-wrap gap-1.5" aria-label="Significado de los colores">
       {items.map((item) => (
         <span
           key={item.estado}
           title={item.descripcion}
-          className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1
-            rounded-full border ${item.clase}`}
+          className={`ui-badge ${item.clase}`}
         >
           {item.titulo}
         </span>

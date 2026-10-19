@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
+import StatusBadge from "@/components/ui/status-badge";
+import { useToast } from "@/components/ui/use-toast";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { ESTADO_BADGE, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
+import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
+import { formatearARS } from "@/lib/dashboard/moneda";
 import { claveDiaEnZona, obtenerPartesCiviles } from "@/lib/timezone/timezone";
 
 export interface CitaDia
@@ -72,15 +75,19 @@ function etiquetaDia(diaClave: string): string
 /**
  * Citas del día seleccionado en orden por horario.
  *
- * Reemplaza la lista agrupada por profesional: filtra por día civil en
- * la zona del negocio (respeta el filtro de profesional ya aplicado por
- * el padre) y ordena por `inicio` ascendente. Las acciones mutan estado
- * vía la Server Action recibida por props.
+ * Filtra por día civil en la zona del negocio y ordena por `inicio`.
+ * Las acciones mutan estado vía la Server Action recibida por props y
+ * muestran feedback animado (toast + pulso o shake).
  *
  * @return Tarjeta con las citas del día y sus acciones.
  */
 export default function AgendaCitasDia(props: AgendaCitasDiaProps)
 {
+  const [pendiente, setPendiente] = useState(false);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const { showToast } = useToast();
+
   const delDia = useMemo(() =>
   {
     return props.citas
@@ -94,94 +101,155 @@ export default function AgendaCitasDia(props: AgendaCitasDiaProps)
       .sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
   }, [props.citas, props.diaClave, props.timeZone]);
 
+  async function cambiar(cita: CitaDia, nuevo: EstadoTurno): Promise<void>
+  {
+    if (pendiente)
+    {
+      return;
+    }
+
+    setPendiente(true);
+
+    try
+    {
+      await props.onCambiarEstado(cita.id, nuevo);
+      setFlashId(cita.id);
+      setErrorId(null);
+      showToast({
+        tone: "success",
+        title: "Turno actualizado",
+        message: `${cita.cliente} · ${etiquetaEstadoPara(nuevo)}`,
+      });
+      setTimeout(() => setFlashId(null), 800);
+    }
+    catch (error)
+    {
+      const mensaje = error instanceof Error && error.message.length > 0
+        ? error.message
+        : "No pudimos actualizar el turno. Probá de nuevo.";
+
+      setErrorId(cita.id);
+      showToast({ tone: "error", title: "No se pudo actualizar", message: mensaje });
+      setTimeout(() => setErrorId(null), 400);
+    }
+    finally
+    {
+      setPendiente(false);
+    }
+  }
+
   return (
-    <section className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-100 mb-1">Agenda</h1>
-      <p className="text-sm text-slate-400 mb-4">
-        {`Turnos del día ${etiquetaDia(props.diaClave)} en orden por horario`}
-      </p>
-      <h2 className="font-semibold text-slate-100 mb-3">Citas del día seleccionado</h2>
-      <div className="space-y-3">
-        {delDia.map((cita) => (
-          <div key={cita.id} data-testid="cita-dia" className="p-4 border border-white/10 rounded-xl bg-white/5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="font-semibold text-slate-100">{cita.cliente}</h3>
-                <p className="text-sm text-slate-400">
-                  {`${horaCorta(cita.inicio, props.timeZone)} · ${cita.servicio}`}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">{cita.profesional}</p>
-                {cita.sena_monto !== null ? (
-                  <p className="text-xs text-slate-400 mt-1">
-                    {`Seña $${cita.sena_monto.toLocaleString("es-AR")}`}
-                    {cita.sena_porcentaje !== null ? ` (${cita.sena_porcentaje}%)` : ""}
-                    {cita.sena_reembolsada === true ? " · Devuelta" : ""}
-                  </p>
-                ) : null}
-              </div>
-              <span
-                className={"shrink-0 text-xs font-semibold px-3 py-1 rounded-full border "
-                  + ESTADO_BADGE[cita.estado]}
+    <section className="ui-card">
+      <div className="p-5 sm:p-6">
+        <h2 className="ui-section-title">Citas del día seleccionado</h2>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">
+          {`Turnos del día ${etiquetaDia(props.diaClave)} en orden por horario`}
+        </p>
+        <div className="space-y-3">
+          {delDia.map((cita) =>
+          {
+            const ocupada = pendiente;
+            const animacion = flashId === cita.id
+              ? "animate-row-flash"
+              : errorId === cita.id
+                ? "animate-shake"
+                : "";
+
+            return (
+              <article
+                key={cita.id}
+                data-testid="cita-dia"
+                className={`rounded-lg border border-line bg-white p-4 transition-shadow duration-200
+                  hover:shadow-[var(--shadow-card)] ${animacion}`}
               >
-                {etiquetaEstadoPara(cita.estado)}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {cita.estado === "pendiente" ? (
-                <>
-                  <form action={() => props.onCambiarEstado(cita.id, "pagado")}>
-                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600
-                      text-white hover:bg-green-700">
-                      Marcar seña pagada
-                    </button>
-                  </form>
-                  <form action={() => props.onCambiarEstado(cita.id, "cancelado")}>
-                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                      border-white/15 hover:bg-white/10">
-                      Cancelar
-                    </button>
-                  </form>
-                </>
-              ) : null}
-              {cita.estado === "pagado" || cita.estado === "confirmado" ? (
-                <>
-                  <form action={() => props.onCambiarEstado(cita.id, "completado")}>
-                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600
-                      text-white hover:bg-blue-700">
-                      Completar
-                    </button>
-                  </form>
-                  <form action={() => props.onCambiarEstado(cita.id, "ausente")}>
-                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600
-                      text-white hover:bg-red-700">
-                      Ausente
-                    </button>
-                  </form>
-                  <form action={() => props.onCambiarEstado(cita.id, "cancelado")}>
-                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                      border-white/15 hover:bg-white/10">
-                      Cancelar
-                    </button>
-                  </form>
-                </>
-              ) : null}
-              {cita.whatsappHref !== null ? (
-                <a
-                  href={cita.whatsappHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border
-                    border-green-500/40 text-green-300 hover:bg-green-500/20"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
-            </div>
-          </div>
-        ))}
-        {delDia.length === 0 ? (
-          <p className="text-sm text-slate-400">Sin citas este día.</p>
-        ) : null}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-base font-bold text-ink">{cita.cliente}</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      <strong className="font-semibold text-navy">
+                        {horaCorta(cita.inicio, props.timeZone)}
+                      </strong>
+                      {` · ${cita.servicio}`}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{cita.profesional}</p>
+                    {cita.sena_monto !== null ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {`Seña ${formatearARS(cita.sena_monto)}`}
+                        {cita.sena_porcentaje !== null ? ` (${cita.sena_porcentaje}%)` : ""}
+                        {cita.sena_reembolsada === true ? " · Devuelta" : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                  <StatusBadge estado={cita.estado} className="shrink-0" />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {cita.estado === "pendiente" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { void cambiar(cita, "pagado"); }}
+                        disabled={ocupada}
+                        className="ui-btn ui-btn-primary ui-btn-sm"
+                      >
+                        Marcar seña pagada
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { void cambiar(cita, "cancelado"); }}
+                        disabled={ocupada}
+                        className="ui-btn ui-btn-outline ui-btn-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : null}
+                  {cita.estado === "pagado" || cita.estado === "confirmado" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { void cambiar(cita, "completado"); }}
+                        disabled={ocupada}
+                        className="ui-btn ui-btn-primary ui-btn-sm"
+                      >
+                        Completar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { void cambiar(cita, "ausente"); }}
+                        disabled={ocupada}
+                        className="ui-btn ui-btn-danger ui-btn-sm"
+                      >
+                        Ausente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { void cambiar(cita, "cancelado"); }}
+                        disabled={ocupada}
+                        className="ui-btn ui-btn-outline ui-btn-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : null}
+                  {cita.whatsappHref !== null ? (
+                    <a
+                      href={cita.whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                        hover:bg-success-soft"
+                    >
+                      WhatsApp
+                    </a>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+          {delDia.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin citas este día.</p>
+          ) : null}
+        </div>
       </div>
     </section>
   );

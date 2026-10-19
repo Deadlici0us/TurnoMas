@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import LossCalculator from "./loss-calculator";
+import { agruparMiles } from "@/lib/dashboard/moneda";
 import { estimateMonthlyLoss } from "@/lib/onboarding/loss-calculator";
 
 vi.mock("next-intl", () =>
@@ -17,11 +18,11 @@ describe("LossCalculator",
   () =>
   {
     render(<LossCalculator />);
-    const esperado = estimateMonthlyLoss({
+    const esperado = agruparMiles(Math.round(estimateMonthlyLoss({
       turnosPorSemana: 20,
       valorPromedio: 15000,
       tasaAusencia: 0.2,
-    }).toLocaleString("es-AR");
+    })));
 
     expect(screen.getByText("calculator.title")).toBeDefined();
     expect(screen.getByText("calculator.subtitle")).toBeDefined();
@@ -39,11 +40,11 @@ describe("LossCalculator",
     await user.clear(input);
     await user.type(input, "40");
 
-    const esperado = estimateMonthlyLoss({
+    const esperado = agruparMiles(Math.round(estimateMonthlyLoss({
       turnosPorSemana: 40,
       valorPromedio: 15000,
       tasaAusencia: 0.2,
-    }).toLocaleString("es-AR");
+    })));
 
     expect(screen.getByText(new RegExp(esperado.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))).toBeDefined();
   });
@@ -59,7 +60,7 @@ describe("LossCalculator",
     await user.clear(input);
     await user.type(input, "abc");
 
-    const esperado = (0).toLocaleString("es-AR");
+    const esperado = agruparMiles(0);
 
     expect(screen.getByText(new RegExp(esperado.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))).toBeDefined();
   });

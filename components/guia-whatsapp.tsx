@@ -40,23 +40,21 @@ export default function GuiaWhatsapp({ items }: GuiaWhatsappProps)
   return (
     <ul className="space-y-3">
       {items.map((item) => (
-        <li key={item.clave} className="p-4 border border-white/10 rounded-xl bg-white/5 space-y-2">
+        <li key={item.clave} className="ui-card space-y-2 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-slate-100">{item.titulo}</div>
-              <div className="text-xs text-slate-400">{item.ayuda}</div>
+              <div className="text-sm font-semibold text-ink">{item.titulo}</div>
+              <div className="text-xs text-muted-foreground">{item.ayuda}</div>
             </div>
             <button
               type="button"
               onClick={() => void copiar(item.clave, item.texto)}
-              className="shrink-0 text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                text-slate-200 hover:bg-white/10 transition-colors min-h-[44px]"
+              className="ui-btn ui-btn-outline ui-btn-sm shrink-0"
             >
               {copiada === item.clave ? "¡Copiado!" : "Copiar"}
             </button>
           </div>
-          <p className="text-sm text-slate-300 whitespace-pre-wrap break-words rounded-lg
-            bg-slate-950/40 border border-white/10 p-3">
+          <p className="rounded-lg border border-line bg-surface p-3 text-sm break-words whitespace-pre-wrap text-ink">
             {item.texto}
           </p>
         </li>

@@ -1,20 +1,22 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { BadgeCheck, CalendarClock, CircleDollarSign, TriangleAlert } from "lucide-react";
+import { BadgeCheck, CalendarClock, CalendarDays, CircleDollarSign, TriangleAlert } from "lucide-react";
 
+import EmptyState from "@/components/ui/empty-state";
+import PageHeader from "@/components/ui/page-header";
+import Panel from "@/components/ui/panel";
+import StatCard from "@/components/ui/stat-card";
+import StatusBadge from "@/components/ui/status-badge";
+import { formatearARS } from "@/lib/dashboard/moneda";
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
 import { debeAvisarConexionMp } from "@/lib/dashboard/conexion-mp";
-import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { avisoSuscripcion } from "@/lib/onboarding/trial";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
-function formatARS(centavos: number | null): string
-{
-  return `$ ${(centavos ?? 0).toLocaleString("es-AR")}`;
-}
+const formatARS = formatearARS;
 
 export default async function DashboardPage()
 {
@@ -116,28 +118,28 @@ export default async function DashboardPage()
       valor: String(stats.turnosHoy),
       detalle: `${stats.pendientes} pendientes de pago`,
       Icono: CalendarClock,
-      tinta: "bg-violet-500/20 text-violet-300",
+      tone: "teal" as const,
     },
     {
       etiqueta: "Pendientes",
       valor: String(stats.pendientes),
       detalle: "Esperando seña",
       Icono: TriangleAlert,
-      tinta: "bg-amber-500/20 text-amber-300",
+      tone: "amber" as const,
     },
     {
       etiqueta: "Señas cobradas",
       valor: String(stats.pagados),
       detalle: `${stats.confirmados} confirmados sin seña`,
       Icono: BadgeCheck,
-      tinta: "bg-green-500/20 text-green-300",
+      tone: "green" as const,
     },
     {
       etiqueta: "Ingresos por señas",
       valor: formatARS(stats.totalIngresos),
       detalle: "Acumulado cobrado",
       Icono: CircleDollarSign,
-      tinta: "bg-cyan-500/20 text-cyan-300",
+      tone: "navy" as const,
     },
   ];
 
@@ -154,59 +156,75 @@ export default async function DashboardPage()
 
   return (
     <div>
+      <PageHeader
+        title={String(dashboard.negocio.nombre ?? t("appName"))}
+        subtitle="Agenda, equipo, servicios y cobros en un solo lugar."
+        actions={(
+          <Link href="/dashboard/agenda" className="ui-btn ui-btn-primary">
+            <CalendarDays className="size-4" aria-hidden="true" />
+            Abrir agenda
+          </Link>
+        )}
+      />
       {avisos.length > 0 ? (
-        <output className="space-y-2 mb-6 block">
+        <output className="mb-6 block space-y-2">
           {avisos.map((a) => (
-            <span key={a.cta} className="block text-[13px] font-semibold px-3 py-2.5 rounded-xl border
-              bg-amber-500/10 text-amber-300 border-amber-500/30">
+            <span key={a.cta} className="ui-alert ui-alert-warning block">
               {a.texto}{" "}
-              <Link href={a.href} className="underline">{a.cta}</Link>
+              <Link href={a.href} className="font-semibold underline underline-offset-2">
+                {a.cta}
+              </Link>
             </span>
           ))}
         </output>
       ) : null}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-          {String(dashboard.negocio.nombre ?? t("appName"))}
-        </h1>
-        <p className="text-slate-400 mt-1 text-sm">Agenda, equipo, servicios y cobros en un solo lugar.</p>
-      </div>
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        {indicadores.map(({ etiqueta, valor, detalle, Icono, tinta }) => (
-          <div key={etiqueta} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-5">
-            <div className="flex items-center gap-3">
-              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${tinta}`}>
-                <Icono className="h-[18px] w-[18px]" aria-hidden="true" />
-              </span>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{etiqueta}</p>
-            </div>
-            <p className="mt-3 text-[28px] leading-8 font-bold tracking-tight text-slate-100 tabular-nums">{valor}</p>
-            <p className="mt-1 text-xs text-slate-400">{detalle}</p>
-          </div>
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 xl:grid-cols-4">
+        {indicadores.map(({ etiqueta, valor, detalle, Icono, tone }) => (
+          <StatCard
+            key={etiqueta}
+            label={etiqueta}
+            value={valor}
+            detail={detalle}
+            Icon={Icono}
+            tone={tone}
+          />
         ))}
       </div>
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
-        <section aria-label="Próximos turnos" className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-slate-100">Próximos turnos</h2>
-            <Link href="/dashboard/agenda" className="text-sm font-semibold text-violet-300 hover:underline">
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Panel
+          title="Próximos turnos"
+          actions={(
+            <Link href="/dashboard/agenda" className="ui-link text-sm">
               Ver agenda
             </Link>
-          </div>
+          )}
+          bodyClassName="p-0 sm:p-0"
+        >
           {proximos.length === 0 ? (
-            <p className="text-sm text-slate-400">Todavía no tenés turnos. Compartí tu link público para recibir reservas.</p>
+            <div className="p-5 sm:p-6">
+              <EmptyState
+                Icon={CalendarDays}
+                title="Todavía no tenés turnos"
+                description="Compartí tu link público para empezar a recibir reservas."
+                action={(
+                  <Link href="/dashboard/agenda" className="ui-btn ui-btn-primary ui-btn-sm">
+                    Ver agenda
+                  </Link>
+                )}
+              />
+            </div>
           ) : (
-            <ul className="divide-y divide-white/10">
+            <ul className="divide-y divide-line">
               {proximos.map((turno) => (
-                <li key={turno.id} className="flex items-center gap-3 py-3 min-h-[64px]">
-                  <div className="w-16 shrink-0 font-mono text-[13px] font-semibold text-slate-400 tabular-nums">
+                <li key={turno.id} className="ui-tr flex min-h-16 items-center gap-3 px-5 py-3 sm:px-6">
+                  <div className="w-16 shrink-0 font-mono text-[13px] font-semibold text-navy tabular-nums">
                     {typeof turno.inicio === "string" ? formatearEnZona(turno.inicio, timeZone) : "—"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-100">
+                    <p className="truncate text-sm font-semibold text-ink">
                       {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
                     </p>
-                    <p className="truncate text-[13px] text-slate-400">
+                    <p className="truncate text-[13px] text-muted-foreground">
                       <span>{nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}</span>
                       {typeof turno.staff_id === "string" && nombrePorStaff.get(turno.staff_id) !== undefined
                         ? ` · ${nombrePorStaff.get(turno.staff_id)}`
@@ -214,39 +232,31 @@ export default async function DashboardPage()
                       <span>{` · ${formatARS(turno.monto_total)}`}</span>
                     </p>
                   </div>
-                  <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold border ${claseBadgePara(turno.estado)}`}>
-                    {etiquetaEstadoPara(turno.estado)}
-                  </span>
+                  <StatusBadge estado={turno.estado} className="shrink-0" />
                 </li>
               ))}
             </ul>
           )}
-        </section>
-        <aside aria-label="Resumen de hoy" className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6">
-          <h2 className="text-base font-semibold text-slate-100 mb-1">Hoy</h2>
-          <p className="text-[13px] text-slate-400 mb-4">Tu día de un vistazo.</p>
+        </Panel>
+        <Panel title="Hoy" description="Tu día de un vistazo.">
           <dl className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="text-slate-400">Turnos</dt>
-              <dd className="font-bold text-slate-100 tabular-nums">{stats.turnosHoy}</dd>
+              <dt className="text-muted-foreground">Turnos</dt>
+              <dd className="font-bold text-ink tabular-nums">{stats.turnosHoy}</dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-slate-400">Señas de hoy</dt>
-              <dd className="font-bold text-slate-100 tabular-nums">{stats.pagados}</dd>
+              <dt className="text-muted-foreground">Señas de hoy</dt>
+              <dd className="font-bold text-ink tabular-nums">{stats.pagados}</dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-slate-400">Ingresos</dt>
-              <dd className="font-bold text-slate-100 tabular-nums">{formatARS(stats.totalIngresos)}</dd>
+              <dt className="text-muted-foreground">Ingresos</dt>
+              <dd className="font-bold text-ink tabular-nums">{formatARS(stats.totalIngresos)}</dd>
             </div>
           </dl>
-          <Link
-            href="/dashboard/agenda"
-            className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white
-              px-4 text-sm font-semibold text-slate-950 hover:bg-slate-200"
-          >
+          <Link href="/dashboard/agenda" className="ui-btn ui-btn-primary mt-5 w-full">
             Abrir agenda de hoy
           </Link>
-        </aside>
+        </Panel>
       </div>
     </div>
   );

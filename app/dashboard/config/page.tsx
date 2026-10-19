@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import GuiaWhatsapp from "@/components/guia-whatsapp";
 import LogoNegocioUploader from "@/components/logo-negocio-uploader";
+import ActionForm from "@/components/ui/action-form";
 import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
 import { actualizarDescripcionNegocio, actualizarGoogleMapsUrl, actualizarGooglePlaceId, actualizarHorariosNegocio,
@@ -307,7 +308,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "MercadoPago conectado. Las señas se cobran directo en tu cuenta.",
-      clase: "bg-green-500/10 text-green-300 border-green-500/30",
+      clase: "ui-alert-success",
     };
   }
 
@@ -315,7 +316,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "Cancelaste la conexión con MercadoPago. Podés intentarlo de nuevo.",
-      clase: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+      clase: "ui-alert-warning",
     };
   }
 
@@ -323,7 +324,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas.",
-      clase: "bg-red-500/10 text-red-300 border-red-500/30",
+      clase: "ui-alert-danger",
     };
   }
 
@@ -331,7 +332,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "No pudimos conectar MercadoPago. Probá de nuevo.",
-      clase: "bg-red-500/10 text-red-300 border-red-500/30",
+      clase: "ui-alert-danger",
     };
   }
 
@@ -339,7 +340,7 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   {
     return {
       texto: "Tenés servicios con seña activa. Desactivalas en Servicios y volvé a desconectar.",
-      clase: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+      clase: "ui-alert-warning",
     };
   }
 
@@ -420,7 +421,7 @@ function panelMercadoPago(
   if (demo)
   {
     return (
-      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+      <p className="ui-input">
         La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
         con tu MercadoPago.
       </p>
@@ -430,23 +431,21 @@ function panelMercadoPago(
   if (mpConectado)
   {
     return (
-      <form action={desconectar}>
+      <ActionForm action={desconectar} successMessage="Cambios guardados.">
         <button
           type="submit"
-          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-            text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
+          className="ui-btn ui-btn-outline ui-btn-sm"
         >
           Desconectar
         </button>
-      </form>
+      </ActionForm>
     );
   }
 
   return (
     <Link
       href="/api/integrations/mercadopago/authorize"
-      className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-        hover:bg-blue-700 transition-colors"
+      className="ui-btn ui-btn-primary"
     >
       Conectar MercadoPago
     </Link>
@@ -498,19 +497,19 @@ export default async function ConfigPage(
   return (
     <div className="space-y-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-100">Configuración</h1>
-        <p className="text-slate-400 mt-1 text-sm">
+        <h1 className="ui-page-title">Configuración</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Dejá tu negocio listo en 3 pasos: datos, horarios y cobros. El resto ya viene preparado y es opcional.
         </p>
         <ol className="mt-3 grid sm:grid-cols-3 gap-2 text-xs">
-          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
-            <span className="font-bold text-slate-100">1.</span> Contanos de tu negocio
+          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
+            <span className="font-bold text-ink">1.</span> Contanos de tu negocio
           </li>
-          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
-            <span className="font-bold text-slate-100">2.</span> Elegí tus horarios
+          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
+            <span className="font-bold text-ink">2.</span> Elegí tus horarios
           </li>
-          <li className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300">
-            <span className="font-bold text-slate-100">3.</span> Conectá cómo cobrás
+          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
+            <span className="font-bold text-ink">3.</span> Conectá cómo cobrás
           </li>
         </ol>
       </div>
@@ -519,8 +518,8 @@ export default async function ConfigPage(
         titulo="Tu negocio"
         ayuda="Cómo se llama, en qué ciudad mostramos tus turnos y tu link para compartir."
       >
-        <form action={guardarNombre} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        <ActionForm action={guardarNombre} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"¿Cómo se llama tu negocio?"}
             <input
               type="text"
@@ -530,30 +529,27 @@ export default async function ConfigPage(
               maxLength={80}
               placeholder="Ej: Barbería Diego"
               defaultValue={negocio.nombre ?? ""}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
-          <p className="text-xs text-slate-400">Tu link para compartir no cambia cuando cambiás el nombre.</p>
+          <p className="text-xs text-muted-foreground">Tu link para compartir no cambia cuando cambiás el nombre.</p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar nombre
           </button>
-        </form>
+        </ActionForm>
         <LogoNegocioUploader
           negocioId={negocioIdTexto}
           nombre={negocio.nombre ?? ""}
           logoUrl={negocio.logo_url ?? null}
           action={guardarLogo}
         />
-        <form action={guardarDescripcion} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        <ActionForm action={guardarDescripcion} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"Descripción breve de tu negocio"}
-            <span className="block text-xs font-normal text-slate-400">
+            <span className="block text-xs font-normal text-muted-foreground">
               Se muestra debajo del nombre en tu página de reservas.
             </span>
             <textarea
@@ -562,50 +558,45 @@ export default async function ConfigPage(
               maxLength={300}
               defaultValue={negocio.descripcion ?? ""}
               placeholder="Ej: Barbería de barrio con turnos sin esperas."
-              className="mt-1 w-full px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none placeholder:text-slate-500 [color-scheme:dark] resize-none
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-textarea"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar descripción
           </button>
-        </form>
-        <form action={guardarTimezone} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        </ActionForm>
+        <ActionForm action={guardarTimezone} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"¿En qué ciudad mostramos tus turnos?"}
             <select
               name="timezone"
               defaultValue={timezoneActual}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-select"
             >
               {TIMEZONES_SOPORTADAS.map((zona) => (
-                <option key={zona} value={zona} className="bg-slate-900 text-slate-100">
+                <option key={zona} value={zona} className="bg-white text-ink">
                   {etiquetaZonaHoraria(zona)}
                 </option>
               ))}
             </select>
           </label>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Si elegís mal la ciudad, los turnos se ven corridos. La mayoría ya viene bien.
           </p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar ciudad
           </button>
-        </form>
-        <form action={guardarMaps} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        </ActionForm>
+        <ActionForm action={guardarMaps} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"Link de Google Maps de tu negocio"}
-            <span className="block text-xs font-normal text-slate-400">
+            <span className="block text-xs font-normal text-muted-foreground">
               Si lo cargamos, mostramos un pequeño mapa del local en tu página de reservas.
             </span>
             <input
@@ -613,25 +604,22 @@ export default async function ConfigPage(
               name="mapsUrl"
               defaultValue={negocio.google_maps_url ?? ""}
               placeholder="https://maps.app.goo.gl/..."
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
-                text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar ubicación
           </button>
-        </form>
+        </ActionForm>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {"Tu link para compartir: "}
             <Link
               href={"/" + negocio.pais + "/" + negocio.slug}
-              className="font-mono font-semibold text-blue-400 hover:underline"
+              className="font-mono font-semibold text-primary hover:underline"
             >
               {"/" + negocio.pais + "/" + negocio.slug}
             </Link>
@@ -650,15 +638,15 @@ export default async function ConfigPage(
         titulo="Si un cliente falta"
         ayuda="Elegí qué pasa cuando alguien no viene. Ya viene listo con 2 faltas."
       >
-        <form action={guardarPolitica} className="space-y-3">
+        <ActionForm action={guardarPolitica} successMessage="Cambios guardados." className="space-y-3">
           <p
-            className="text-xs rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-blue-200"
+            className="ui-alert ui-alert-info text-xs"
             aria-live="polite"
           >
             {ejemploFaltas(umbral, penalidad)}
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-          <label className="flex-1 text-sm font-semibold text-slate-200">
+          <label className="flex-1 text-sm font-semibold text-ink">
             {"¿Después de cuántas faltas?"}
             <input
               type="number"
@@ -666,24 +654,20 @@ export default async function ConfigPage(
               min={1}
               max={10}
               defaultValue={umbral}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100
-                rounded-xl outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500
-                focus:border-blue-500"
+              className="ui-input"
             />
           </label>
-          <label className="flex-1 text-sm font-semibold text-slate-200">
+          <label className="flex-1 text-sm font-semibold text-ink">
             {"¿Qué hacemos?"}
             <select
               name="penalidad"
               defaultValue={penalidad}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100
-                rounded-xl outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500
-                focus:border-blue-500"
+              className="ui-select"
             >
-                <option value="blocked" className="bg-slate-900 text-slate-100">
+                <option value="blocked" className="bg-white text-ink">
                   {etiquetaPenalidad("blocked")}
                 </option>
-                <option value="fullDeposit" className="bg-slate-900 text-slate-100">
+                <option value="fullDeposit" className="bg-white text-ink">
                   {etiquetaPenalidad("fullDeposit")}
                 </option>
               </select>
@@ -691,23 +675,22 @@ export default async function ConfigPage(
           </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar
           </button>
-        </form>
+        </ActionForm>
       </SeccionConfig>
       <SeccionConfig
         icono="alcancia"
         titulo="Cómo cuidás la seña"
         ayuda="Si cancela con tiempo, se la devolvemos. Si avisa tarde, la pierde."
       >
-        <p className="text-xs rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-blue-200" aria-live="polite">
+        <p className="ui-alert ui-alert-info text-xs" aria-live="polite">
           {ejemploSena(retencionHs)}
         </p>
-        <form action={guardarSena} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        <ActionForm action={guardarSena} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"¿Hasta cuántas horas antes devolvemos la seña?"}
             <input
               type="number"
@@ -715,26 +698,24 @@ export default async function ConfigPage(
               min={1}
               max={720}
               defaultValue={retencionHs}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar
           </button>
-        </form>
+        </ActionForm>
       </SeccionConfig>
       <SeccionConfig
         icono="campana"
         titulo="Avisos antes del turno"
         ayuda="Les recordamos por vos para que nadie se olvide. Recomendado: 24 hs antes."
       >
-        <form action={guardarRecordatorios} className="space-y-3">
-          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
+        <ActionForm action={guardarRecordatorios} successMessage="Cambios guardados." className="space-y-3">
+          <label className="flex items-center gap-3 text-sm font-semibold text-ink min-h-[48px]">
             <input
               type="checkbox"
               name="recordatorioActivo"
@@ -743,7 +724,7 @@ export default async function ConfigPage(
             />
             {"Avisar antes del turno"}
           </label>
-          <label className="block text-sm font-semibold text-slate-200">
+          <label className="block text-sm font-semibold text-ink">
             {"¿Cuántas horas antes avisamos?"}
             <input
               type="number"
@@ -751,26 +732,24 @@ export default async function ConfigPage(
               min={1}
               max={72}
               defaultValue={recordatorioHs}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar
           </button>
-        </form>
+        </ActionForm>
       </SeccionConfig>
       <SeccionConfig
         icono="estrella"
         titulo="Pedir opiniones"
         ayuda="Pedimos una opinión cuando termina el turno. Solo a quienes dejaron email."
       >
-        <form action={guardarResenas} className="space-y-3">
-          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
+        <ActionForm action={guardarResenas} successMessage="Cambios guardados." className="space-y-3">
+          <label className="flex items-center gap-3 text-sm font-semibold text-ink min-h-[48px]">
             <input
               type="checkbox"
               name="resenaActiva"
@@ -779,7 +758,7 @@ export default async function ConfigPage(
             />
             {"Pedir opinión cuando termina"}
           </label>
-          <label className="block text-sm font-semibold text-slate-200">
+          <label className="block text-sm font-semibold text-ink">
             {"¿Cuántas horas después pedimos la opinión?"}
             <input
               type="number"
@@ -787,23 +766,21 @@ export default async function ConfigPage(
               min={1}
               max={72}
               defaultValue={resenaHs}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar
           </button>
-        </form>
+        </ActionForm>
         {resenaActiva ? (
-          <form action={guardarPlaceId} className="space-y-3">
-            <label className="block text-sm font-semibold text-slate-200">
+          <ActionForm action={guardarPlaceId} successMessage="Cambios guardados." className="space-y-3">
+            <label className="block text-sm font-semibold text-ink">
               {"Place ID de Google (link directo de reseña)"}
-              <span className="block text-xs font-normal text-slate-400">
+              <span className="block text-xs font-normal text-muted-foreground">
                 Con esto el botón lleva directo a “escribir reseña”
               </span>
               <input
@@ -811,19 +788,16 @@ export default async function ConfigPage(
                 name="placeId"
                 defaultValue={negocio.google_place_id ?? ""}
                 placeholder="ChIJ..."
-                className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
-                  text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="ui-input"
               />
             </label>
             <button
               type="submit"
-              className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-                hover:bg-blue-700 transition-colors"
+              className="ui-btn ui-btn-primary"
             >
               Guardar place ID
             </button>
-          </form>
+          </ActionForm>
         ) : null}
       </SeccionConfig>
       <SeccionConfig
@@ -832,8 +806,8 @@ export default async function ConfigPage(
         ayuda="Te mostramos a quién ya le toca volver, para que le escribas por WhatsApp. No se envía nada automático."
         avanzada={true}
       >
-        <form action={guardarRemarketing} className="space-y-3">
-          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200 min-h-[48px]">
+        <ActionForm action={guardarRemarketing} successMessage="Cambios guardados." className="space-y-3">
+          <label className="flex items-center gap-3 text-sm font-semibold text-ink min-h-[48px]">
             <input
               type="checkbox"
               name="remarketingActivo"
@@ -842,7 +816,7 @@ export default async function ConfigPage(
             />
             {"Mostrar candidatos de remarketing"}
           </label>
-          <label className="block text-sm font-semibold text-slate-200">
+          <label className="block text-sm font-semibold text-ink">
             {"¿A los cuántos días les escribimos?"}
             <input
               type="number"
@@ -850,21 +824,19 @@ export default async function ConfigPage(
               min={1}
               max={90}
               defaultValue={remarketingDias}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none [color-scheme:dark] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {"Cada servicio puede tener su propio ritmo; esto es el valor por defecto."}
           </p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar
           </button>
-        </form>
+        </ActionForm>
       </SeccionConfig>
       <SeccionConfig
         icono="carta"
@@ -872,7 +844,7 @@ export default async function ConfigPage(
         ayuda="Ya escribimos por vos. Solo cambiá esto si querés usar tus palabras."
         avanzada={true}
       >
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Podés usar estos comodines: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
           Si lo dejás vacío, usamos nuestro texto.
         </p>
@@ -883,14 +855,14 @@ export default async function ConfigPage(
           const cuerpo = negocio[`${key}_cuerpo` as keyof typeof negocio] as string | null | undefined;
 
           return (
-            <form
+            <ActionForm
               key={tipo}
-              action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)}
-              className="space-y-3 p-4 border border-white/10 rounded-xl bg-white/5"
+              action={guardarPlantilla.bind(null, tipo as TipoPlantillaConfigurable)} successMessage="Cambios guardados."
+              className="space-y-3 p-4 border border-line rounded-lg bg-surface"
             >
-              <h3 className="text-sm font-semibold text-slate-100">{titulo}</h3>
-              <p className="text-xs text-slate-400">{ayuda}</p>
-              <label className="block text-sm font-semibold text-slate-200">
+              <h3 className="text-sm font-semibold text-ink">{titulo}</h3>
+              <p className="text-xs text-muted-foreground">{ayuda}</p>
+              <label className="block text-sm font-semibold text-ink">
                 {"Título del mensaje"}
                 <input
                   type="text"
@@ -898,12 +870,10 @@ export default async function ConfigPage(
                   maxLength={120}
                   defaultValue={subject ?? ""}
                   placeholder="Vacío = usamos el nuestro"
-                  className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
-                    text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
-                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="ui-input"
                 />
               </label>
-              <label className="block text-sm font-semibold text-slate-200">
+              <label className="block text-sm font-semibold text-ink">
                 {"Texto del mensaje"}
                 <textarea
                   name="cuerpo"
@@ -911,19 +881,16 @@ export default async function ConfigPage(
                   maxLength={2000}
                   defaultValue={cuerpo ?? ""}
                   placeholder="Vacío = usamos el nuestro. Ej: Hola {negocio}, te esperamos {fecha}."
-                  className="mt-1 w-full px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                    outline-none placeholder:text-slate-500 [color-scheme:dark]
-                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="ui-textarea"
                 />
               </label>
               <button
                 type="submit"
-                className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-                  hover:bg-blue-700 transition-colors"
+                className="ui-btn ui-btn-primary"
               >
                 Guardar
               </button>
-            </form>
+            </ActionForm>
           );
         })}
       </SeccionConfig>
@@ -933,56 +900,50 @@ export default async function ConfigPage(
         ayuda="Conectá tu cuenta para cobrar señas directo en tu billetera."
       >
         {avisoMp !== null && (
-          <p className={`text-xs font-semibold px-3 py-2 rounded-lg border ${avisoMp.clase}`}>
+          <p className={`ui-alert text-xs font-semibold ${avisoMp.clase}`}>
             {avisoMp.texto}
           </p>
         )}
-        <div className="p-4 border border-white/10 rounded-xl bg-white/5 space-y-3">
+        <div className="p-4 border border-line rounded-lg bg-surface space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-100">MercadoPago</div>
-              <div className="text-xs text-slate-400">Para cobrar señas en tu cuenta</div>
+              <div className="text-sm font-semibold text-ink">MercadoPago</div>
+              <div className="text-xs text-muted-foreground">Para cobrar señas en tu cuenta</div>
             </div>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${mpConectado
-              ? "bg-green-500/10 text-green-300 border-green-500/30"
-              : "bg-white/10 text-slate-400 border-white/10"}`}>
+            <span className={`ui-badge ${mpConectado ? "ui-badge-success" : "ui-badge-neutral"}`}>
               {mpConectado ? `Listo ${maskMpToken(mpToken)}` : "Falta conectar"}
             </span>
           </div>
           {panelMercadoPago(demo, mpConectado, quitarTokenMp)}
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {mpConectado && mpConectadoAt !== null
               ? "Listo: cuando te pagan, el turno se confirma solo."
               : "Sin conectar, las reservas con seña quedan esperando el pago."}
           </p>
         </div>
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3 p-4 border border-white/10 rounded-xl bg-white/5">
+          <div className="flex items-center justify-between gap-3 p-4 border border-line rounded-lg bg-surface">
             <div>
-              <div className="text-sm font-semibold text-slate-100">Google Calendar</div>
-              <div className="text-xs text-slate-400">Ver tus turnos en tu calendario</div>
+              <div className="text-sm font-semibold text-ink">Google Calendar</div>
+              <div className="text-xs text-muted-foreground">Ver tus turnos en tu calendario</div>
             </div>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${gcalConectado
-              ? "bg-green-500/10 text-green-300 border-green-500/30"
-              : "bg-white/10 text-slate-400 border-white/10"}`}>
+            <span className={`ui-badge ${gcalConectado ? "ui-badge-success" : "ui-badge-neutral"}`}>
               {gcalConectado ? "Listo" : "Falta conectar"}
             </span>
           </div>
           {gcalConectado ? (
-            <form action={quitarGoogle}>
+            <ActionForm action={quitarGoogle} successMessage="Cambios guardados.">
               <button
                 type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                  text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
+                className="ui-btn ui-btn-outline ui-btn-sm"
               >
                 Desconectar Google
               </button>
-            </form>
+            </ActionForm>
           ) : (
             <Link
               href="/api/integrations/google/authorize"
-              className="inline-block bg-white/10 text-slate-100 text-sm font-semibold px-6 py-3 rounded-xl
-                border border-white/15 hover:bg-white/10 transition-colors min-h-[48px]"
+              className="ui-btn ui-btn-soft"
             >
               Conectar Google
             </Link>
@@ -995,8 +956,8 @@ export default async function ConfigPage(
         ayuda="Poné tu número y copiá los mensajes listos para pegar en tu app."
         avanzada={true}
       >
-        <form action={guardarWhatsapp} className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-200">
+        <ActionForm action={guardarWhatsapp} successMessage="Cambios guardados." className="space-y-3">
+          <label className="block text-sm font-semibold text-ink">
             {"Tu número de WhatsApp"}
             <input
               type="tel"
@@ -1004,23 +965,20 @@ export default async function ConfigPage(
               maxLength={25}
               placeholder="Ej: +54 9 11 1234-5678"
               defaultValue={typeof negocio.whatsapp === "string" ? negocio.whatsapp : ""}
-              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
-                outline-none placeholder:text-slate-500 [color-scheme:dark]
-                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="ui-input"
             />
           </label>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Lo usamos para mostrar tu contacto. Seguís respondiendo con tu propia app de WhatsApp.
           </p>
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-              hover:bg-blue-700 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             Guardar WhatsApp
           </button>
-        </form>
-        <p className="text-xs text-slate-400">
+        </ActionForm>
+        <p className="text-xs text-muted-foreground">
           Copiá estos mensajes y pegalos en tu app (Mensajes rápidos). Así respondés en segundos.
         </p>
         <GuiaWhatsapp items={whatsappGuia} />

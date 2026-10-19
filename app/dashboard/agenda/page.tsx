@@ -1,6 +1,7 @@
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import AgendaCalendar from "@/components/agenda-calendar";
+import PageHeader from "@/components/ui/page-header";
 import type { CitaDia } from "@/components/agenda-citas-dia";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
@@ -164,6 +165,10 @@ export default async function AgendaPage(props?: {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+    <PageHeader
+      title="Agenda"
+      subtitle="Organizá tus turnos por día, semana o mes y actualizá el estado en un clic."
+    />
     <AgendaCalendar
       base={hoy.toISOString()}
       timeZone={timeZone}

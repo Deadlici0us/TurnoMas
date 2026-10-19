@@ -37,30 +37,29 @@ export default function PaywallPlanVencido({
       open
       aria-labelledby="paywall-title"
       className="fixed inset-0 z-[60] m-0 flex h-full w-full max-w-none max-h-none items-center
-        justify-center overflow-y-auto border-0 bg-slate-950/85 px-4 py-8 backdrop-blur-md"
+        justify-center overflow-y-auto border-0 bg-navy/45 px-4 py-8 backdrop-blur-sm"
     >
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/5 p-8
-        backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
-        <h1 id="paywall-title" className="text-2xl font-bold tracking-tight text-white text-center">
+      <div className="animate-scale-in w-full max-w-lg rounded-lg border border-line bg-white p-6
+        shadow-[var(--shadow-modal)] sm:p-8">
+        <h1 id="paywall-title" className="ui-page-title text-center">
           Tu plan venció
         </h1>
-        <p className="mt-2 text-lg text-slate-400 text-center">
-          Un solo plan para profesionales que quieren crecer sin complicaciones
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Un solo plan para profesionales que quieren crecer sin complicaciones.
         </p>
         <Suspense fallback={null}>
           <VerificarPago />
         </Suspense>
         <div className="mt-6 text-center">
-          <div className="text-3xl font-bold bg-gradient-to-r from-brand-400 to-cyan-300
-            bg-clip-text text-transparent">
+          <div className="font-heading text-3xl font-extrabold tracking-tight text-navy">
             {etiquetaPlan}
           </div>
-          <div className="text-sm text-slate-400">14 días gratis</div>
+          <div className="text-sm text-muted-foreground">14 días gratis</div>
         </div>
         <ul className="mt-8 space-y-3">
           {BENEFICIOS.map((beneficio) => (
-            <li key={beneficio} className="flex items-center gap-2 text-sm text-slate-300">
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <li key={beneficio} className="flex items-center gap-2 text-sm text-ink">
+              <svg className="size-4 shrink-0 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               {beneficio}
@@ -71,10 +70,7 @@ export default function PaywallPlanVencido({
           <SuscripcionForm idPrefix="paywall" emailInicial={emailInicial} />
         </div>
         <form action={logout} className="mt-3 text-center">
-          <button
-            type="submit"
-            className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-          >
+          <button type="submit" className="ui-btn ui-btn-link text-xs">
             Cerrar sesión
           </button>
         </form>

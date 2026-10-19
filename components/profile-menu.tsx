@@ -36,43 +36,44 @@ export default function ProfileMenu(props: ProfileMenuProps)
     <Menu.Root>
       <Menu.Trigger
         aria-label={props.menuLabel}
-        className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-2.5
-          text-slate-200 transition-colors hover:bg-white/10 focus-visible:outline-none
-          focus-visible:ring-2 focus-visible:ring-brand-500/60 data-[popup-open]:bg-white/10"
+        className="group flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-2.5
+          text-ink transition-colors hover:border-primary/40 hover:bg-soft focus-visible:outline-none
+          focus-visible:ring-2 focus-visible:ring-primary/30 data-[popup-open]:bg-soft"
       >
         <Avatar name={props.businessName} src={props.logoUrl} className="size-8" />
-        <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:block">
+        <span className="hidden max-w-[10rem] truncate text-sm font-semibold sm:block">
           {props.businessName}
         </span>
         <ChevronDown
-          className="size-4 text-slate-400 transition-transform group-data-[popup-open]:rotate-180"
+          className="size-4 text-muted-foreground transition-transform duration-200
+            group-data-[popup-open]:rotate-180"
           aria-hidden="true"
         />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner sideOffset={8} align="end" className="z-50 outline-none">
           <Menu.Popup
-            className="min-w-52 rounded-xl border border-white/10 bg-slate-900/95 p-1 shadow-xl
-              shadow-black/40 backdrop-blur-xl"
+            className="animate-fade-in min-w-52 origin-top-right rounded-lg border border-line bg-white p-1
+              shadow-[var(--shadow-modal)]"
           >
             {ITEMS.map(({ href, key, Icon }) => (
               <Menu.LinkItem
                 key={href}
                 render={<Link href={href} />}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-200
-                  outline-none transition-colors data-[highlighted]:bg-white/10"
+                className="flex items-center gap-2.5 rounded px-3 py-2 text-sm text-ink
+                  outline-none transition-colors data-[highlighted]:bg-soft"
               >
-                <Icon className="size-4 text-slate-400" aria-hidden="true" />
+                <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                 {props[key]}
               </Menu.LinkItem>
             ))}
-            <Menu.Separator className="my-1 h-px bg-white/10" />
+            <Menu.Separator className="my-1 h-px bg-line" />
             <form action={props.logoutAction}>
               <Menu.Item
                 nativeButton
                 render={<button type="submit" />}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm
-                  text-rose-300 outline-none transition-colors data-[highlighted]:bg-rose-500/10"
+                className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm
+                  text-danger outline-none transition-colors data-[highlighted]:bg-danger-soft"
               >
                 <LogOut className="size-4" aria-hidden="true" />
                 {props.logoutLabel}

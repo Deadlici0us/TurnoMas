@@ -215,8 +215,8 @@ export default async function PortalPage({ params }: { readonly params: Promise<
   const ubicacion = await resolverUbicacionMaps(business.googleMapsUrl);
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="max-w-lg w-full mx-auto px-4 py-8">
+    <div className="min-h-[calc(100vh-60px)] bg-surface">
+      <div className="mx-auto w-full max-w-lg px-4 py-8">
         <BookingFlow
           negocioNombre={business.nombre}
           negocioLogoUrl={business.logoUrl}
@@ -241,7 +241,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
             />
           </div>
         ) : null}
-        <p className="text-xs text-slate-500 text-center mt-4">Reservas por TurnoMas</p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">Reservas por TurnoMas</p>
       </div>
     </div>
   );

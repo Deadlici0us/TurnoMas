@@ -47,24 +47,23 @@ describe("HomePage",
     expect(screen.getByRole("link", { name: "pricing.cta" })).toHaveAttribute("href", "/register");
   });
 
-  it("debería dejar ver el fondo animado con raíz transparente",
+  it("debería usar el fondo claro del sistema de diseño",
   () =>
   {
     const { container } = render(<HomePage />);
     const raiz = container.firstChild as HTMLElement;
 
-    expect(raiz.className).toContain("bg-transparent");
-    expect(raiz.className).not.toContain("from-slate-50");
-    expect(raiz.className).not.toContain("bg-gradient-to-b");
+    expect(raiz.className).toContain("bg-surface");
+    expect(raiz.className).not.toContain("bg-transparent");
   });
 
-  it("debería usar animaciones de revelado con stagger en el héroe y las cards",
+  it("debería usar animaciones de revelado sin shimmer neón",
   () =>
   {
     const { container } = render(<HomePage />);
     const raiz = container.firstChild as HTMLElement;
 
     expect(raiz.innerHTML).toContain("animate-reveal-up");
-    expect(raiz.innerHTML).toContain("animate-shimmer");
+    expect(raiz.innerHTML).not.toContain("animate-shimmer");
   });
 });

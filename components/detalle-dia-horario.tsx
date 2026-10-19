@@ -56,7 +56,7 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
   return (
     <div className="space-y-4 px-4 pb-4">
       <fieldset className="m-0 min-w-0 border-0 p-0" aria-label="¿Cómo trabajás este día?">
-        <p className="text-xs font-semibold text-slate-300 mb-2">
+        <p className="text-xs font-semibold text-ink mb-2">
           Paso 1: ¿trabajás de corrido o cortás al mediodía?
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -64,10 +64,7 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
             type="button"
             aria-pressed={modo === "corrido"}
             onClick={usarCorrido}
-            className={`min-h-[48px] px-3 rounded-xl text-xs font-bold transition-colors
-              ${modo === "corrido"
-                ? "bg-amber-400 text-slate-900 shadow"
-                : "border border-white/15 text-slate-300 hover:bg-white/10"}`}
+            className={`ui-btn ui-btn-sm ${modo === "corrido" ? "bg-primary text-white shadow" : "ui-btn-outline"}`}
           >
             <span className="block">De corrido</span>
             <span className="block font-normal opacity-80">ej: 9 a 19 sin parar</span>
@@ -76,10 +73,7 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
             type="button"
             aria-pressed={modo === "cortado"}
             onClick={usarCortado}
-            className={`min-h-[48px] px-3 rounded-xl text-xs font-bold transition-colors
-              ${modo === "cortado"
-                ? "bg-amber-400 text-slate-900 shadow"
-                : "border border-white/15 text-slate-300 hover:bg-white/10"}`}
+            className={`ui-btn ui-btn-sm ${modo === "cortado" ? "bg-primary text-white shadow" : "ui-btn-outline"}`}
           >
             <span className="block">Corto al mediodía</span>
             <span className="block font-normal opacity-80">ej: 9 a 13 y 15 a 20</span>
@@ -88,7 +82,7 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
       </fieldset>
       {primera === undefined ? null : (
         <div className="space-y-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             {modo === "cortado" ? "Paso 2: primera parte del día" : "Paso 2: elegí tus horas"}
           </p>
           <SelectorHoraChips
@@ -106,8 +100,8 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
         </div>
       )}
       {segunda === undefined ? null : (
-        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        <div className="space-y-3 rounded-lg border border-line bg-surface p-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Paso 3: segunda parte del día
           </p>
           <SelectorHoraChips
@@ -125,7 +119,7 @@ export default function DetalleDiaHorario({ dia, franjas, modo, error, onChange 
         </div>
       )}
       {error === null ? null : (
-        <p className="text-xs text-red-400 font-medium" role="alert">{error}</p>
+        <p className="text-xs text-danger font-medium" role="alert">{error}</p>
       )}
     </div>
   );

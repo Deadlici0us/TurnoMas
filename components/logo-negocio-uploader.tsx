@@ -114,14 +114,14 @@ export default function LogoNegocioUploader(
 
   return (
     <div className="space-y-2">
-      <span className="block text-sm font-semibold text-slate-200">Logo de tu negocio</span>
+      <span className="block text-sm font-semibold text-ink">Logo de tu negocio</span>
       <div className="flex items-center gap-3">
         {preview !== null ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt={nombre} className="size-16 rounded-2xl object-cover" />
         ) : (
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-blue-500/20
-            font-bold text-blue-300">{inicialesDe(nombre)}</span>
+          <span className="flex size-16 items-center justify-center rounded-full bg-info-soft
+            font-heading font-bold text-[#0b6e93]">{inicialesDe(nombre)}</span>
         )}
         <div className="space-y-1">
           <input
@@ -131,23 +131,23 @@ export default function LogoNegocioUploader(
             aria-label="Logo del negocio"
             disabled={subiendo}
             onChange={(event) => { void subir(event); }}
-            className="block text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0
-              file:bg-blue-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
-              hover:file:bg-blue-700 disabled:opacity-60"
+            className="block text-xs text-ink file:mr-3 file:rounded-full file:border-0
+              file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
+              hover:file:bg-primary-hover disabled:opacity-60"
           />
           {preview !== null ? (
             <button
               type="button"
               onClick={() => { void quitar(); }}
               disabled={subiendo}
-              className="text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-60"
+              className="text-xs font-semibold text-danger hover:text-danger disabled:opacity-60"
             >
               Quitar logo
             </button>
           ) : null}
         </div>
       </div>
-      {error !== null ? <p role="alert" className="text-xs font-semibold text-red-300">{error}</p> : null}
+      {error !== null ? <p role="alert" className="text-xs font-semibold text-danger">{error}</p> : null}
     </div>
   );
 }

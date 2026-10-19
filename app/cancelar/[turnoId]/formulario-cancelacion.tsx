@@ -71,7 +71,7 @@ export default function FormularioCancelacion(
   if (resultado?.success === true)
   {
     return (
-      <p className="text-sm text-emerald-300 text-center">
+      <p className="ui-alert ui-alert-success text-sm text-center">
         {mensajeReembolso(resultado.reembolso)}
       </p>
     );
@@ -80,14 +80,13 @@ export default function FormularioCancelacion(
   return (
     <div className="space-y-3">
       {typeof resultado?.error === "string" ? (
-        <p className="text-sm text-rose-300 text-center">{resultado.error}</p>
+        <p className="text-sm text-danger text-center">{resultado.error}</p>
       ) : null}
       <button
         type="button"
         onClick={() => void confirmar()}
         disabled={enviando}
-        className="w-full px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold
-          hover:bg-red-700 disabled:opacity-50"
+        className="ui-btn ui-btn-cta w-full"
       >
         {enviando ? "Cancelando…" : "Confirmar cancelación"}
       </button>

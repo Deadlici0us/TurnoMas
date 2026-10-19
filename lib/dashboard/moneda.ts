@@ -10,7 +10,7 @@
  * @param entero Número entero positivo.
  * @return Dígitos agrupados de a tres, ej. `15000` → `15.000`.
  */
-function agruparMiles(entero: number): string
+export function agruparMiles(entero: number): string
 {
   const digitos = String(entero);
   const partes: string[] = [];

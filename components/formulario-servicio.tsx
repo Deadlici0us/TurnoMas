@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useActionState } from "react";
 
 import CamposServicio from "@/components/campos-servicio";
 import type { CamposServicioValue } from "@/components/campos-servicio";
+import { useToast } from "@/components/ui/use-toast";
 
 interface FormularioServicioProps
 {
@@ -25,24 +27,42 @@ interface FormularioServicioProps
 export default function FormularioServicio({ action, titulo, cta, servicio }: FormularioServicioProps)
 {
   const [error, formAction, pending] = useActionState(action, null);
+  const { showToast } = useToast();
+  const enviado = useRef(false);
+
+  useEffect(() =>
+  {
+    if (!enviado.current || pending)
+    {
+      return;
+    }
+
+    enviado.current = false;
+
+    if (error === null)
+    {
+      showToast({ tone: "success", title: "Listo", message: "Servicio guardado." });
+      return;
+    }
+
+    showToast({ tone: "error", title: "No se pudo guardar", message: error });
+  }, [error, pending, showToast]);
 
   return (
-    <form action={formAction} className="space-y-4">
-      <h2 className="font-semibold text-slate-100">{titulo}</h2>
+    <form
+      action={formAction}
+      onSubmit={() => { enviado.current = true; }}
+      className="space-y-4"
+    >
+      <h2 className="ui-section-title">{titulo}</h2>
       <CamposServicio servicio={servicio} />
       {error !== null && (
-        <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
-          border-red-500/30 rounded-lg p-3">
+        <p role="alert" className="ui-alert ui-alert-danger">
           {error}
         </p>
       )}
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-          hover:bg-blue-700 transition-colors disabled:opacity-60"
-      >
-        {cta}
+      <button type="submit" disabled={pending} className="ui-btn ui-btn-primary">
+        {pending ? "Guardando..." : cta}
       </button>
     </form>
   );

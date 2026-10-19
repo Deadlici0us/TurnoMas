@@ -15,26 +15,26 @@ export interface LeyendaEstado
   readonly clase: string;
 }
 
-/** Badge compacto (listas y tabla de pagos) — oscuro unificado. */
+/** Badge compacto (listas y tabla de pagos) sobre fondo claro. */
 export const ESTADO_BADGE: Record<EstadoTurno, string> =
 {
-  pagado: "bg-green-500/15 text-green-300 border-green-500/30",
-  confirmado: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  pendiente: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  completado: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
-  cancelado: "bg-white/10 text-slate-400 border-white/10",
-  ausente: "bg-red-500/15 text-red-300 border-red-500/30",
+  pagado: "ui-badge-success",
+  confirmado: "ui-badge-info",
+  pendiente: "ui-badge-warning",
+  completado: "border-[#c9d3e3] bg-[#eef2f8] text-navy",
+  cancelado: "ui-badge-neutral line-through",
+  ausente: "ui-badge-danger",
 };
 
-/** Bloque de la grilla semanal (más saturado para verse sobre la grilla oscura). */
+/** Bloque de la grilla: fondo pastel y borde izquierdo de color. */
 export const ESTADO_GRILLA: Record<EstadoTurno, string> =
 {
-  pendiente: "bg-amber-500/25 border-amber-400/40 text-amber-100",
-  confirmado: "bg-blue-500/25 border-blue-400/40 text-blue-100",
-  pagado: "bg-green-500/25 border-green-400/40 text-green-100",
-  completado: "bg-indigo-500/25 border-indigo-400/40 text-indigo-100",
-  ausente: "bg-red-500/25 border-red-400/40 text-red-100",
-  cancelado: "bg-white/10 border-white/15 text-slate-400 line-through",
+  pendiente: "border border-warning/40 border-l-4 border-l-warning bg-warning-soft text-[#6b4a00]",
+  confirmado: "border border-info/30 border-l-4 border-l-info bg-info-soft text-[#0b5f7f]",
+  pagado: "border border-success/30 border-l-4 border-l-success bg-success-soft text-[#0c6b45]",
+  completado: "border border-[#c9d3e3] border-l-4 border-l-navy bg-[#eef2f8] text-navy",
+  ausente: "border border-danger/30 border-l-4 border-l-danger bg-danger-soft text-[#a3122f]",
+  cancelado: "border border-line border-l-4 border-l-[#abbccc] bg-[#f4f6f9] text-muted-foreground line-through",
 };
 
 /** Etiqueta visible para cada estado (el enum `pagado` es solo la seña). */
@@ -53,7 +53,7 @@ export const EXTERNO_LEYENDA =
 {
   titulo: "Google",
   descripcion: "Evento de tu Google Calendar (ocupa la agenda, no se cobra)",
-  clase: "bg-white/10 border-white/20 text-slate-300",
+  clase: "border border-dashed border-[#abbccc] bg-[#f8faff] text-[#5c6b7a]",
 } as const;
 
 /** Leyenda completa en es-AR para agenda y pagos. */

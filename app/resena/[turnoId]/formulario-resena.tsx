@@ -53,7 +53,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
     return (
       <div className="space-y-4 text-center">
         <div className="text-5xl">¡Gracias!</div>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Recibimos tu devolución y la vamos a usar para mejorar. ¡Gracias!
         </p>
       </div>
@@ -62,7 +62,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-400 text-center">
+      <p className="text-sm text-muted-foreground text-center">
         Contanos cómo te fue. Es privado: solo lo ve el negocio.
       </p>
       <div className="flex justify-center gap-2">
@@ -71,7 +71,7 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
             key={n}
             onClick={() => { setEstrellas(n); setError(null); }}
             aria-label={`${n} estrellas`}
-            className={`text-4xl transition-all duration-200 hover:scale-110 ${n <= estrellas ? "text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]" : "text-slate-600 hover:text-slate-500"}`}
+            className={`text-4xl transition-all duration-200 hover:scale-110 ${n <= estrellas ? "text-warning" : "text-line hover:text-muted-foreground"}`}
           >
             ★
           </button>
@@ -82,19 +82,20 @@ export default function FormularioResena({ turnoId }: { readonly turnoId: string
         onChange={(event) => setComentario(event.target.value)}
         placeholder="Contanos más (opcional)"
         rows={3}
-        className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-          placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+        className="ui-textarea"
       />
-      {error !== null ? <p className="text-sm text-rose-300 text-center">{error}</p> : null}
+      {error !== null ? <p className="text-sm text-danger text-center">{error}</p> : null}
       <button
         onClick={() => { void enviar(); }}
         disabled={enviando}
-        className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-          rounded-xl hover:bg-brand-500 transition-all duration-300 disabled:opacity-60"
+        className="ui-btn ui-btn-cta w-full"
       >
-        <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-          bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-        {enviando ? "Enviando..." : "Enviar"}
+        {enviando ? (
+          <>
+            <span className="ui-spinner" aria-hidden="true" />
+            Enviando...
+          </>
+        ) : "Enviar"}
       </button>
     </div>
   );

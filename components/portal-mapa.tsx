@@ -49,15 +49,15 @@ export default function PortalMapa({ lat, lng, nombre, href }: PortalMapaProps)
         src={urlEmbed(lat, lng)}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
-        className="h-[180px] w-full rounded-2xl border border-white/10"
+        className="h-[180px] w-full rounded-lg border border-line"
       />
       {typeof href === "string" && href.length > 0 ? (
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-center text-xs font-semibold text-slate-400 underline
-            underline-offset-4 hover:text-white"
+          className="block text-center text-xs font-semibold text-muted-foreground underline
+            underline-offset-4 hover:text-primary"
         >
           Ver en Google Maps
         </a>

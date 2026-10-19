@@ -1,47 +1,57 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Check } from "lucide-react";
 
 // next-intl sin segmento [locale]: el prerender estático no tiene
 // contexto de request y revienta con ENVIRONMENT_FALLBACK. On-demand.
 export const dynamic = "force-dynamic";
 
-export default async function PricingPage() {
+const BENEFICIOS = [
+  "Reservas ilimitadas",
+  "Cobro de señas vía MercadoPago",
+  "Recordatorios por WhatsApp y email",
+  "Lista negra automática",
+  "Agenda sincronizada con Google Calendar",
+  "Soporte prioritario",
+] as const;
+
+export default async function PricingPage()
+{
   const t = await getTranslations("common");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent">
-      <div className="max-w-4xl w-full px-8 py-12">
-        <h1 className="animate-reveal-up text-3xl font-bold text-white mb-2 text-center">{t("pricing.title")}</h1>
-        <p className="animate-reveal-up text-lg text-slate-400 text-center mb-8"
-          style={{ animationDelay: "80ms" }}>{t("pricing.subtitle")}</p>
-        <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 max-w-lg mx-auto
-          backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
+    <div className="min-h-screen bg-surface">
+      <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-semibold tracking-widest text-primary uppercase">Precios</p>
+          <h1 className="animate-reveal-up mt-2 font-heading text-4xl font-extrabold tracking-tight text-navy">
+            {t("pricing.title")}
+          </h1>
+          <p className="animate-reveal-up mt-3 text-lg text-muted-foreground"
+            style={{ animationDelay: "80ms" }}>
+            {t("pricing.subtitle")}
+          </p>
+        </div>
+        <div className="animate-reveal-up ui-card mx-auto mt-10 max-w-lg p-6 sm:p-8"
           style={{ animationDelay: "160ms" }}>
-          <div className="text-center mb-6">
-            <div className="text-4xl font-bold bg-gradient-to-r from-brand-400 to-cyan-300
-              bg-clip-text text-transparent">{t("pricing.monthly")}</div>
-            <div className="text-sm text-slate-400">{t("pricing.trial")}</div>
+          <div className="mb-6 text-center">
+            <div className="font-heading text-4xl font-extrabold text-navy">{t("pricing.monthly")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{t("pricing.trial")}</div>
           </div>
-          <ul className="space-y-3 mb-8">
-            {["Reservas ilimitadas", "Cobro de señas vía MercadoPago", "Recordatorios por WhatsApp y email", "Lista negra automática", "Agenda sincronizada con Google Calendar", "Soporte prioritario"].map((f, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-slate-300">
-                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                {f}
+          <ul className="mb-8 space-y-3">
+            {BENEFICIOS.map((beneficio) => (
+              <li key={beneficio} className="flex items-center gap-2 text-sm text-ink">
+                <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full
+                  bg-success-soft text-[#0c6b45]">
+                  <Check className="size-3.5" aria-hidden="true" />
+                </span>
+                {beneficio}
               </li>
             ))}
           </ul>
-          <div className="text-center">
-            <Link
-              href="/dashboard/suscripcion"
-              className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-                rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
-                transition-all duration-300 hover:-translate-y-0.5"
-            >
-              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-              {t("pricing.cta")}
-            </Link>
-          </div>
+          <Link href="/dashboard/suscripcion" className="ui-btn ui-btn-cta w-full">
+            {t("pricing.cta")}
+          </Link>
         </div>
       </div>
     </div>

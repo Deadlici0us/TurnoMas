@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default function OnboardingPage()
 {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent">
+    <div className="flex min-h-[calc(100vh-60px)] items-center justify-center bg-surface">
       <Suspense>
         <OnboardingWizard />
       </Suspense>

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { BUFFER_MINUTOS, buildAvailableSlots } from "@/lib/booking/slots";
 import type { DiaDisponible } from "@/lib/booking/slots";
 import { formatearARS } from "@/lib/dashboard/moneda";
+import { formatearDiaLargoYMes, formatearDiaYMes } from "@/lib/format/fecha";
 import type
 {
   PortalAsociacion,
@@ -36,10 +37,9 @@ interface BookingFlowProps
 
 function formatSlot(date: Date): string
 {
-  const dia = date.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
   const hora = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 
-  return `${dia} ${hora}`;
+  return `${formatearDiaYMes(date)} ${hora}`;
 }
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
@@ -105,11 +105,11 @@ function renderEncabezado(props: EncabezadoBookingProps): ReactNode
         <img src={props.negocioLogoUrl} alt={props.negocioNombre} className="size-16 rounded-2xl object-cover" />
       ) : null}
       <div>
-        <h1 className="text-2xl font-bold text-white mb-1">{props.negocioNombre}</h1>
+        <h1 className="font-heading text-2xl font-extrabold text-navy">{props.negocioNombre}</h1>
         {props.negocioDescripcion !== null && props.negocioDescripcion.length > 0 ? (
-          <p className="text-sm text-slate-400 mb-1">{props.negocioDescripcion}</p>
+          <p className="text-sm text-muted-foreground mb-1">{props.negocioDescripcion}</p>
         ) : null}
-        <p className="text-sm text-slate-400">Reservá tu turno en 4 pasos</p>
+        <p className="text-sm text-muted-foreground">Reservá tu turno en 4 pasos.</p>
       </div>
     </div>
   );
@@ -132,16 +132,27 @@ interface ConfirmadoBookingProps
 function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
 {
   return (
-    <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 text-center
-      space-y-4 backdrop-blur-xl">
-      <div className="text-5xl">✓</div>
-      <h1 className="text-2xl font-bold text-white">¡Reserva confirmada!</h1>
-      <p className="text-sm text-slate-400">
+    <div data-testid="reserva-confirmada" className="animate-scale-in ui-card space-y-4 p-8 text-center">
+      <div className="animate-scale-in mx-auto flex size-16 items-center justify-center rounded-full
+        bg-success-soft text-success">
+        <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor">
+          <path
+            d="M5 13l4 4L19 7"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={48}
+            className="animate-check-draw"
+          />
+        </svg>
+      </div>
+      <h1 className="font-heading text-2xl font-bold text-navy">¡Reserva confirmada!</h1>
+      <p className="text-sm text-muted-foreground">
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
-      <p className="text-sm text-slate-400">Te escribimos al {props.whatsapp} con los detalles.</p>
+      <p className="text-sm text-muted-foreground">Te escribimos al {props.whatsapp} con los detalles.</p>
       {tieneSenaEfectiva(props.servicio.senaRequerida, props.servicio.senaPorcentaje) ? (
-        <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+        <p className="ui-alert ui-alert-warning text-xs">
           En esta demo no se realiza el cobro. En producción serías redirigido a MercadoPago
           para pagar la seña del {props.servicio.senaPorcentaje}% ({formatearARS(props.servicio.precioBase)}).
         </p>
@@ -168,14 +179,14 @@ interface HorarioBookingProps
  */
 function renderHorario(props: HorarioBookingProps): ReactNode
 {
-  const titulo = <h2 className="font-semibold text-white">3. Elegí el horario</h2>;
+  const titulo = <h2 className="ui-section-title">3. Elegí el horario</h2>;
 
   if (props.dias.length === 0)
   {
     return (
-      <section className="space-y-3">
+      <section className="animate-fade-up space-y-3">
         {titulo}
-        <p className="text-sm text-slate-400">Sin horarios libres los próximos 7 días. Probá con otro profesional.</p>
+        <p className="text-sm text-muted-foreground">Sin horarios libres los próximos 7 días. Probá con otro profesional.</p>
       </section>
     );
   }
@@ -183,24 +194,23 @@ function renderHorario(props: HorarioBookingProps): ReactNode
   if (props.diaISO === null)
   {
     return (
-      <section className="space-y-3">
+      <section className="animate-fade-up space-y-3">
         {titulo}
         <div className="space-y-3">
-          <p className="text-sm text-slate-300 font-medium">Elegí el día</p>
+          <p className="text-sm text-ink font-medium">Elegí el día</p>
           <div className="grid grid-cols-1 gap-2">
             {props.dias.map((dia) => (
               <button
                 key={dia.date.toISOString()}
                 onClick={() => props.elegirDia(dia.date.toISOString())}
-                aria-label={`Elegir día ${dia.date.toLocaleDateString("es-AR",
-                  { weekday: "long", day: "numeric", month: "short" })}`}
-                className="w-full min-h-[56px] px-4 py-3 border border-white/10 rounded-xl text-left
-                  hover:border-brand-500/60 hover:bg-white/5 transition-all duration-200"
+                aria-label={`Elegir día ${formatearDiaLargoYMes(dia.date)}`}
+                className="min-h-14 w-full rounded-lg border border-line bg-white px-4 py-3 text-left
+                  transition-all duration-200 hover:border-primary/50 hover:bg-surface"
               >
-                <span className="block font-semibold text-white capitalize">
-                  {dia.date.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" })}
+                <span className="block font-semibold text-navy capitalize">
+                  {formatearDiaLargoYMes(dia.date)}
                 </span>
-                <span className="block text-xs text-slate-400 mt-0.5">
+                <span className="block text-xs text-muted-foreground mt-0.5">
                   {dia.starts.length === 1 ? "1 horario libre" : `${dia.starts.length} horarios libres`}
                 </span>
               </button>
@@ -218,17 +228,16 @@ function renderHorario(props: HorarioBookingProps): ReactNode
       {titulo}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-slate-300 font-medium">
+          <p className="text-sm text-ink font-medium">
             Elegí la hora del{" "}
-            <span className="font-semibold text-white capitalize">
-              {diaElegido?.date.toLocaleDateString("es-AR",
-                { weekday: "long", day: "numeric", month: "short" }) ?? ""}
+            <span className="font-semibold text-navy capitalize">
+              {diaElegido !== undefined ? formatearDiaLargoYMes(diaElegido.date) : ""}
             </span>
           </p>
           <button
             onClick={props.volverADias}
-            className="text-xs font-semibold text-slate-300 underline underline-offset-4
-              hover:text-white min-h-[44px] px-2"
+            className="min-h-11 px-2 text-xs font-semibold text-primary underline underline-offset-4
+              hover:text-navy"
           >
             Cambiar día
           </button>
@@ -239,11 +248,11 @@ function renderHorario(props: HorarioBookingProps): ReactNode
               key={start.toISOString()}
               onClick={() => props.elegirHora(start.toISOString())}
               aria-pressed={props.slotISO === start.toISOString()}
-              className={`min-h-[56px] px-2 py-3 border rounded-xl text-base font-bold tabular-nums
+              className={`min-h-14 rounded-lg border px-2 py-3 text-base font-bold tabular-nums
                 transition-all duration-200 ${
                   props.slotISO === start.toISOString()
-                    ? "border-brand-500 bg-brand-600 text-white shadow-lg"
-                    : "border-white/10 text-slate-200 hover:border-brand-500/60 hover:bg-white/5"
+                    ? "border-primary bg-primary text-white shadow-sm"
+                    : "border-line bg-white text-navy hover:border-primary/50 hover:bg-soft"
                 }`}
             >
               {`${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`}
@@ -269,9 +278,7 @@ interface DatosBookingProps
   readonly onConfirmar: () => void;
 }
 
-const CLASE_INPUT_BOOKING = "w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl"
-  + " outline-none placeholder:text-slate-500"
-  + " focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition";
+const CLASE_INPUT_BOOKING = "ui-input h-11";
 
 /**
  * Renderiza el paso 4: datos del cliente y botón de confirmación.
@@ -282,11 +289,11 @@ const CLASE_INPUT_BOOKING = "w-full px-4 py-3 bg-white/5 border border-white/10 
 function renderDatos(props: DatosBookingProps): ReactNode
 {
   return (
-    <section className="space-y-3">
-      <h2 className="font-semibold text-white">4. Tus datos</h2>
+    <section className="animate-fade-up space-y-3">
+      <h2 className="ui-section-title">4. Tus datos</h2>
       <div className="space-y-3">
         <div>
-          <label htmlFor="booking-nombre" className="block text-sm font-medium text-slate-300 mb-1">
+          <label htmlFor="booking-nombre" className="ui-label mb-1">
             Nombre
           </label>
           <input
@@ -298,7 +305,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
           />
         </div>
         <div>
-          <label htmlFor="booking-whatsapp" className="block text-sm font-medium text-slate-300 mb-1">
+          <label htmlFor="booking-whatsapp" className="ui-label mb-1">
             WhatsApp
           </label>
           <input
@@ -311,9 +318,9 @@ function renderDatos(props: DatosBookingProps): ReactNode
           />
         </div>
         <div>
-          <label htmlFor="booking-email" className="block text-sm font-medium text-slate-300 mb-1">
+          <label htmlFor="booking-email" className="ui-label mb-1">
             Email{" "}
-            <span className="font-normal text-slate-500">
+            <span className="font-normal text-muted-foreground">
               {props.requiereEmail ? "(para confirmar y avisarte)" : "(opcional, para confirmación)"}
             </span>
           </label>
@@ -327,16 +334,22 @@ function renderDatos(props: DatosBookingProps): ReactNode
             className={CLASE_INPUT_BOOKING}
           />
         </div>
-        {props.error !== null ? <p className="text-sm text-rose-300">{props.error}</p> : null}
+        {props.error !== null ? (
+          <p key={props.error} className="ui-alert ui-alert-danger animate-shake text-sm" role="alert">
+            {props.error}
+          </p>
+        ) : null}
         <button
           onClick={props.onConfirmar}
           disabled={props.enviando}
-          className="group relative w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-            rounded-xl hover:bg-brand-500 transition-all duration-300 disabled:opacity-60"
+          className="ui-btn ui-btn-cta w-full"
         >
-          <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-            bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-          {props.enviando ? "Guardando tu reserva..." : "Confirmar reserva"}
+          {props.enviando ? (
+            <>
+              <span className="ui-spinner" aria-hidden="true" />
+              Guardando tu reserva...
+            </>
+          ) : "Confirmar reserva"}
         </button>
       </div>
     </section>
@@ -529,22 +542,21 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
   }
 
   return (
-    <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 space-y-8
-      backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
+    <div className="animate-reveal-up ui-card space-y-8 p-5 sm:p-8">
       {renderEncabezado({ negocioNombre, negocioLogoUrl, negocioDescripcion })}
 
-      <section className="space-y-3">
-        <h2 className="font-semibold text-white">1. Elegí tu profesional</h2>
+      <section className="animate-fade-up space-y-3">
+        <h2 className="ui-section-title">1. Elegí tu profesional</h2>
         <div className="grid grid-cols-2 gap-3">
           {staff.filter((s) => s.activo !== false).map((s) => (
             <button
               key={s.id}
               onClick={() => elegirProfesional(s.id)}
               aria-label={s.nombre}
-              className={`p-4 border rounded-xl text-left transition-all duration-200 ${
+              className={`rounded-lg border bg-white p-4 text-left transition-all duration-200 ${
                 s.id === staffId
-                  ? "border-brand-500 bg-brand-500/15 shadow-[0_0_24px_-6px_var(--brand-500)]"
-                  : "border-white/10 hover:border-white/25 hover:bg-white/5"
+                  ? "border-primary bg-info-soft shadow-sm"
+                  : "border-line hover:border-primary/40 hover:bg-surface"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -552,13 +564,13 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={s.fotoUrl} alt={s.nombre} className="size-12 rounded-full object-cover" />
                 ) : (
-                  <span className="flex size-12 items-center justify-center rounded-full bg-brand-500/20
-                    font-bold text-brand-200">{s.nombre.charAt(0)}</span>
+                  <span className="flex size-12 items-center justify-center rounded-full bg-info-soft
+                    font-heading font-bold text-primary">{s.nombre.charAt(0)}</span>
                 )}
-                <span className="font-semibold text-white">{s.nombre}</span>
+                <span className="font-semibold text-navy">{s.nombre}</span>
               </div>
               {s.descripcion != null && s.descripcion.length > 0 ? (
-                <p className="mt-2 text-xs text-slate-400">{s.descripcion}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{s.descripcion}</p>
               ) : null}
             </button>
           ))}
@@ -566,10 +578,10 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       </section>
 
       {profesional !== null ? (
-        <section className="space-y-3">
-          <h2 className="font-semibold text-white">2. Elegí tu servicio</h2>
+        <section className="animate-fade-up space-y-3">
+          <h2 className="ui-section-title">2. Elegí tu servicio</h2>
           {serviciosDisponibles.length === 0 ? (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {profesional.nombre} todavía no tiene servicios asignados. Probá con otro profesional.
             </p>
           ) : null}
@@ -578,26 +590,26 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
               <button
                 key={s.id}
                 onClick={() => elegirServicio(s.id)}
-                className={`w-full p-4 border rounded-xl text-left transition-all duration-200 ${
+                className={`w-full rounded-lg border bg-white p-4 text-left transition-all duration-200 ${
                   s.id === servicioId
-                    ? "border-brand-500 bg-brand-500/15 shadow-[0_0_24px_-6px_var(--brand-500)]"
-                    : "border-white/10 hover:border-white/25 hover:bg-white/5"
+                    ? "border-primary bg-info-soft shadow-sm"
+                    : "border-line hover:border-primary/40 hover:bg-surface"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold text-white">{s.nombre}</div>
+                  <div className="font-semibold text-navy">{s.nombre}</div>
                   <div className="text-sm">
                     {s.precioPromocional !== null ? (
                       <>
-                        <span className="text-slate-500 line-through mr-2">{formatearARS(s.precioBase)}</span>
-                        <span className="font-bold text-emerald-300">{formatearARS(s.precioPromocional)}</span>
+                        <span className="text-muted-foreground line-through mr-2">{formatearARS(s.precioBase)}</span>
+                        <span className="font-bold text-[#0c6b45]">{formatearARS(s.precioPromocional)}</span>
                       </>
                     ) : (
-                      <span className="font-bold text-white">{formatearARS(s.precioBase)}</span>
+                      <span className="font-bold text-navy">{formatearARS(s.precioBase)}</span>
                     )}
                   </div>
                 </div>
-                <div className="text-xs text-slate-400 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {s.duracionMin} min{tieneSenaEfectiva(s.senaRequerida, s.senaPorcentaje)
                     ? ` · Seña ${s.senaPorcentaje}%` : " · Sin seña"}
                 </div>

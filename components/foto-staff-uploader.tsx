@@ -117,8 +117,8 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt={nombre} className="size-16 rounded-full object-cover" />
         ) : (
-          <span className="flex size-16 items-center justify-center rounded-full bg-amber-500/20
-            font-bold text-amber-300">{inicialesDe(nombre)}</span>
+          <span className="flex size-16 items-center justify-center rounded-full bg-warning-soft
+            font-heading font-bold text-[#7a5200]">{inicialesDe(nombre)}</span>
         )}
         <div className="space-y-1">
           <input
@@ -128,23 +128,23 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
             aria-label={`Foto de ${nombre}`}
             disabled={subiendo}
             onChange={(event) => { void subir(event); }}
-            className="block text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0
-              file:bg-blue-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
-              hover:file:bg-blue-700 disabled:opacity-60"
+            className="block text-xs text-ink file:mr-3 file:rounded-full file:border-0
+              file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
+              hover:file:bg-primary-hover disabled:opacity-60"
           />
           {preview !== null ? (
             <button
               type="button"
               onClick={() => { void quitar(); }}
               disabled={subiendo}
-              className="text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-60"
+              className="text-xs font-semibold text-danger hover:text-danger disabled:opacity-60"
             >
               Quitar foto
             </button>
           ) : null}
         </div>
       </div>
-      {error !== null ? <p role="alert" className="text-xs font-semibold text-red-300">{error}</p> : null}
+      {error !== null ? <p role="alert" className="text-xs font-semibold text-danger">{error}</p> : null}
     </div>
   );
 }

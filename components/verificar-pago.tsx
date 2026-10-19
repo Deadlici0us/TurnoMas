@@ -183,14 +183,12 @@ export default function VerificarPago(props: VerificarPagoProps)
         type="button"
         onClick={() => void verificar()}
         disabled={verificando}
-        className="text-xs font-semibold text-cyan-300 hover:text-cyan-200 disabled:opacity-60
-          transition-colors"
+        className="ui-btn ui-btn-link text-xs disabled:opacity-60"
       >
         {verificando ? "Verificando…" : "Ya pagué, verificar ahora"}
       </button>
       {mensaje !== null ? (
-        <output className="block mt-2 text-xs font-semibold px-3 py-2 rounded-lg border
-          bg-amber-500/10 text-amber-200 border-amber-500/30">
+        <output className="ui-alert ui-alert-warning mt-2 block text-xs font-semibold">
           {mensaje}
         </output>
       ) : null}

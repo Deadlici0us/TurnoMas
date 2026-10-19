@@ -12,29 +12,28 @@ describe("buttonVariants",
     const clases = buttonVariants({});
 
     expect(clases).toContain("bg-primary");
-    expect(clases).toContain("h-8");
+    expect(clases).toContain("min-h-9");
   });
 
   it("debería resolver cada variante",
   () =>
   {
-    expect(buttonVariants({ variant: "outline" })).toContain("border-border");
-    expect(buttonVariants({ variant: "secondary" })).toContain("bg-secondary");
-    expect(buttonVariants({ variant: "ghost" })).toContain("hover:bg-muted");
-    expect(buttonVariants({ variant: "destructive" })).toContain("text-destructive");
+    expect(buttonVariants({ variant: "outline" })).toContain("border-line");
+    expect(buttonVariants({ variant: "outline" })).toContain("bg-white");
+    expect(buttonVariants({ variant: "secondary" })).toContain("bg-soft");
+    expect(buttonVariants({ variant: "ghost" })).toContain("hover:bg-soft");
+    expect(buttonVariants({ variant: "destructive" })).toContain("text-danger");
     expect(buttonVariants({ variant: "link" })).toContain("hover:underline");
   });
 
   it("debería resolver cada tamaño",
   () =>
   {
-    expect(buttonVariants({ size: "xs" })).toContain("h-6");
-    expect(buttonVariants({ size: "sm" })).toContain("h-7");
-    expect(buttonVariants({ size: "lg" })).toContain("h-9");
-    expect(buttonVariants({ size: "icon" })).toContain("size-8");
-    expect(buttonVariants({ size: "icon-xs" })).toContain("size-6");
-    expect(buttonVariants({ size: "icon-sm" })).toContain("size-7");
-    expect(buttonVariants({ size: "icon-lg" })).toContain("size-9");
+    expect(buttonVariants({ size: "default" })).toContain("min-h-9");
+    expect(buttonVariants({ size: "sm" })).toContain("min-h-[30px]");
+    expect(buttonVariants({ size: "lg" })).toContain("min-h-11");
+    expect(buttonVariants({ size: "icon" })).toContain("size-9");
+    expect(buttonVariants({ size: "icon-sm" })).toContain("size-[30px]");
   });
 
   it("debería anteponer className personalizado",
@@ -54,7 +53,7 @@ describe("Button",
     const boton = screen.getByRole("button", { name: "Eliminar" });
 
     expect(boton.getAttribute("data-slot")).toBe("button");
-    expect(boton.className).toContain("text-destructive");
+    expect(boton.className).toContain("text-danger");
   });
 
   it("debería propagar props al primitivo",

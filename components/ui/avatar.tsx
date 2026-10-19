@@ -40,7 +40,7 @@ export default function Avatar({ name, src, className }: AvatarProps)
       data-slot="avatar"
       className={cn(
         "relative inline-flex size-9 shrink-0 select-none items-center justify-center overflow-hidden",
-        "rounded-full border border-white/10 bg-gradient-to-br from-brand-500/30 to-cyan-500/20",
+        "rounded-full border border-line bg-soft",
         className,
       )}
     >
@@ -52,7 +52,7 @@ export default function Avatar({ name, src, className }: AvatarProps)
           className="size-full object-cover"
         />
       ) : null}
-      <AvatarPrimitive.Fallback className="text-xs font-semibold uppercase tracking-wide text-slate-100">
+      <AvatarPrimitive.Fallback className="text-xs font-semibold tracking-wide text-navy uppercase">
         {inicialesDe(name)}
       </AvatarPrimitive.Fallback>
     </AvatarPrimitive.Root>

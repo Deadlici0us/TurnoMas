@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 
 import { marcarResenaResuelta } from "@/app/dashboard/resenas/actions";
+import { useToast } from "@/components/ui/use-toast";
+import { formatearFechaCorta } from "@/lib/format/fecha";
 
 export interface ResenaItem
 {
@@ -34,7 +36,7 @@ function fechaCorta(iso: string): string
 {
   const fecha = new Date(iso);
 
-  return Number.isNaN(fecha.getTime()) ? "" : fecha.toLocaleDateString("es-AR");
+  return Number.isNaN(fecha.getTime()) ? "" : formatearFechaCorta(fecha);
 }
 
 /** Lista de reseñas capturadas con filtros y acciones de recuperación. */
@@ -46,7 +48,8 @@ export default function ListaResenas({
   readonly negocioNombre: string;
 })
 {
-  const [, startTransition] = useTransition();
+  const [pendiente, setPendiente] = useState(false);
+  const { showToast } = useToast();
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [resueltos, setResueltos] = useState<ReadonlySet<string>>(
     () => new Set(items.filter((i) => i.resuelto).map((i) => i.id)),
@@ -72,8 +75,13 @@ export default function ListaResenas({
     return items;
   }, [items, filtro, resueltos]);
 
-  function alternarResuelto(id: string): void
+  async function alternarResuelto(id: string): Promise<void>
   {
+    if (pendiente)
+    {
+      return;
+    }
+
     const nuevo = !resueltos.has(id);
 
     setResueltos((prev) =>
@@ -92,10 +100,25 @@ export default function ListaResenas({
       return copia;
     });
 
-    startTransition(async () =>
+    setPendiente(true);
+
+    try
     {
       await marcarResenaResuelta(id, nuevo);
-    });
+      showToast({
+        tone: "success",
+        title: "Reseña actualizada",
+        message: nuevo ? "Marcada como resuelta." : "Volvió a pendiente.",
+      });
+    }
+    catch
+    {
+      showToast({ tone: "error", title: "No se pudo actualizar", message: "Probá de nuevo." });
+    }
+    finally
+    {
+      setPendiente(false);
+    }
   }
 
   function linkWhatsapp(item: ResenaItem): string | null
@@ -123,9 +146,7 @@ export default function ListaResenas({
             key={clave}
             type="button"
             onClick={() => setFiltro(clave)}
-            className={filtro === clave
-              ? "inline-flex h-9 items-center rounded-lg border border-brand-500/50 bg-brand-500/15 px-3 text-xs font-semibold text-brand-200"
-              : "inline-flex h-9 items-center rounded-lg border border-white/10 px-3 text-xs font-semibold text-slate-300 hover:bg-white/5"}
+            className={`ui-tab ${filtro === clave ? "ui-tab-active" : ""}`}
           >
             {etiqueta}
           </button>
@@ -133,7 +154,7 @@ export default function ListaResenas({
       </div>
 
       {visibles.length === 0 ? (
-        <p className="rounded-2xl border border-white/10 bg-slate-900/70 p-8 text-center text-sm text-slate-400">
+        <p className="ui-card p-8 text-center text-sm text-muted-foreground">
           No hay reseñas para este filtro.
         </p>
       ) : (
@@ -145,24 +166,21 @@ export default function ListaResenas({
             const mala = item.estrellas <= 3;
 
             return (
-              <li key={item.id}
-                className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 backdrop-blur">
+              <li key={item.id} className="ui-card p-4 transition-shadow hover:shadow-[var(--shadow-card-hover)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className={`text-lg leading-none ${mala ? "text-rose-400" : "text-amber-400"}`}>
+                    <p className={`text-lg leading-none ${mala ? "text-danger" : "text-warning"}`}>
                       {estrellas(item.estrellas)}
                     </p>
-                    <p className="mt-2 font-semibold text-slate-100">{item.cliente}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">
+                    <p className="mt-2 font-semibold text-ink">{item.cliente}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {item.servicio} · {fechaCorta(item.fecha)}
                     </p>
                     {item.comentario !== null && item.comentario.length > 0 ? (
-                      <p className="mt-2 text-sm text-slate-300">{item.comentario}</p>
+                      <p className="mt-2 text-sm text-ink">{item.comentario}</p>
                     ) : null}
                   </div>
-                  <span className={resuelto
-                    ? "shrink-0 inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300"
-                    : "shrink-0 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300"}>
+                  <span className={`ui-badge shrink-0 ${resuelto ? "ui-badge-success" : "ui-badge-warning"}`}>
                     {resuelto ? "Resuelto" : "Pendiente"}
                   </span>
                 </div>
@@ -172,17 +190,17 @@ export default function ListaResenas({
                       href={wa}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-9 items-center rounded-lg border border-green-500/40 px-3 text-xs font-semibold
-                        text-green-300 hover:bg-green-500/20"
+                      className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                        hover:bg-success-soft"
                     >
                       Contactar por WhatsApp
                     </a>
                   ) : null}
                   <button
                     type="button"
-                    onClick={() => alternarResuelto(item.id)}
-                    className="inline-flex h-9 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold
-                      text-slate-300 hover:bg-white/10"
+                    onClick={() => { void alternarResuelto(item.id); }}
+                    disabled={pendiente}
+                    className="ui-btn ui-btn-outline ui-btn-sm"
                   >
                     {resuelto ? "Deshacer" : "Marcar resuelto"}
                   </button>

@@ -102,15 +102,15 @@ function clasePago(estado: string): string
 {
   if (estado === "approved")
   {
-    return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+    return "bg-emerald-500/10 text-[#0c6b45] border-emerald-500/30";
   }
 
   if (estado === "rejected")
   {
-    return "bg-rose-500/10 text-rose-300 border-rose-500/30";
+    return "ui-badge-danger";
   }
 
-  return "bg-amber-500/10 text-amber-300 border-amber-500/30";
+  return "ui-badge-warning";
 }
 
 /** Indica si el lector es el dueño demo (sin suscripciones reales). */
@@ -320,7 +320,7 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   if (props.demo)
   {
     return (
-      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+      <p className="text-xs text-muted-foreground bg-surface border border-line rounded-lg p-3">
         La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
       </p>
     );
@@ -332,8 +332,7 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
       <form action={cancelarPlan}>
         <button
           type="submit"
-          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-            text-slate-400 hover:bg-white/10 transition-colors"
+          className="ui-btn ui-btn-outline ui-btn-sm"
         >
           Cancelar plan
         </button>
@@ -344,7 +343,7 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   if (props.estado === "blocked")
   {
     return (
-      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+      <p className="text-xs text-muted-foreground bg-surface border border-line rounded-lg p-3">
         Completá el pago en el aviso para reactivar tu plan.
       </p>
     );
@@ -353,7 +352,7 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   return (
     <div>
       {props.planCancelado && (
-        <p className="text-xs text-slate-400 mb-3">
+        <p className="text-xs text-muted-foreground mb-3">
           Reactivá tu plan para volver a renovar automáticamente cada mes.
         </p>
       )}
@@ -395,15 +394,15 @@ export default async function SuscripcionPage(
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Suscripción</h1>
-          <p className="text-slate-400 mt-1 text-sm">
+          <h1 className="ui-page-title">Suscripción</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             {precioPlan.aplicada && promo !== null ? (
               <>
                 Plan mensual:{" "}
-                <span className="line-through text-slate-500">
+                <span className="line-through text-muted-foreground">
                   {formatearPrecioPlan(ctx.plan.currency, ctx.plan.monto)}
                 </span>{" "}
-                <span className="font-semibold text-emerald-300">
+                <span className="font-semibold text-[#0c6b45]">
                   {formatearPrecioPlan(ctx.plan.currency, precioPlan.montoFinal)}
                 </span>
                 {` · ${precioPlan.porcentaje}% off hasta `}
@@ -418,47 +417,42 @@ export default async function SuscripcionPage(
         </div>
         <Link
           href="/dashboard"
-          className="px-4 py-2 border border-white/15 rounded-xl text-slate-300 hover:bg-white/10"
+          className="ui-btn ui-btn-outline ui-btn-sm"
         >
           Volver
         </Link>
       </div>
 
       {retorno && ctx.estado !== "active" && (
-        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
-          bg-green-500/10 text-green-300 border-green-500/30">
+        <p className="ui-alert ui-alert-success mb-4 text-xs font-semibold">
           Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
         </p>
       )}
 
       {params?.error !== undefined && params.error.length > 0 && (
-        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
-          bg-rose-500/10 text-rose-300 border-rose-500/30">
+        <p className="ui-alert ui-alert-danger mb-4 text-xs font-semibold">
           {`No pudimos iniciar la activación: ${params.error}`}
         </p>
       )}
 
       {ctx.estado === "active" && !ctx.planCancelado && ctx.venceEn !== null && ctx.diasPlan === 0 && (
-        <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
-          bg-amber-500/10 text-amber-300 border-amber-500/30">
+        <p className="ui-alert ui-alert-warning mb-4 text-xs font-semibold">
           Estamos confirmando la renovación de tu plan con MercadoPago. Conservás el acceso mientras tanto.
         </p>
       )}
 
-      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-100">Plan mensual</h3>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full border
-              bg-white/10 text-slate-400 border-white/10">
+      <div className="ui-card mb-4 p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="ui-section-title">Plan mensual</h3>
+            <span className="ui-badge ui-badge-neutral">
               {etiquetaEstado(ctx.estado, ctx.planCancelado, ctx.diasRestantes)}
             </span>
           </div>
-          <p className="text-sm text-slate-400 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             {descripcionEstado(ctx.estado, ctx.planCancelado, ctx.venceEn, ctx.diasPlan, ctx.timeZone)}
           </p>
           {promo !== null && promo.ultimoError !== null && (
-            <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs
-              font-semibold text-amber-300">
+            <p className="ui-alert ui-alert-warning mb-4 text-xs font-semibold">
               Estamos terminando de aplicar tu descuento en MercadoPago. Si el próximo cobro sale con el
               precio de lista, escribinos y lo corregimos.
             </p>
@@ -471,37 +465,36 @@ export default async function SuscripcionPage(
           })}
         </div>
 
-      <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
-        <h3 className="font-semibold text-slate-100 mb-4">Historial de pagos</h3>
+      <div className="ui-card mb-4 p-4 sm:p-6">
+        <h3 className="ui-section-title mb-4">Historial de pagos</h3>
         {pagos.length === 0 ? (
-          <p className="text-sm text-slate-400">Todavía no hay pagos registrados.</p>
+          <p className="text-sm text-muted-foreground">Todavía no hay pagos registrados.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="ui-table">
               <thead>
-                <tr className="border-b border-white/10 text-slate-400">
-                  <th className="pb-3 font-semibold">Fecha</th>
-                  <th className="pb-3 font-semibold">Monto</th>
-                  <th className="pb-3 font-semibold">Estado</th>
-                  <th className="pb-3 font-semibold">Comprobante</th>
+                <tr>
+                  <th className="ui-th">Fecha</th>
+                  <th className="ui-th">Monto</th>
+                  <th className="ui-th">Estado</th>
+                  <th className="ui-th">Comprobante</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-line">
                 {pagos.map((pago) => (
-                  <tr key={pago.id} className="hover:bg-white/10">
-                    <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
+                  <tr key={pago.id} className="ui-tr">
+                    <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatearEnZonaConFecha(pago.fecha, ctx.timeZone)}
                     </td>
-                    <td className="py-3 text-slate-300 tabular-nums whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap text-ink tabular-nums">
                       {formatearMonto(pago.currency, pago.montoCents)}
                     </td>
-                    <td className="py-3">
-                      <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
-                        + clasePago(pago.estado)}>
+                    <td className="ui-td">
+                      <span className={`ui-badge ${clasePago(pago.estado)}`}>
                         {etiquetaPago(pago.estado)}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="ui-td text-muted-foreground">
                       <CopiarComprobante comprobanteId={pago.mpPaymentId} />
                     </td>
                   </tr>

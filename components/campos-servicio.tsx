@@ -26,13 +26,12 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
     && servicio?.precio_promocional !== undefined);
   const [remarketingActivo, setRemarketingActivo] = useState(servicio?.remarketing !== false);
 
-  const inputBase = "mt-1 w-full px-3 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500"
-    + " focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
-  const inputDeshabilitado = " bg-white/10 text-slate-400 opacity-60 cursor-not-allowed";
+  const inputBase = "ui-input mt-1";
+  const inputDeshabilitado = "opacity-60";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <label className="block text-sm text-slate-400 sm:col-span-2">
+      <label className="block ui-label sm:col-span-2">
         {"Nombre"}
         <input
           type="text"
@@ -44,7 +43,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <label className="block text-sm text-slate-400">
+      <label className="block ui-label">
         {"Duración (min)"}
         <input
           type="number"
@@ -55,7 +54,7 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <label className="block text-sm text-slate-400">
+      <label className="block ui-label">
         {"Precio base"}
         <input
           type="number"
@@ -67,14 +66,14 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={inputBase}
         />
       </label>
-      <div className="block text-sm text-slate-400">
+      <div className="block ui-label">
         <label className="flex items-center gap-2 mb-1">
           <input
             type="checkbox"
             name="promoActiva"
             checked={promoActiva}
             onChange={(event) => setPromoActiva(event.target.checked)}
-            className="w-4 h-4"
+            className="ui-checkbox"
           />
           {"Precio promo"}
         </label>
@@ -88,17 +87,17 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={`${inputBase}${promoActiva ? "" : inputDeshabilitado}`}
         />
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-400">
+      <label className="flex items-center gap-2 ui-label">
         <input
           type="checkbox"
           name="senaRequerida"
           checked={exigeSena}
           onChange={(event) => setExigeSena(event.target.checked)}
-          className="w-4 h-4"
+          className="ui-checkbox"
         />
         {"Exige seña"}
       </label>
-      <label className="block text-sm text-slate-400">
+      <label className="block ui-label">
         {"Seña (%)"}
         <input
           type="number"
@@ -112,17 +111,17 @@ export default function CamposServicio({ servicio }: { readonly servicio?: Campo
           className={`${inputBase}${exigeSena ? "" : inputDeshabilitado}`}
         />
       </label>
-      <label className="flex items-center gap-2 text-sm text-slate-400">
+      <label className="flex items-center gap-2 ui-label">
         <input
           type="checkbox"
           name="remarketingActivo"
           checked={remarketingActivo}
           onChange={(event) => setRemarketingActivo(event.target.checked)}
-          className="w-4 h-4"
+          className="ui-checkbox"
         />
         {"Remarketing"}
       </label>
-      <label className="block text-sm text-slate-400">
+      <label className="block ui-label">
         {"Remarketing (días)"}
         <input
           type="number"

@@ -1,5 +1,16 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import
+{
+  BellRing,
+  CalendarDays,
+  Check,
+  CreditCard,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+} from "lucide-react";
 
 import LossCalculator from "@/components/loss-calculator";
 
@@ -7,115 +18,216 @@ import LossCalculator from "@/components/loss-calculator";
 // contexto de request y revienta con ENVIRONMENT_FALLBACK. On-demand.
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default function HomePage()
+{
   const t = useTranslations("common");
 
+  const features = [
+    {
+      key: "señas",
+      title: t("features.señas.title"),
+      desc: t("features.señas.description"),
+      Icon: CreditCard,
+      tone: "bg-info-soft text-primary",
+    },
+    {
+      key: "recordatorios",
+      title: t("features.recordatorios.title"),
+      desc: t("features.recordatorios.description"),
+      Icon: BellRing,
+      tone: "bg-success-soft text-[#0c6b45]",
+    },
+    {
+      key: "listaNegra",
+      title: t("features.listaNegra.title"),
+      desc: t("features.listaNegra.description"),
+      Icon: ShieldCheck,
+      tone: "bg-danger-soft text-danger",
+    },
+    {
+      key: "agenda",
+      title: t("features.agenda.title"),
+      desc: t("features.agenda.description"),
+      Icon: CalendarDays,
+      tone: "bg-warning-soft text-[#8a5b00]",
+    },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-transparent">
-      <div className="max-w-4xl w-full px-8 py-12">
-        <div className="text-center space-y-6">
-          <p className="animate-reveal-up inline-flex items-center gap-2 rounded-full border border-white/10
-            bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-widest text-slate-300 uppercase
-            backdrop-blur" style={{ animationDelay: "0ms" }}>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)]" />{" "}
-            Reservas con seña para profesionales
-          </p>
-          <h1 className="animate-reveal-up text-4xl md:text-6xl font-bold tracking-tight text-white"
-            style={{ animationDelay: "80ms" }}>
-            {t("appName")}
-          </h1>
-          <p className="animate-reveal-up text-xl md:text-2xl font-semibold max-w-2xl mx-auto
-            bg-gradient-to-r from-brand-400 via-fuchsia-400 to-cyan-300 bg-clip-text text-transparent"
-            style={{ animationDelay: "160ms" }}>
-            {t("hero.title")}
-          </p>
-          <p className="animate-reveal-up text-lg text-slate-400 max-w-xl mx-auto"
-            style={{ animationDelay: "220ms" }}>
-            {t("hero.subtitle")}
-          </p>
-          <div className="animate-reveal-up flex flex-col sm:flex-row gap-4 justify-center mt-8"
-            style={{ animationDelay: "300ms" }}>
-            <Link href="/login" className="group relative inline-flex items-center justify-center overflow-hidden
-              px-8 py-4 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-500
-              shadow-[0_0_36px_-6px_var(--brand-500)] transition-all duration-300 hover:-translate-y-0.5">
-              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-              {t("hero.ctaPrimary")}
-            </Link>
-            <Link href="/features" className="inline-flex items-center justify-center px-8 py-4
-              border border-white/15 text-white font-semibold rounded-xl backdrop-blur
-              hover:bg-white/10 hover:border-white/25 transition-all duration-300 hover:-translate-y-0.5">
-              {t("hero.ctaSecondary")}
-            </Link>
+    <div className="min-h-screen bg-surface">
+      <main>
+        <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-20">
+          <div>
+            <p className="animate-reveal-up inline-flex items-center gap-2 rounded-full border border-line
+              bg-white px-4 py-1.5 text-xs font-semibold tracking-widest text-navy uppercase">
+              <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
+              Reservas con seña para profesionales
+            </p>
+            <h1 className="animate-reveal-up mt-5 font-heading text-4xl leading-tight font-extrabold
+              tracking-tight text-navy sm:text-5xl lg:text-[56px]" style={{ animationDelay: "60ms" }}>
+              {t("appName")}
+            </h1>
+            <p className="animate-reveal-up mt-4 max-w-xl font-heading text-xl font-bold text-primary
+              sm:text-2xl" style={{ animationDelay: "120ms" }}>
+              {t("hero.title")}
+            </p>
+            <p className="animate-reveal-up mt-4 max-w-xl text-base leading-relaxed text-muted-foreground
+              sm:text-lg" style={{ animationDelay: "180ms" }}>
+              {t("hero.subtitle")}
+            </p>
+            <div className="animate-reveal-up mt-8 flex flex-col gap-3 sm:flex-row"
+              style={{ animationDelay: "240ms" }}>
+              <Link href="/login" className="ui-btn ui-btn-cta ui-btn-lg">
+                {t("hero.ctaPrimary")}
+              </Link>
+              <Link href="/features" className="ui-btn ui-btn-outline ui-btn-lg">
+                {t("hero.ctaSecondary")}
+              </Link>
+            </div>
+            <div className="animate-reveal-up mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm
+              text-muted-foreground" style={{ animationDelay: "300ms" }}>
+              <span className="inline-flex items-center gap-1.5">
+                <Star className="size-4 fill-warning text-warning" aria-hidden="true" />
+                4.8/5 en atención
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="size-4 text-primary" aria-hidden="true" />
+                Hecho para profesionales independientes
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { key: "señas", title: t("features.señas.title"), desc: t("features.señas.description") },
-            { key: "recordatorios", title: t("features.recordatorios.title"), desc: t("features.recordatorios.description") },
-            { key: "listaNegra", title: t("features.listaNegra.title"), desc: t("features.listaNegra.description") },
-            { key: "agenda", title: t("features.agenda.title"), desc: t("features.agenda.description") },
-          ].map((feature, index) => (
-            <div key={feature.key}
-              className="animate-reveal-up rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl
-                shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)] transition-all duration-300
-                hover:-translate-y-1.5 hover:border-brand-500/40 hover:shadow-[0_16px_48px_-12px_var(--brand-500)]"
-              style={{ animationDelay: `${Math.min(index * 90, 360)}ms` }}>
-              <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-slate-400">{feature.desc}</p>
+          <div className="animate-reveal-up" style={{ animationDelay: "180ms" }}>
+            <div className="ui-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-line bg-white px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-danger" />
+                  <span className="size-2.5 rounded-full bg-warning" />
+                  <span className="size-2.5 rounded-full bg-success" />
+                </div>
+                <span className="font-heading text-sm font-bold text-navy">Agenda de hoy</span>
+                <span className="ui-badge ui-badge-info">6 turnos</span>
+              </div>
+              <div className="grid grid-cols-[54px_1fr] gap-px bg-line">
+                <div className="space-y-0 bg-surface py-3">
+                  {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00"].map((hora) => (
+                    <div key={hora} className="h-12 pr-2 text-right font-mono text-[10px]
+                      text-muted-foreground">
+                      {hora}
+                    </div>
+                  ))}
+                </div>
+                <div className="relative space-y-2 bg-white p-3">
+                  <div className="ml-1 h-11 w-4/5 rounded-md border border-info/30 border-l-4
+                    border-l-info bg-info-soft px-3 py-2 text-xs font-semibold text-[#0b5f7f]">
+                    Juan · Corte
+                  </div>
+                  <div className="ml-10 h-11 w-3/5 rounded-md border border-success/30 border-l-4
+                    border-l-success bg-success-soft px-3 py-2 text-xs font-semibold text-[#0c6b45]">
+                    Ana · Color
+                  </div>
+                  <div className="ml-3 h-11 w-2/3 rounded-md border border-warning/40 border-l-4
+                    border-l-warning bg-warning-soft px-3 py-2 text-xs font-semibold text-[#7a5200]">
+                    Leo · Barba
+                  </div>
+                  <div className="ml-16 h-11 w-1/2 rounded-md border border-danger/30 border-l-4
+                    border-l-danger bg-danger-soft px-3 py-2 text-xs font-semibold text-[#a3122f]">
+                    Seña pendiente
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between border-t border-line px-5 py-3">
+                <span className="text-xs text-muted-foreground">Hoy</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
+                  <Check className="size-4" aria-hidden="true" />
+                  Todo confirmado
+                </span>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </section>
 
-      <LossCalculator />
-
-      <div className="w-full max-w-4xl mx-auto px-8 py-16">
-        <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl
-          shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
-          <h2 className="text-2xl font-bold text-white mb-4 text-center">{t("pricing.title")}</h2>
-          <p className="text-lg text-slate-400 text-center mb-8">{t("pricing.subtitle")}</p>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-brand-400 to-cyan-300
-                bg-clip-text text-transparent">{t("pricing.monthly")}</div>
-              <div className="text-sm text-slate-400">{t("pricing.trial")}</div>
+        <section className="border-y border-line bg-white py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="text-xs font-semibold tracking-widest text-primary uppercase">Funciones</p>
+              <h2 className="mt-2 font-heading text-3xl font-extrabold tracking-tight text-navy">
+                Todo lo que necesitás para llenar tu agenda
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                Menos ausencias, más tiempo para tus clientes y una operación simple de entender.
+              </p>
             </div>
-            <ul className="space-y-2 text-sm text-slate-300">
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {features.map(({ key, title, desc, Icon, tone }, index) => (
+                <article
+                  key={key}
+                  className="animate-reveal-up ui-card ui-card-hover p-6"
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
+                  <span className={`inline-flex size-11 items-center justify-center rounded-full ${tone}`}>
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 font-heading text-base font-bold text-navy">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <LossCalculator />
+
+        <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="animate-reveal-up ui-card p-6 text-center sm:p-10">
+            <p className="text-xs font-semibold tracking-widest text-primary uppercase">Precio simple</p>
+            <h2 className="mt-2 font-heading text-3xl font-extrabold tracking-tight text-navy">
+              {t("pricing.title")}
+            </h2>
+            <p className="mt-2 text-muted-foreground">{t("pricing.subtitle")}</p>
+            <div className="mt-6 font-heading text-4xl font-extrabold text-navy">
+              {t("pricing.monthly")}
+            </div>
+            <div className="text-sm text-muted-foreground">{t("pricing.trial")}</div>
+            <ul className="mx-auto mt-8 grid max-w-2xl gap-3 text-left sm:grid-cols-2">
               {(t.raw("pricing.features") as string[]).map((feature) => (
-                <li key={feature} className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  <span>{feature}</span>
+                <li key={feature} className="flex items-center gap-2 text-sm text-ink">
+                  <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full
+                    bg-success-soft text-[#0c6b45]">
+                    <Check className="size-3.5" aria-hidden="true" />
+                  </span>
+                  {feature}
                 </li>
               ))}
             </ul>
-          </div>
-          <div className="mt-8 text-center">
-            <Link href="/register" className="group relative inline-flex items-center overflow-hidden px-8 py-3
-              bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-500
-              shadow-[0_0_36px_-6px_var(--brand-500)] transition-all duration-300 hover:-translate-y-0.5">
-              <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-                bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
+            <Link href="/register" className="ui-btn ui-btn-cta ui-btn-lg mt-8">
               {t("pricing.cta")}
             </Link>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="w-full border-t border-white/10 bg-white/[0.02] py-12 backdrop-blur">
-        <div className="max-w-4xl mx-auto px-8 text-center">
-          <h3 className="text-xl font-semibold mb-4 text-white">¿Listo para entrar con la cuenta demo?</h3>
-          <Link href="/login" className="inline-flex items-center px-6 py-3 bg-brand-600 text-white
-            font-semibold rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
-            transition-all duration-300 hover:-translate-y-0.5">
-            {t("auth.loginCta")}
-          </Link>
-          <p className="text-sm text-slate-400 mt-4">{t("demo.note")}</p>
-        </div>
-      </div>
+        <section className="bg-navy py-14">
+          <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+            <h2 className="font-heading text-2xl font-bold text-white sm:text-3xl">
+              ¿Listo para probar la cuenta demo?
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-white/70">
+              Explorá una agenda completa, probá cambiar turnos y mirá cómo se siente tu negocio
+              con TurnoMas.
+            </p>
+            <Link href="/login" className="ui-btn ui-btn-cta ui-btn-lg mt-6">
+              {t("auth.loginCta")}
+            </Link>
+            <p className="mt-3 text-xs text-white/60">{t("demo.note")}</p>
+          </div>
+        </section>
+
+        <footer className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3
+          px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
+          <span>{t("appName")}</span>
+          <span>Reservas, señas y recordatorios en un solo lugar.</span>
+        </footer>
+      </main>
     </div>
   );
 }

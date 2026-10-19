@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -185,6 +185,47 @@ describe("BookingFlow",
     await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
 
     expect(screen.getByText(/Revisá tu email/)).toBeDefined();
+  });
+
+  it("debería mostrar la confirmación animada al crear la reserva",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Diego",
+          horarios: { lun: "09:00-12:00", mar: "09:00-12:00" }, activo: true }]}
+        servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+          precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
+        turnos={[]}
+        bloqueos={[]}
+        horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
+    await user.click(screen.getAllByRole("button", { name: "09:00" })[0]!);
+
+    await user.type(screen.getByPlaceholderText("Ej: Juan Pérez"), "Juan");
+    await user.type(screen.getByPlaceholderText("Ej: +549110000001"), "+549110000001");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+
+    expect(await screen.findByTestId("reserva-confirmada")).toBeDefined();
+    expect(screen.getByText("¡Reserva confirmada!")).toBeDefined();
+    expect(fetchMock).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it("debería mostrar solo los servicios que brinda el profesional",

@@ -16,22 +16,19 @@ export interface AuthCardProps
 export default function AuthCard({ title, subtitle, error, children, footer }: AuthCardProps)
 {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent">
-      <div className="max-w-md w-full px-8 py-12">
-        <div className="animate-reveal-up rounded-2xl border border-white/10 bg-white/5 p-8 space-y-6
-          backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
+    <div className="flex min-h-[calc(100vh-60px)] items-center justify-center bg-surface px-4 py-10">
+      <div className="w-full max-w-md">
+        <div className="animate-reveal-up ui-card space-y-6 p-6 sm:p-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-2">{title}</h1>
-            <p className="text-sm text-slate-400">{subtitle}</p>
+            <h1 className="ui-page-title">{title}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           {error !== undefined && error !== null && error.length > 0 && (
-            <p role="alert" className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">
-              {error}
-            </p>
+            <p role="alert" className="ui-alert ui-alert-danger">{error}</p>
           )}
           {children}
           {footer !== undefined && (
-            <div className="text-center text-sm text-slate-400">{footer}</div>
+            <div className="text-center text-sm text-muted-foreground">{footer}</div>
           )}
         </div>
       </div>

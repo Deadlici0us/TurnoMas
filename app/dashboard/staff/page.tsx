@@ -7,6 +7,9 @@ import
   cambiarEstadoStaff,
   eliminarStaff,
 } from "./actions";
+import ActionForm from "@/components/ui/action-form";
+import PageHeader from "@/components/ui/page-header";
+import SubmitButton from "@/components/ui/submit-button";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import FotoStaffUploader from "@/components/foto-staff-uploader";
 import PerfilStaffForm from "@/components/perfil-staff-form";
@@ -110,11 +113,15 @@ export default async function StaffPage()
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-100">Equipo</h1>
-        <p className="text-slate-400 mt-1 text-sm">Profesionales del negocio y sus horarios.</p>
-      </div>
-      <form action={crearStaff} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6 mb-6 flex flex-col sm:flex-row gap-3">
+      <PageHeader
+        title="Equipo"
+        subtitle="Profesionales del negocio y sus horarios."
+      />
+      <ActionForm
+        action={crearStaff}
+        successMessage="Profesional agregado."
+        className="ui-card mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:p-6"
+      >
         <input
           type="text"
           name="nombre"
@@ -122,43 +129,36 @@ export default async function StaffPage()
           minLength={2}
           maxLength={80}
           placeholder="Nombre del profesional"
-          className="flex-1 px-4 py-2 bg-white/5 border border-white/15 text-slate-100 rounded-lg outline-none placeholder:text-slate-500
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="ui-input flex-1"
         />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white text-sm font-semibold px-6 py-2 rounded-lg
-            hover:bg-blue-700 transition-colors"
-        >
-          Agregar profesional
-        </button>
-      </form>
+        <SubmitButton pendingLabel="Agregando...">Agregar profesional</SubmitButton>
+      </ActionForm>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {(dashboard.staff as StaffRow[]).map((member) => (
-          <div key={member.id} className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 font-bold">
+          <div key={member.id} className="ui-card p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex size-12 items-center justify-center rounded-full bg-warning-soft
+                font-heading font-bold text-[#7a5200]">
                 {member.nombre.charAt(0)}
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-100">{member.nombre}</h3>
-                <p className="text-sm text-slate-400">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-heading font-bold text-ink">{member.nombre}</h3>
+                <p className="text-sm text-muted-foreground">
                   {member.activo === false ? "Inactivo" : "Activo"}
                 </p>
               </div>
-              <form action={alternarStaff.bind(null, member.id, member.activo === false)}>
-                <button
-                  type="submit"
-                  className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                    text-slate-400 hover:bg-white/10 transition-colors"
-                >
+              <ActionForm
+                action={alternarStaff.bind(null, member.id, member.activo === false)}
+                successMessage={member.activo === false ? "Profesional activado." : "Profesional desactivado."}
+              >
+                <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                   {member.activo === false ? "Activar" : "Desactivar"}
-                </button>
-              </form>
+                </SubmitButton>
+              </ActionForm>
               <StaffDeleteForm action={quitarStaff.bind(null, member.id)} />
             </div>
-            <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
-              <h4 className="text-sm font-semibold text-slate-100">Perfil</h4>
+            <div className="mt-4 space-y-4 border-t border-line pt-4">
+              <h4 className="text-sm font-semibold text-ink">Perfil</h4>
               <FotoStaffUploader
                 staffId={member.id}
                 nombre={member.nombre}
@@ -175,8 +175,8 @@ export default async function StaffPage()
               />
             </div>
             <div className="mt-4 space-y-2">
-              <h4 className="text-sm font-semibold text-slate-100">Horarios por día</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className="text-sm font-semibold text-ink">Horarios por día</h4>
+              <p className="text-xs text-muted-foreground">
                 Abrí cada día con el interruptor y elegí la hora con el reloj.
                 Podés agregar un segundo turno si corta al mediodía.
               </p>

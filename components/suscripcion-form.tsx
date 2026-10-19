@@ -91,7 +91,7 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
 
   return (
     <form onSubmit={(event) => void enviar(event)} className="space-y-3">
-      <label htmlFor={emailId} className="block text-sm font-medium text-slate-300">
+      <label htmlFor={emailId} className="block text-sm font-medium text-ink">
         Email de tu cuenta de MercadoPago
       </label>
       <input
@@ -104,25 +104,24 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
         value={email}
         disabled={enviando}
         onChange={(event) => setEmail(event.target.value)}
-        className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl outline-none
-          placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
+        className="ui-input h-11"
       />
       {error !== null ? (
-        <p role="alert" className="text-xs font-semibold px-3 py-2 rounded-lg border
-          bg-rose-500/10 text-rose-300 border-rose-500/30">
+        <p role="alert" className="ui-alert ui-alert-danger text-xs font-semibold">
           {error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={enviando}
-        className="group relative block w-full overflow-hidden bg-brand-600 text-white font-semibold py-3
-          rounded-xl hover:bg-brand-500 shadow-[0_0_36px_-6px_var(--brand-500)]
-          transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="ui-btn ui-btn-primary w-full"
       >
-        <span className="animate-shimmer pointer-events-none absolute inset-y-0 w-1/3
-          bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
-        {enviando ? "Redirigiendo…" : "Pagar con MercadoPago"}
+        {enviando ? (
+          <>
+            <span className="ui-spinner" aria-hidden="true" />
+            Redirigiendo…
+          </>
+        ) : "Pagar con MercadoPago"}
       </button>
     </form>
   );

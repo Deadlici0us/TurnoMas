@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState } from "react";
 
 import { deshacerRemarketingManual, marcarRemarketingManual } from "@/app/dashboard/remarketing/actions";
+import { useToast } from "@/components/ui/use-toast";
 
 export interface ListaItemProps
 {
@@ -12,12 +13,6 @@ export interface ListaItemProps
   readonly servicioNombre: string;
   readonly diasObjetivo: number;
   readonly atrasoDias: number;
-}
-
-interface Toast
-{
-  readonly mensaje: string;
-  readonly onDeshacer: () => void;
 }
 
 /**
@@ -33,22 +28,9 @@ export default function ListaRemarketing({
   readonly portalUrl: string | null;
 })
 {
-  const [, startMarcar] = useTransition();
-  const [, startDeshacer] = useTransition();
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [pendiente, setPendiente] = useState(false);
+  const { showToast } = useToast();
   const [visibles, setVisibles] = useState<readonly string[]>(items.map((item) => item.turnoId));
-
-  useEffect(() =>
-  {
-    if (toast === null)
-    {
-      return;
-    }
-
-    const timer = setTimeout(() => setToast(null), 6000);
-
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   function ocultar(turnoId: string): void
   {
@@ -60,27 +42,57 @@ export default function ListaRemarketing({
     setVisibles((prev) => (prev.includes(turnoId) ? prev : [...prev, turnoId]));
   }
 
-  function marcar(turnoId: string): void
+  async function marcar(turnoId: string): Promise<void>
   {
+    if (pendiente)
+    {
+      return;
+    }
+
+    setPendiente(true);
     ocultar(turnoId);
 
-    startMarcar(async () =>
+    try
     {
       await marcarRemarketingManual(turnoId);
-      setToast({
-        mensaje: "Marcado como contactado.",
-        onDeshacer: () =>
-        {
-          setToast(null);
-          mostrar(turnoId);
-
-          startDeshacer(async () =>
+      showToast({
+        tone: "success",
+        title: "Contacto registrado",
+        message: "Marcado como contactado.",
+        duration: 6000,
+        action: {
+          label: "Deshacer",
+          onClick: () =>
           {
-            await deshacerRemarketingManual(turnoId);
-          });
+            mostrar(turnoId);
+            void deshacer(turnoId);
+          },
         },
       });
-    });
+    }
+    catch
+    {
+      mostrar(turnoId);
+      showToast({ tone: "error", title: "No se pudo marcar", message: "Probá de nuevo." });
+    }
+    finally
+    {
+      setPendiente(false);
+    }
+  }
+
+  async function deshacer(turnoId: string): Promise<void>
+  {
+    try
+    {
+      await deshacerRemarketingManual(turnoId);
+      showToast({ tone: "success", title: "Listo", message: "Se deshizo el cambio." });
+    }
+    catch
+    {
+      ocultar(turnoId);
+      showToast({ tone: "error", title: "No se pudo deshacer", message: "Probá de nuevo." });
+    }
   }
 
   function linkWhatsapp(item: ListaItemProps): string | null
@@ -102,21 +114,6 @@ export default function ListaRemarketing({
 
   return (
     <>
-      {toast !== null ? (
-        <output className="fixed inset-x-0 top-6 z-50 flex justify-center px-4">
-          <div className="flex w-full max-w-sm items-center justify-between gap-3 rounded-xl border border-green-500/40
-            bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300 shadow-lg">
-            <span>{toast.mensaje}</span>
-            <button
-              type="button"
-              onClick={toast.onDeshacer}
-              className="shrink-0 text-xs font-semibold underline hover:text-green-200"
-            >
-              Deshacer
-            </button>
-          </div>
-        </output>
-      ) : null}
       <ul className="space-y-3">
         {aMostrar.map((item) =>
         {
@@ -125,24 +122,24 @@ export default function ListaRemarketing({
           return (
             <li
               key={item.turnoId}
-              className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 backdrop-blur"
+              className="ui-card p-4 transition-shadow hover:shadow-[var(--shadow-card-hover)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-slate-100">{item.clienteNombre}</p>
-                  <p className="mt-0.5 truncate text-xs text-slate-400">
+                  <p className="truncate font-semibold text-ink">{item.clienteNombre}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     Última visita: {item.servicioNombre}
                     {item.atrasoDias === 0 ? " · le toca hoy" : ` · hace ${item.atrasoDias + item.diasObjetivo} días`}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-muted-foreground">
                     {item.atrasoDias === 0
                       ? `Le correspondía a los ${item.diasObjetivo} días`
                       : `Le correspondía a los ${item.diasObjetivo} días · atrasado ${item.atrasoDias}`}
                   </p>
                 </div>
-                <span className={item.atrasoDias === 0
-                  ? "shrink-0 inline-flex rounded-full border border-violet-500/40 bg-violet-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-violet-300"
-                  : "shrink-0 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300"}>
+                <span className={`ui-badge shrink-0 ${item.atrasoDias === 0
+                  ? "ui-badge-info"
+                  : "ui-badge-warning"}`}>
                   {item.atrasoDias === 0 ? "Hoy" : `Atrasado ${item.atrasoDias} días`}
                 </span>
               </div>
@@ -152,18 +149,18 @@ export default function ListaRemarketing({
                     href={wa}
                     target="_blank"
                     rel="noreferrer"
-                    onClick={() => marcar(item.turnoId)}
-                    className="inline-flex h-9 items-center rounded-lg border border-green-500/40 px-3 text-xs font-semibold
-                      text-green-300 hover:bg-green-500/20"
+                    onClick={() => { void marcar(item.turnoId); }}
+                    className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
+                      hover:bg-success-soft"
                   >
                     Recordarle por WhatsApp
                   </a>
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => marcar(item.turnoId)}
-                  className="inline-flex h-9 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold
-                    text-slate-300 hover:bg-white/10"
+                  onClick={() => { void marcar(item.turnoId); }}
+                  disabled={pendiente}
+                  className="ui-btn ui-btn-outline ui-btn-sm"
                 >
                   Omitir
                 </button>
@@ -173,7 +170,7 @@ export default function ListaRemarketing({
         })}
       </ul>
       {aMostrar.length === 0 ? (
-        <p className="rounded-2xl border border-white/10 bg-slate-900/70 p-8 text-center text-sm text-slate-400">
+        <p className="ui-card p-8 text-center text-sm text-muted-foreground">
           No hay nadie más para hacer remarketing. Buen trabajo.
         </p>
       ) : null}
