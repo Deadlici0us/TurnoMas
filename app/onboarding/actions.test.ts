@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createBusiness } from "./actions";
+import { createBusiness, saveBusinessWhatsapp } from "./actions";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 vi.mock("next/navigation", () =>
@@ -41,6 +41,123 @@ beforeEach(() =>
 {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
+});
+
+/**
+ * Stub de Supabase para el update del WhatsApp del negocio.
+ *
+ * @param error Error devuelto por Supabase, o null si guarda bien.
+ * @return Funciones espía para verificar la actualización.
+ */
+function stubWhatsappUpdate(error: { code: string; message: string } | null = null): {
+  readonly update: ReturnType<typeof vi.fn>;
+  readonly eq: ReturnType<typeof vi.fn>;
+}
+{
+  const eq = vi.fn(async () => ({ error }));
+  const update = vi.fn(() => ({ eq }));
+
+  mockServer.mockResolvedValue({
+    auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "a@b.com" } } }) },
+    from: () => ({ update }),
+  } as never);
+
+  return { update, eq };
+}
+
+function formularioWhatsapp(whatsapp: string): FormData
+{
+  return formulario({ whatsapp });
+}
+
+describe("saveBusinessWhatsapp",
+() =>
+{
+  it("debería ir al dashboard en modo demo",
+  async () =>
+  {
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
+      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
+    expect(mockServer).not.toHaveBeenCalled();
+  });
+
+  it("debería pedir login sin sesión en modo supabase",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: null } }) },
+    } as never);
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
+      .rejects.toThrow("NEXT_REDIRECT:/login?error=sesion");
+  });
+
+  it("debería mandar al dashboard al dueño demo",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    vi.stubEnv("DEMO_DUENIO_ID", "user-1");
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "a@b.com" } } }) },
+    } as never);
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
+      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
+  });
+
+  it("debería guardar el WhatsApp recortado y seguir al paso 4",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    const { update, eq } = stubWhatsappUpdate();
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("  +54 9 11 1234-5678  ")))
+      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=4");
+
+    expect(update).toHaveBeenCalledWith({ whatsapp: "+54 9 11 1234-5678" });
+    expect(eq).toHaveBeenCalledWith("duenio_id", "user-1");
+  });
+
+  it("debería rechazar un WhatsApp vacío sin tocar la base",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    const { update } = stubWhatsappUpdate();
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("   ")))
+      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=3&error=whatsapp");
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("debería rechazar un WhatsApp inválido",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    const { update } = stubWhatsappUpdate();
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("123")))
+      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=3&error=whatsapp");
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("debería pedir reintento cuando el guardado falla",
+  async () =>
+  {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
+    stubWhatsappUpdate({ code: "500", message: "db" });
+
+    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
+      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=3&error=guardado");
+  });
 });
 
 describe("createBusiness",

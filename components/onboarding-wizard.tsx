@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { buildBusinessUrl } from "@/lib/onboarding/slug";
-import { createBusiness } from "@/app/onboarding/actions";
+import { createBusiness, saveBusinessWhatsapp } from "@/app/onboarding/actions";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 import { HORARIOS_POR_DEFECTO } from "@/lib/staff/validation";
 import EditorHorariosSemanales from "./editor-horarios-semanales";
@@ -33,10 +33,10 @@ export default function OnboardingWizard()
   const [nombre, setNombre] = useState("Barbería Diego");
   const [pais, setPais] = useState(DEFAULT_COUNTRY);
   const [paso, setPaso] = useState(() => pasoInicial(params));
-  const [waConectado, setWaConectado] = useState(false);
   const [gcalConectado, setGcalConectado] = useState(false);
 
   const mpOk = params.get("mp") === "ok";
+  const errorPaso3 = params.get("error");
   const mpAuthorizeHref = `/api/integrations/mercadopago/authorize?next=${
     encodeURIComponent("/onboarding?paso=2&mp=ok")}`;
 
@@ -175,29 +175,54 @@ export default function OnboardingWizard()
           <section className="space-y-4">
             <h2 className="font-semibold text-white">{t("onboarding.step3Title")}</h2>
             <p className="text-sm text-slate-400">{t("onboarding.step3Desc")}</p>
-            <button
-              onClick={() => setWaConectado(true)}
-              className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
-                hover:bg-brand-500 transition-colors"
-            >
-              {waConectado ? "✓ " : ""}{t("onboarding.connectWa")}
-            </button>
-            <div className="flex gap-3">
+            {errorPaso3 === "whatsapp" && (
+              <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
+                border-red-500/30 rounded-xl p-3">
+                {t("onboarding.whatsappError")}
+              </p>
+            )}
+            {errorPaso3 === "guardado" && (
+              <p role="alert" className="text-sm font-semibold text-red-300 bg-red-500/10 border
+                border-red-500/30 rounded-xl p-3">
+                {t("onboarding.whatsappGuardadoError")}
+              </p>
+            )}
+            <form action={saveBusinessWhatsapp} className="space-y-4">
+              <div>
+                <label htmlFor="business-whatsapp"
+                  className="block text-sm font-medium text-slate-300 mb-1">
+                  {t("onboarding.whatsappLabel")}
+                </label>
+                <input
+                  id="business-whatsapp"
+                  name="whatsapp"
+                  type="tel"
+                  required
+                  maxLength={25}
+                  autoComplete="tel"
+                  placeholder={t("onboarding.whatsappPlaceholder")}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl
+                    outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-brand-500
+                    focus:border-brand-500 transition"
+                />
+                <p className="text-xs text-slate-400 mt-2">{t("onboarding.whatsappHelp")}</p>
+              </div>
               <button
+                type="submit"
+                className="w-full bg-brand-600 text-white font-semibold py-3 rounded-xl
+                  hover:bg-brand-500 transition-colors"
+              >
+                {t("onboarding.guardarWhatsapp")}
+              </button>
+              <button
+                type="button"
                 onClick={() => setPaso(2)}
-                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
+                className="w-full border border-white/15 text-slate-200 font-semibold py-3
                   rounded-xl hover:bg-white/10 transition-colors"
               >
                 ←
               </button>
-              <button
-                onClick={() => setPaso(4)}
-                className="flex-1 border border-white/15 text-slate-200 font-semibold py-3
-                  rounded-xl hover:bg-white/10 transition-colors"
-              >
-                {t("onboarding.skipWa")}
-              </button>
-            </div>
+            </form>
           </section>
         )}
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { resolveAuthMode, buildOnboardingResult } from "@/lib/auth/auth-mode";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
+import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 import { validarHorariosStaff } from "@/lib/staff/validation";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -121,4 +122,58 @@ export async function createBusiness(formData: FormData): Promise<void>
   }
 
   redirect("/onboarding?paso=2");
+}
+
+/**
+ * Guarda el WhatsApp obligatorio del negocio (paso 3 del onboarding).
+ * La línea queda visible en el portal y en la configuración del negocio;
+ * sin un número válido no se avanza al paso 4.
+ *
+ * @param formData Formulario con el campo `whatsapp`.
+ */
+export async function saveBusinessWhatsapp(formData: FormData): Promise<void>
+{
+  if (resolveAuthMode() === "demo")
+  {
+    redirect("/dashboard");
+  }
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user)
+  {
+    redirect("/login?error=sesion");
+  }
+
+  if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
+  {
+    redirect("/dashboard");
+  }
+
+  let whatsapp: string | null = null;
+
+  try
+  {
+    whatsapp = validarWhatsappNegocio(leerTexto(formData, "whatsapp"));
+  }
+  catch
+  {
+    redirect("/onboarding?paso=3&error=whatsapp");
+  }
+
+  if (whatsapp === null)
+  {
+    redirect("/onboarding?paso=3&error=whatsapp");
+  }
+
+  const { error } = await supabase.from("negocios")
+    .update({ whatsapp }).eq("duenio_id", user.id);
+
+  if (error)
+  {
+    redirect("/onboarding?paso=3&error=guardado");
+  }
+
+  redirect("/onboarding?paso=4");
 }

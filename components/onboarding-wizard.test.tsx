@@ -17,7 +17,10 @@ vi.mock("next/navigation", () =>
 
 vi.mock("@/app/onboarding/actions", () =>
 {
-  return { createBusiness: vi.fn(async () => undefined) };
+  return {
+    createBusiness: vi.fn(async () => undefined),
+    saveBusinessWhatsapp: vi.fn(async () => undefined),
+  };
 });
 
 const mockSearchParams = vi.mocked(useSearchParams);
@@ -109,7 +112,7 @@ describe("OnboardingWizard",
     expect(screen.queryByRole("button", { name: "onboarding.continuar" })).toBeNull();
   });
 
-  it("debería continuar al paso 3 con mp=ok",
+  it("debería continuar al paso 3 con mp=ok sin opción de omitir",
   async () =>
   {
     const user = userEvent.setup();
@@ -122,11 +125,32 @@ describe("OnboardingWizard",
     await user.click(screen.getByRole("button", { name: "onboarding.continuar" }));
 
     expect(screen.getByText("onboarding.step3Title")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "onboarding.skipWa" })).toBeNull();
+  });
 
-    await user.click(screen.getByRole("button", { name: "onboarding.skipWa" }));
+  it("debería exigir el WhatsApp del negocio en el paso 3",
+  () =>
+  {
+    params("paso=3");
 
-    expect(screen.getByText("onboarding.step4Title")).toBeDefined();
-    expect(screen.getByText("onboarding.trialNote")).toBeDefined();
+    render(<OnboardingWizard />);
+
+    const input = screen.getByPlaceholderText("onboarding.whatsappPlaceholder");
+
+    expect(input).toHaveAttribute("name", "whatsapp");
+    expect(input).toHaveAttribute("required");
+    expect(screen.getByRole("button", { name: "onboarding.guardarWhatsapp" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "onboarding.skipWa" })).toBeNull();
+  });
+
+  it("debería mostrar el error de WhatsApp inválido en el paso 3",
+  () =>
+  {
+    params("paso=3&error=whatsapp");
+
+    render(<OnboardingWizard />);
+
+    expect(screen.getByText("onboarding.whatsappError")).toBeDefined();
   });
 
   it("debería usar la zona del país sin Intl disponible",
