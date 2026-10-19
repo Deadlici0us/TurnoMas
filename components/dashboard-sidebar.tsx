@@ -11,7 +11,6 @@ import
   LayoutDashboard,
   Menu,
   Repeat,
-  ReceiptText,
   Settings,
   Star,
   Tags,
@@ -56,7 +55,6 @@ const GRUPOS: readonly Grupo[] =
     titulo: "Finanzas",
     items: [
       { href: "/dashboard/pagos", etiqueta: "Pagos", Icono: Wallet },
-      { href: "/dashboard/suscripcion", etiqueta: "Suscripción", Icono: ReceiptText },
     ],
   },
   {
@@ -203,9 +201,7 @@ export default function DashboardSidebar({
               <div className="flex flex-col gap-0.5">
                 {grupo.items.map(({ href, etiqueta, Icono }) =>
                 {
-                  const deshabilitada = bloqueado
-                    && href !== "/dashboard/suscripcion"
-                    && href !== "/admin/promociones";
+                  const deshabilitada = bloqueado && href !== "/admin/promociones";
                   const pendientes = pendientesDeSeccion(href, pendientesRemarketing, resenasPendientes);
 
                   const contenido = (

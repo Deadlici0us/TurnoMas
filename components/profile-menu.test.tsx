@@ -7,8 +7,6 @@ import ProfileMenu from "./profile-menu";
 const LABELS =
 {
   menuLabel: "Abrir menú de cuenta",
-  dashboardLabel: "Panel",
-  configLabel: "Configuración",
   billingLabel: "Suscripción",
   logoutLabel: "Cerrar sesión",
 } as const;
@@ -25,7 +23,7 @@ describe("ProfileMenu",
     expect(screen.getByText("Barbería Diego")).toBeDefined();
   });
 
-  it("debería abrir el menú con navegación y logout",
+  it("debería abrir el menú con cuenta y logout sin repetir el sidebar",
   async () =>
   {
     const user = userEvent.setup();
@@ -33,9 +31,9 @@ describe("ProfileMenu",
 
     await user.click(screen.getByRole("button", { name: "Abrir menú de cuenta" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Panel" })).toBeDefined();
-    expect(screen.getByRole("menuitem", { name: "Configuración" })).toBeDefined();
-    expect(screen.getByRole("menuitem", { name: "Suscripción" })).toBeDefined();
+    expect(await screen.findByRole("menuitem", { name: "Suscripción" })).toBeDefined();
     expect(screen.getByRole("menuitem", { name: "Cerrar sesión" })).toBeDefined();
+    expect(screen.queryByRole("menuitem", { name: "Panel" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Configuración" })).toBeNull();
   });
 });

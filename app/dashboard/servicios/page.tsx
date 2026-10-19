@@ -79,7 +79,9 @@ export default async function ServiciosPage()
         title="Servicios"
         subtitle="Duración, precios y seña por servicio."
       />
-      <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
+      <div className="ui-card mb-4 p-5 sm:p-6">
+        <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
+      </div>
 
         {(dashboard.servicios as ServicioRow[]).map((servicio) => (
           <div key={servicio.id} className="ui-card mb-4 p-5 sm:p-6">

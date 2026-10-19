@@ -55,7 +55,8 @@ describe("ServiciosPage",
 
     expect(screen.getByRole("heading", { name: "Servicios" })).toBeDefined();
     expect(screen.getByText("Nuevo servicio")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Agregar servicio" })).toBeDefined();
+    const boton = screen.getByRole("button", { name: "Agregar servicio" });
+    expect(boton.closest("form")?.closest(".ui-card")).not.toBeNull();
   });
 
   it("debería mostrar promo, seña y remarketing",

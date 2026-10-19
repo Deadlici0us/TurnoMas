@@ -253,6 +253,28 @@ export function formatearEnZona(valor: Date | string, timeZone: string): string
 }
 
 /**
+ * Formatea solo la hora de un instante en la zona del negocio.
+ *
+ * @param valor Instante ISO o Date.
+ * @param timeZone Zona IANA del negocio.
+ * @return `HH:mm` en hora civil, o el raw si es inválido.
+ */
+export function formatearHoraEnZona(valor: Date | string, timeZone: string): string
+{
+  const fecha = aFecha(valor);
+
+  if (fecha === null)
+  {
+    return typeof valor === "string" ? valor : String(valor);
+  }
+
+  const dos = (n: number): string => String(n).padStart(2, "0");
+  const partes = obtenerPartesCiviles(fecha, timeZone);
+
+  return `${dos(partes.hora)}:${dos(partes.minuto)}`;
+}
+
+/**
  * Formatea un instante con fecha completa y precisión de minutos.
  *
  * @param valor Instante ISO o Date.

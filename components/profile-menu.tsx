@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Menu } from "@base-ui/react/menu";
-import { ChevronDown, LayoutDashboard, LogOut, ReceiptText, Settings } from "lucide-react";
+import { ChevronDown, LogOut, ReceiptText } from "lucide-react";
 
 import Avatar from "@/components/ui/avatar";
 
@@ -12,15 +12,11 @@ export interface ProfileMenuProps
   readonly logoUrl: string | null;
   readonly logoutAction: () => void | Promise<void>;
   readonly menuLabel: string;
-  readonly dashboardLabel: string;
-  readonly configLabel: string;
   readonly billingLabel: string;
   readonly logoutLabel: string;
 }
 
 const ITEMS = [
-  { href: "/dashboard", key: "dashboardLabel", Icon: LayoutDashboard },
-  { href: "/dashboard/config", key: "configLabel", Icon: Settings },
   { href: "/dashboard/suscripcion", key: "billingLabel", Icon: ReceiptText },
 ] as const;
 

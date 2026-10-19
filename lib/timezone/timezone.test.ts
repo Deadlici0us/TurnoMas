@@ -7,6 +7,7 @@ import
   formatearEnZona,
   formatearEnZonaConFecha,
   formatearEnZonaConSegundos,
+  formatearHoraEnZona,
   minutosEnZona,
   resolverTimezoneNegocio,
   validarTimezone,
@@ -56,6 +57,16 @@ describe("timezone por negocio",
     expect(claveDiaEnZona(fecha, "America/Cancun")).toBe("2026-01-15");
     expect(formatearEnZona(fecha, "America/Tijuana")).toBe("14/01 21:30");
     expect(formatearEnZona(fecha, "America/Cancun")).toBe("15/01 00:30");
+  });
+
+  it("debería formatear solo la hora en la zona del negocio",
+  () =>
+  {
+    const fecha = new Date("2026-09-30T17:00:00.000Z");
+
+    expect(formatearHoraEnZona(fecha, "America/Argentina/Buenos_Aires")).toBe("14:00");
+    expect(formatearHoraEnZona(fecha, "America/Tijuana")).toBe("10:00");
+    expect(formatearHoraEnZona("no-fecha", "America/Argentina/Buenos_Aires")).toBe("no-fecha");
   });
 
   it("debería aceptar ISO string y fechas inválidas controladas",

@@ -9,14 +9,27 @@ import StatCard from "@/components/ui/stat-card";
 import StatusBadge from "@/components/ui/status-badge";
 import { formatearARS } from "@/lib/dashboard/moneda";
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { buscarProximoTurnoDeHoy, calcularMetricasDelDia } from "@/lib/dashboard/metricas-dia";
 import { debeAvisarConexionMp } from "@/lib/dashboard/conexion-mp";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { avisoSuscripcion } from "@/lib/onboarding/trial";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { formatearEnZona, formatearHoraEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 const formatARS = formatearARS;
+
+interface TurnoDashboard
+{
+  readonly id: string;
+  readonly estado: string;
+  readonly servicio_id: string;
+  readonly cliente_id: string;
+  readonly staff_id?: string;
+  readonly inicio?: string;
+  readonly sena_monto?: number | null;
+  readonly monto_total: number | null;
+}
 
 export default async function DashboardPage()
 {
@@ -68,6 +81,14 @@ export default async function DashboardPage()
   const avisarMp = debeAvisarConexionMp(mpToken,
     dashboard.servicios as { sena_requerida?: unknown }[]);
 
+  const timeZone = resolverTimezoneNegocio({
+    timezone: (negocioRow as { timezone?: unknown }).timezone,
+    pais: (negocioRow as { pais?: unknown }).pais,
+  });
+  const ahora = new Date();
+  const turnos = dashboard.turnos as TurnoDashboard[];
+  const metricasDia = calcularMetricasDelDia(turnos, timeZone, ahora);
+  const proximoTurno = buscarProximoTurnoDeHoy(turnos, timeZone, ahora);
   const stats = await getDashboardStats(String(dashboard.negocio.id ?? ""));
 
   const nombrePorServicio = new Map<string, string>(
@@ -79,10 +100,6 @@ export default async function DashboardPage()
   const nombrePorStaff = new Map<string, string>(
     (dashboard.staff as Array<{ id: string; nombre: string }>).map((s) => [s.id, s.nombre]),
   );
-  const timeZone = resolverTimezoneNegocio({
-    timezone: (negocioRow as { timezone?: unknown }).timezone,
-    pais: (negocioRow as { pais?: unknown }).pais,
-  });
 
   const avisos = [
     aviso !== null ? { texto: aviso, href: "/dashboard/suscripcion", cta: "Ver suscripción" } : null,
@@ -115,15 +132,17 @@ export default async function DashboardPage()
   const indicadores = [
     {
       etiqueta: "Turnos hoy",
-      valor: String(stats.turnosHoy),
-      detalle: `${stats.pendientes} pendientes de pago`,
+      valor: String(metricasDia.turnosHoy),
+      detalle: metricasDia.turnosHoy === 0
+        ? "Sin turnos hoy"
+        : `${metricasDia.confirmadosHoy} confirmados`,
       Icono: CalendarClock,
       tone: "teal" as const,
     },
     {
       etiqueta: "Pendientes",
       valor: String(stats.pendientes),
-      detalle: "Esperando seña",
+      detalle: "En todas las fechas",
       Icono: TriangleAlert,
       tone: "amber" as const,
     },
@@ -137,22 +156,22 @@ export default async function DashboardPage()
     {
       etiqueta: "Ingresos por señas",
       valor: formatARS(stats.totalIngresos),
-      detalle: "Acumulado cobrado",
       Icono: CircleDollarSign,
       tone: "navy" as const,
     },
   ];
 
-  const proximos = (dashboard.turnos as Array<{
-    id: string;
-    estado: string;
-    servicio_id: string;
-    cliente_id: string;
-    staff_id?: string;
-    inicio?: string;
-    monto_total: number | null;
-  }>).slice().sort((a, b) =>
-    new Date(a.inicio ?? 0).getTime() - new Date(b.inicio ?? 0).getTime()).slice(0, 8);
+  const proximos = turnos
+    .filter((turno) =>
+    {
+      const inicio = typeof turno.inicio === "string" ? new Date(turno.inicio).getTime() : Number.NaN;
+
+      return Number.isFinite(inicio) && inicio >= ahora.getTime();
+    })
+    .slice()
+    .sort((a, b) =>
+      new Date(a.inicio ?? 0).getTime() - new Date(b.inicio ?? 0).getTime())
+    .slice(0, 8);
 
   return (
     <div>
@@ -193,11 +212,6 @@ export default async function DashboardPage()
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <Panel
           title="Próximos turnos"
-          actions={(
-            <Link href="/dashboard/agenda" className="ui-link text-sm">
-              Ver agenda
-            </Link>
-          )}
           bodyClassName="p-0 sm:p-0"
         >
           {proximos.length === 0 ? (
@@ -240,22 +254,23 @@ export default async function DashboardPage()
         </Panel>
         <Panel title="Hoy" description="Tu día de un vistazo.">
           <dl className="space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="shrink-0 text-muted-foreground">Próximo turno</dt>
+              <dd className="text-right font-bold text-ink">
+                {proximoTurno !== null
+                  ? `${formatearHoraEnZona(proximoTurno.inicio as string, timeZone)} · ${nombrePorCliente.get(proximoTurno.cliente_id) ?? "Cliente"}`
+                  : "Sin turnos pendientes"}
+              </dd>
+            </div>
             <div className="flex items-center justify-between">
-              <dt className="text-muted-foreground">Turnos</dt>
-              <dd className="font-bold text-ink tabular-nums">{stats.turnosHoy}</dd>
+              <dt className="text-muted-foreground">Por confirmar</dt>
+              <dd className="font-bold text-ink tabular-nums">{metricasDia.pendientesHoy}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Señas de hoy</dt>
-              <dd className="font-bold text-ink tabular-nums">{stats.pagados}</dd>
-            </div>
-            <div className="flex items-center justify-between">
-              <dt className="text-muted-foreground">Ingresos</dt>
-              <dd className="font-bold text-ink tabular-nums">{formatARS(stats.totalIngresos)}</dd>
+              <dd className="font-bold text-ink tabular-nums">{formatARS(metricasDia.ingresosHoy)}</dd>
             </div>
           </dl>
-          <Link href="/dashboard/agenda" className="ui-btn ui-btn-primary mt-5 w-full">
-            Abrir agenda de hoy
-          </Link>
         </Panel>
       </div>
     </div>

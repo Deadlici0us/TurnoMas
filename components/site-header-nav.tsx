@@ -14,8 +14,6 @@ export interface SiteHeaderNavProps
   readonly registerLabel: string;
   readonly logoutLabel: string;
   readonly menuLabel: string;
-  readonly dashboardLabel: string;
-  readonly configLabel: string;
   readonly billingLabel: string;
   readonly accountLabel: string;
   readonly logoutAction: () => void | Promise<void>;
@@ -54,8 +52,6 @@ export default function SiteHeaderNav(props: SiteHeaderNavProps)
               logoUrl={props.logoUrl}
               logoutAction={props.logoutAction}
               menuLabel={props.menuLabel}
-              dashboardLabel={props.dashboardLabel}
-              configLabel={props.configLabel}
               billingLabel={props.billingLabel}
               logoutLabel={props.logoutLabel}
             />

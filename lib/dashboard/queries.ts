@@ -127,17 +127,14 @@ export async function getDashboardStats(negocioId: string)
 {
   if (negocioId.trim().length === 0)
   {
-    return { turnosHoy: 0, pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
+    return { pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
   }
 
   try
   {
     const admin = getSupabaseAdmin();
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
 
     const [
-      { count: turnosHoy },
       { count: pendientes },
       { count: confirmados },
       { count: pagados },
@@ -146,7 +143,6 @@ export async function getDashboardStats(negocioId: string)
       { count: cancelados },
       { data: pagos },
     ] = await Promise.all([
-      admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).gte("inicio", todayStart.toISOString()),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "pendiente"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "confirmado"),
       admin.from("turnos").select("*", { count: "exact", head: true }).eq("negocio_id", negocioId).eq("estado", "pagado"),
@@ -159,7 +155,6 @@ export async function getDashboardStats(negocioId: string)
     const totalIngresos = (pagos ?? []).reduce((sum: number, t: { sena_monto: number | null }) => sum + (t.sena_monto ?? 0), 0);
 
     return {
-      turnosHoy: turnosHoy ?? 0,
       pendientes: pendientes ?? 0,
       confirmados: confirmados ?? 0,
       pagados: pagados ?? 0,
@@ -171,6 +166,6 @@ export async function getDashboardStats(negocioId: string)
   }
   catch
   {
-    return { turnosHoy: 0, pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
+    return { pendientes: 0, confirmados: 0, pagados: 0, completados: 0, ausentes: 0, cancelados: 0, totalIngresos: 0 };
   }
 }

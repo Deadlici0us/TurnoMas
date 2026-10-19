@@ -187,7 +187,7 @@ describe("getDashboardStats",
   it("debería devolver ceros sin negocio",
   async () =>
   {
-    await expect(getDashboardStats("   ")).resolves.toMatchObject({ turnosHoy: 0, totalIngresos: 0 });
+    await expect(getDashboardStats("   ")).resolves.toMatchObject({ pendientes: 0, totalIngresos: 0 });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 
@@ -198,7 +198,6 @@ describe("getDashboardStats",
 
     const stats = await getDashboardStats("neg-1");
 
-    expect(stats.turnosHoy).toBe(3);
     expect(stats.pendientes).toBe(3);
     expect(stats.totalIngresos).toBe(100);
   });
@@ -210,7 +209,7 @@ describe("getDashboardStats",
 
     const stats = await getDashboardStats("neg-1");
 
-    expect(stats).toMatchObject({ turnosHoy: 0, totalIngresos: 0 });
+    expect(stats).toMatchObject({ pendientes: 0, totalIngresos: 0 });
   });
 
   it("debería devolver ceros ante fallas de base",

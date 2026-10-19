@@ -12,15 +12,27 @@ vi.mock("next/navigation", () =>
 describe("DashboardSidebar",
 () =>
 {
-  it("debería listar las ocho secciones en español",
+  it("debería listar las secciones operativas en español",
   () =>
   {
     render(<DashboardSidebar />);
 
-    for (const nombre of ["Panel", "Agenda", "Equipo", "Servicios", "Clientes", "Pagos", "Configuración", "Suscripción"])
+    for (const nombre of [
+      "Panel",
+      "Agenda",
+      "Equipo",
+      "Servicios",
+      "Clientes",
+      "Reseñas",
+      "Remarketing",
+      "Pagos",
+      "Configuración",
+    ])
     {
       expect(screen.getByRole("link", { name: nombre })).toBeDefined();
     }
+
+    expect(screen.queryByRole("link", { name: "Suscripción" })).toBeNull();
   });
 
   it("debería mostrar Promociones solo al administrador",
@@ -46,14 +58,15 @@ describe("DashboardSidebar",
     expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute("aria-current");
   });
 
-  it("debería deshabilitar las secciones que no son Suscripción con plan vencido",
+  it("debería deshabilitar la navegación operativa con plan vencido",
   () =>
   {
     render(<DashboardSidebar bloqueado />);
 
     expect(screen.queryByRole("link", { name: "Agenda" })).toBeNull();
     expect(screen.getByText("Agenda")).toBeDefined();
-    expect(screen.getByRole("link", { name: "Suscripción" })).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Configuración" })).toBeNull();
+    expect(screen.getByText("Configuración")).toBeDefined();
   });
 
   it("debería abrir y cerrar el menú móvil",

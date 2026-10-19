@@ -44,7 +44,6 @@ function stubSinMp(): void
 }
 
 const STATS = {
-  turnosHoy: 2,
   pendientes: 1,
   confirmados: 1,
   pagados: 0,
@@ -67,6 +66,7 @@ function dashboardBase(overrides: Record<string, unknown> = {})
       estado: "confirmado",
       servicio_id: "serv-1",
       cliente_id: "cli-1",
+      inicio: new Date(Date.now() + 3_600_000).toISOString(),
       monto_total: 10000,
     }],
     ...overrides,
@@ -127,11 +127,17 @@ describe("DashboardPage",
     expect(screen.getByText("Señas cobradas")).toBeDefined();
     expect(screen.getByText("Ingresos por señas")).toBeDefined();
     expect(screen.queryByText("Confirmados")).toBeNull();
+    expect(screen.queryByText(/pendientes de pago/)).toBeNull();
+    expect(screen.getByText("En todas las fechas")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Próximos turnos" })).toBeDefined();
     expect(screen.getByText("Corte")).toBeDefined();
     expect(screen.getByText("Juan")).toBeDefined();
     expect(screen.getByText(/\$ 100/)).toBeDefined();
-    expect(screen.getByRole("link", { name: "Ver agenda" })).toHaveAttribute("href", "/dashboard/agenda");
+    expect(screen.getByRole("heading", { name: "Hoy" })).toBeDefined();
+    expect(screen.getByText("Próximo turno")).toBeDefined();
+    expect(screen.getByText("Por confirmar")).toBeDefined();
+    expect(screen.getByText("Señas de hoy")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Abrir agenda" })).toHaveAttribute("href", "/dashboard/agenda");
   });
 
   it("debería usar fallbacks sin nombres ni montos",
@@ -147,6 +153,7 @@ describe("DashboardPage",
           estado: "pendiente",
           servicio_id: "missing",
           cliente_id: "missing",
+          inicio: new Date(Date.now() + 3_600_000).toISOString(),
           monto_total: null,
         }],
       }),
@@ -161,5 +168,39 @@ describe("DashboardPage",
     expect(screen.getAllByText("Servicio").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Cliente")).toBeDefined();
     expect(screen.getAllByText("$ 0").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("debería excluir turnos pasados de los próximos turnos",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase({
+        turnos: [
+          {
+            id: "t-pasado",
+            estado: "confirmado",
+            servicio_id: "serv-1",
+            cliente_id: "cli-1",
+            inicio: new Date(Date.now() - 3_600_000).toISOString(),
+            monto_total: 10000,
+          },
+          {
+            id: "t-futuro",
+            estado: "confirmado",
+            servicio_id: "serv-1",
+            cliente_id: "cli-1",
+            inicio: new Date(Date.now() + 3_600_000).toISOString(),
+            monto_total: 10000,
+          },
+        ],
+      }),
+      error: null,
+      isDemo: false,
+    } as never);
+    mockStats.mockResolvedValueOnce(STATS);
+
+    render(await DashboardPage());
+
+    expect(screen.getAllByText("Juan")).toHaveLength(1);
   });
 });

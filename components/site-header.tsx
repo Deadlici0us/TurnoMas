@@ -31,8 +31,6 @@ export default async function SiteHeader()
       registerLabel={t("nav.register")}
       logoutLabel={t("auth.logoutCta")}
       menuLabel={t("nav.menu")}
-      dashboardLabel={t("nav.dashboard")}
-      configLabel={t("nav.config")}
       billingLabel={t("nav.billing")}
       accountLabel={t("nav.account")}
       logoutAction={logout}

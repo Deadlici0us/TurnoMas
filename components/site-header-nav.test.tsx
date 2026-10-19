@@ -11,8 +11,6 @@ const LABELS =
   registerLabel: "Registrarse",
   logoutLabel: "Cerrar sesión",
   menuLabel: "Abrir menú de cuenta",
-  dashboardLabel: "Panel",
-  configLabel: "Configuración",
   billingLabel: "Suscripción",
   accountLabel: "Mi cuenta",
 } as const;
