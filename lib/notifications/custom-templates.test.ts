@@ -12,6 +12,7 @@ import
 import { linkWhatsapp, normalizarWhatsappParaLink } from "./whatsapp";
 
 const DATOS = {
+  cliente: "Juan Pérez",
   negocio: "Barbería Diego",
   servicio: "Corte clásico",
   profesional: "Diego",
@@ -51,15 +52,26 @@ describe("resolverPlantilla",
     expect(t.html).toContain("Corte clásico");
   });
 
-  it("debería interpolar subject y cuerpo personalizados con link",
+  it("debería interpolar subject y cuerpo personalizados con links específicos",
   () =>
   {
     const t = resolverPlantilla("resena",
-      { subject: "Opiná de {servicio}", cuerpo: "Hola, calificanos acá:\n{link}" },
-      DATOS, "https://app/resena/1");
+      { subject: "Opiná de {servicio}", cuerpo: "Hola {cliente}, calificanos acá:\n{link_resena}" },
+      DATOS, { resena: "https://app/resena/1" });
 
     expect(t.subject).toBe("Opiná de Corte clásico");
+    expect(t.html).toContain("Hola Juan Pérez");
     expect(t.html).toContain("https://app/resena/1");
+  });
+
+  it("debería mantener {link} como alias de compatibilidad",
+  () =>
+  {
+    const t = resolverPlantilla("remarketing",
+      { subject: null, cuerpo: "Volvé acá: {link}" },
+      DATOS, { reserva: "https://app/ar/barberia" });
+
+    expect(t.html).toContain("https://app/ar/barberia");
   });
 
   it("debería usar el detalle por defecto cuando el cuerpo queda vacío",
@@ -73,20 +85,21 @@ describe("resolverPlantilla",
     expect(t.html).toContain("Corte clásico con Diego · 28/09/2026 10:00");
   });
 
-  it("debería exponer las 5 variables documentadas",
+  it("debería exponer las variables comunes documentadas",
   () =>
   {
-    expect([...VARIABLES_PLANTILLA]).toEqual(["negocio", "servicio", "profesional", "fecha", "link"]);
+    expect([...VARIABLES_PLANTILLA]).toEqual(["cliente", "negocio", "servicio", "profesional", "fecha"]);
   });
 
   it("debería armar texto plano de WhatsApp con custom o default",
   () =>
   {
-    expect(textoWhatsapp("recordatorio", { subject: null, cuerpo: "Nos vemos {fecha}" }, DATOS))
-      .toBe("Nos vemos 28/09/2026 10:00");
+    expect(textoWhatsapp("recordatorio", { subject: null, cuerpo: "Hola {cliente}, nos vemos {fecha}" }, DATOS))
+      .toBe("Hola Juan Pérez, nos vemos 28/09/2026 10:00");
     expect(textoWhatsapp("recordatorio", { subject: null, cuerpo: null }, DATOS))
-      .toContain("te esperamos");
-    expect(textoWhatsapp("cancelacion", { subject: null, cuerpo: null }, DATOS, "https://app/cancelar/1"))
+      .toContain("Hola Juan Pérez, te esperamos");
+    expect(textoWhatsapp("cancelacion", { subject: null, cuerpo: null }, DATOS,
+      { cancelacion: "https://app/cancelar/1" }))
       .toContain("https://app/cancelar/1");
   });
 });

@@ -87,6 +87,7 @@ export default async function ClientesPage({
   {
     return linkRemarketingWhatsapp({
       whatsapp: cliente.whatsapp,
+      clienteNombre: cliente.nombre,
       portalUrl,
       negocioNombre,
       msg_remarketing_subject: typeof negocioRow.msg_remarketing_subject === "string"

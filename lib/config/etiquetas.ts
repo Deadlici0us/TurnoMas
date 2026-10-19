@@ -5,7 +5,10 @@
  * a lenguaje simple en es-AR. Todo es puro para facilitar TDD.
  */
 
+import { VARIABLES_POR_TIPO } from "@/lib/notifications/custom-templates";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
+import { textoDefault } from "@/lib/notifications/templates";
+import type { TipoPlantillaDefault } from "@/lib/notifications/templates";
 
 /** Ciudad y país legible por cada zona IANA soportada. */
 export const ZONAS_AMIGABLES: Readonly<Record<string, string>> =
@@ -96,29 +99,54 @@ export interface PlantillaAmigable
   readonly tipo: TipoPlantillaConfigurable;
   readonly titulo: string;
   readonly ayuda: string;
+  readonly variables: readonly string[];
+  readonly ejemploSubject: string;
+  readonly ejemploCuerpo: string;
 }
 
-/** Las 4 plantillas con títulos simples (sin subject ni remarketing). */
+/** Genera el ejemplo grisado con el texto exacto de la plantilla default. */
+function ejemploDefault(tipo: TipoPlantillaDefault): { readonly ejemploSubject: string; readonly ejemploCuerpo: string }
+{
+  const texto = textoDefault(tipo, {
+    cliente: "{cliente}",
+    negocio: "{negocio}",
+    servicio: "{servicio}",
+    profesional: "{profesional}",
+    fecha: "{fecha}",
+  });
+
+  return { ejemploSubject: texto.subject, ejemploCuerpo: texto.cuerpo };
+}
+
+/** Las 4 plantillas con título simple, comodines y ejemplo default. */
 export const PLANTILLAS_AMIGABLES: readonly PlantillaAmigable[] =
 [
   {
     tipo: "confirmacion",
     titulo: "Cuando alguien reserva",
     ayuda: "Confirmamos la reserva con fecha, servicio y profesional.",
+    variables: VARIABLES_POR_TIPO.confirmacion,
+    ...ejemploDefault("confirmacion"),
   },
   {
     tipo: "recordatorio",
     titulo: "Un día antes del turno",
     ayuda: "Recordatorio para que nadie se olvide de venir.",
+    variables: VARIABLES_POR_TIPO.recordatorio,
+    ...ejemploDefault("recordatorio"),
   },
   {
     tipo: "resena",
     titulo: "Después del turno: pedir opinión",
     ayuda: "Pedimos una opinión cuando termina el turno.",
+    variables: VARIABLES_POR_TIPO.resena,
+    ...ejemploDefault("resena"),
   },
   {
     tipo: "remarketing",
     titulo: "Mensaje de remarketing",
     ayuda: "Invita a repetir el servicio (corte, uñas, depilación…).",
+    variables: VARIABLES_POR_TIPO.remarketing,
+    ...ejemploDefault("remarketing"),
   },
 ];

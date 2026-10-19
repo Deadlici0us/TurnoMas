@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import ConfigSubnav from "@/components/config-subnav";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import GuiaWhatsapp from "@/components/guia-whatsapp";
 import LogoNegocioUploader from "@/components/logo-negocio-uploader";
@@ -18,6 +19,7 @@ import type { PenalidadListaNegra } from "./actions";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { normalizarSeccionConfig, SECCIONES_CONFIG } from "@/lib/config/secciones";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { guiaWhatsapp } from "@/lib/notifications/guia-whatsapp";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
@@ -30,7 +32,6 @@ import
   etiquetaZonaHoraria,
   PLANTILLAS_AMIGABLES,
 } from "@/lib/config/etiquetas";
-import { VARIABLES_PLANTILLA } from "@/lib/notifications/custom-templates";
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -371,13 +372,13 @@ interface ContextoConfig
 async function cargarContextoConfig(
   negocioIdCrudo: unknown,
   negocio: { readonly pais?: unknown; readonly slug?: unknown; readonly nombre?: unknown },
-  searchParams: Promise<{ mp?: string }> | undefined,
+  searchParams: { readonly mp?: string } | undefined,
 ): Promise<ContextoConfig>
 {
   const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
   const { mpToken, mpConectadoAt, gcalConectado } = await cargarConexiones(negocioIdCrudo);
   const demo = await esDuenoDemo();
-  const avisoMp = mensajeMp(searchParams === undefined ? undefined : (await searchParams)?.mp);
+  const avisoMp = mensajeMp(searchParams?.mp);
   const mpConectado = mpToken !== null;
 
   const rutaPortal = typeof negocio.pais === "string" && typeof negocio.slug === "string"
@@ -453,9 +454,19 @@ function panelMercadoPago(
 }
 
 export default async function ConfigPage(
-  props?: { readonly searchParams?: Promise<{ mp?: string }> },
+  props?: { readonly searchParams?: Promise<{ mp?: string; seccion?: string }> },
 )
 {
+  const searchParams = props?.searchParams === undefined ? undefined : await props.searchParams;
+  const seccionActiva = normalizarSeccionConfig(searchParams?.seccion, searchParams?.mp !== undefined);
+  const seccionDef = SECCIONES_CONFIG.find((seccion) => seccion.id === seccionActiva)
+    ?? SECCIONES_CONFIG[0];
+  const esGeneral = seccionActiva === "general";
+  const esHorarios = seccionActiva === "horarios";
+  const esClientes = seccionActiva === "clientes";
+  const esCobros = seccionActiva === "cobros";
+  const esMensajes = seccionActiva === "mensajes";
+  const esCuenta = seccionActiva === "cuenta";
   const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as NegocioConfigRow & {
     nombre?: string; pais?: string; slug?: string; horarios?: unknown;
@@ -492,27 +503,18 @@ export default async function ConfigPage(
     avisoMp,
     mpConectado,
     whatsappGuia,
-  } = await cargarContextoConfig(negocioId, negocio, props?.searchParams);
+  } = await cargarContextoConfig(negocioId, negocio, searchParams);
 
   return (
     <div className="space-y-4">
-      <div className="mb-6">
-        <h1 className="ui-page-title">Configuración</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Dejá tu negocio listo en 3 pasos: datos, horarios y cobros. El resto ya viene preparado y es opcional.
-        </p>
-        <ol className="mt-3 grid sm:grid-cols-3 gap-2 text-xs">
-          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
-            <span className="font-bold text-ink">1.</span> Contanos de tu negocio
-          </li>
-          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
-            <span className="font-bold text-ink">2.</span> Elegí tus horarios
-          </li>
-          <li className="rounded-lg border border-line bg-surface px-3 py-2 text-ink">
-            <span className="font-bold text-ink">3.</span> Conectá cómo cobrás
-          </li>
-        </ol>
+      <div className="mb-6 space-y-3">
+        <div>
+          <h1 className="ui-page-title">Configuración</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{seccionDef.descripcion}</p>
+        </div>
+        <ConfigSubnav activa={seccionActiva} />
       </div>
+      {esGeneral ? (
       <SeccionConfig
         icono="tienda"
         titulo="Tu negocio"
@@ -626,6 +628,8 @@ export default async function ConfigPage(
           </p>
         ) : null}
       </SeccionConfig>
+      ) : null}
+      {esHorarios ? (
       <SeccionConfig
         icono="reloj"
         titulo="Tus horarios"
@@ -633,6 +637,8 @@ export default async function ConfigPage(
       >
         <EditorHorariosSemanales inicial={negocio.horarios} action={guardarHorariosNegocio} />
       </SeccionConfig>
+      ) : null}
+      {esClientes ? (
       <SeccionConfig
         icono="escudo"
         titulo="Si un cliente falta"
@@ -681,6 +687,8 @@ export default async function ConfigPage(
           </button>
         </ActionForm>
       </SeccionConfig>
+      ) : null}
+      {esCobros ? (
       <SeccionConfig
         icono="alcancia"
         titulo="Cómo cuidás la seña"
@@ -709,6 +717,9 @@ export default async function ConfigPage(
           </button>
         </ActionForm>
       </SeccionConfig>
+      ) : null}
+      {esHorarios ? (
+      <>
       <SeccionConfig
         icono="campana"
         titulo="Avisos antes del turno"
@@ -800,6 +811,9 @@ export default async function ConfigPage(
           </ActionForm>
         ) : null}
       </SeccionConfig>
+      </>
+      ) : null}
+      {esClientes ? (
       <SeccionConfig
         icono="repetir"
         titulo="Remarketing"
@@ -838,6 +852,8 @@ export default async function ConfigPage(
           </button>
         </ActionForm>
       </SeccionConfig>
+      ) : null}
+      {esMensajes ? (
       <SeccionConfig
         icono="carta"
         titulo="Tus mensajes"
@@ -845,10 +861,9 @@ export default async function ConfigPage(
         avanzada={true}
       >
         <p className="text-xs text-muted-foreground">
-          Podés usar estos comodines: {VARIABLES_PLANTILLA.map((v) => `{${v}}`).join(" ")}.
-          Si lo dejás vacío, usamos nuestro texto.
+          Si lo dejás vacío, enviamos el texto de ejemplo tal cual.
         </p>
-        {PLANTILLAS_AMIGABLES.map(({ tipo, titulo, ayuda }) =>
+        {PLANTILLAS_AMIGABLES.map(({ tipo, titulo, ayuda, variables, ejemploSubject, ejemploCuerpo }) =>
         {
           const key = `msg_${tipo}` as const;
           const subject = negocio[`${key}_subject` as keyof typeof negocio] as string | null | undefined;
@@ -862,6 +877,10 @@ export default async function ConfigPage(
             >
               <h3 className="text-sm font-semibold text-ink">{titulo}</h3>
               <p className="text-xs text-muted-foreground">{ayuda}</p>
+              <p className="text-xs text-muted-foreground">
+                {"Comodines: "}
+                {variables.map((variable) => `{${variable}}`).join(" ")}
+              </p>
               <label className="block text-sm font-semibold text-ink">
                 {"Título del mensaje"}
                 <input
@@ -869,7 +888,7 @@ export default async function ConfigPage(
                   name="subject"
                   maxLength={120}
                   defaultValue={subject ?? ""}
-                  placeholder="Vacío = usamos el nuestro"
+                  placeholder={ejemploSubject}
                   className="ui-input"
                 />
               </label>
@@ -877,10 +896,10 @@ export default async function ConfigPage(
                 {"Texto del mensaje"}
                 <textarea
                   name="cuerpo"
-                  rows={4}
+                  rows={5}
                   maxLength={2000}
                   defaultValue={cuerpo ?? ""}
-                  placeholder="Vacío = usamos el nuestro. Ej: Hola {negocio}, te esperamos {fecha}."
+                  placeholder={ejemploCuerpo}
                   className="ui-textarea"
                 />
               </label>
@@ -894,6 +913,8 @@ export default async function ConfigPage(
           );
         })}
       </SeccionConfig>
+      ) : null}
+      {esCobros ? (
       <SeccionConfig
         icono="billetera"
         titulo="Cómo cobrás"
@@ -950,6 +971,8 @@ export default async function ConfigPage(
           )}
         </div>
       </SeccionConfig>
+      ) : null}
+      {esGeneral ? (
       <SeccionConfig
         icono="whatsapp"
         titulo="Tu WhatsApp"
@@ -983,6 +1006,8 @@ export default async function ConfigPage(
         </p>
         <GuiaWhatsapp items={whatsappGuia} />
       </SeccionConfig>
+      ) : null}
+      {esCuenta ? (
       <SeccionConfig
         icono="peligro"
         titulo="Borrar todo"
@@ -991,6 +1016,7 @@ export default async function ConfigPage(
       >
         <ZonaPeligroEliminar />
       </SeccionConfig>
+      ) : null}
     </div>
   );
 }

@@ -17,7 +17,7 @@ import { NextResponse } from "next/server";
 
 import { resolverRecordatorioHs, shouldSendReminder } from "@/lib/automations/recordatorios";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
-import { resolverPlantilla } from "@/lib/notifications/custom-templates";
+import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
@@ -39,7 +39,7 @@ interface TurnoCandidato
   } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
-  readonly cliente: { email: string | null } | null;
+  readonly cliente: { email: string | null; nombre?: string | null } | null;
 }
 
 function formatearFechaEnZona(fecha: Date, timeZone: string): string
@@ -68,6 +68,7 @@ async function enviarRecordatorio(
 {
   const timeZone = resolverTimezoneNegocio({ timezone: turno.negocio?.timezone, pais: turno.negocio?.pais });
   const datos = {
+    cliente: turno.cliente?.nombre ?? "cliente",
     negocio: turno.negocio?.nombre ?? "tu negocio",
     servicio: turno.servicio?.nombre ?? "tu servicio",
     profesional: turno.staff?.nombre ?? "tu profesional",
@@ -88,15 +89,19 @@ async function enviarRecordatorio(
     cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), turno.id, token);
   }
 
-  const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
-  const cuerpoCustom = typeof turno.negocio?.msg_recordatorio_cuerpo === "string"
+  const cuerpoBase = typeof turno.negocio?.msg_recordatorio_cuerpo === "string"
     && turno.negocio.msg_recordatorio_cuerpo.trim().length > 0
-    ? `${turno.negocio.msg_recordatorio_cuerpo}${cancelaLinea}`
+    ? turno.negocio.msg_recordatorio_cuerpo
     : null;
+  const cancelaLinea = cancelacionUrl.length > 0 && cuerpoBase !== null
+    && !incluyeComodinLink(cuerpoBase, "link_cancelacion")
+    ? "\nSi no podés venir, cancelá acá: {link_cancelacion}"
+    : "";
+  const cuerpoCustom = cuerpoBase === null ? null : `${cuerpoBase}${cancelaLinea}`;
   const plantilla = resolverPlantilla("recordatorio", {
     subject: turno.negocio?.msg_recordatorio_subject ?? null,
     cuerpo: cuerpoCustom,
-  }, datos, cancelacionUrl);
+  }, datos, { cancelacion: cancelacionUrl });
 
   await email.send({
     to: turno.cliente?.email as string,
@@ -144,7 +149,7 @@ export async function POST(request: Request)
     .select("id, cliente_id, inicio, notificacion_enviada," +
       " negocio:negocios(nombre, timezone, pais, recordatorio_activo, recordatorio_hs," +
       " msg_recordatorio_subject, msg_recordatorio_cuerpo)," +
-      " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
+      " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email, nombre)")
     .in("estado", ["pagado", "confirmado"]).eq("notificacion_enviada", false)
     .gte("inicio", ahora.toISOString()).lte("inicio", ventanaMax)
     .limit(LIMITE_BARRIDO);

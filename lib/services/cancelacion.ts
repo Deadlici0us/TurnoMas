@@ -475,6 +475,9 @@ async function notificarCancelacion(
     });
     const inicio = new Date(turno.inicio);
     const plantilla = plantillaCancelacion({
+      cliente: typeof (cliente as { nombre?: unknown } | null)?.nombre === "string"
+        ? (cliente as { nombre: string }).nombre
+        : "cliente",
       negocio: fila?.negocio?.nombre ?? "tu negocio",
       servicio: fila?.servicio?.nombre ?? "tu servicio",
       profesional: fila?.staff?.nombre ?? "tu profesional",

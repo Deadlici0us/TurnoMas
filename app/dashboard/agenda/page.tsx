@@ -5,12 +5,14 @@ import type { EstadoTurno } from "@/lib/dashboard/estados";
 import AgendaCalendar from "@/components/agenda-calendar";
 import PageHeader from "@/components/ui/page-header";
 import type { CitaDia } from "@/components/agenda-citas-dia";
+import { construirLinkCancelacion, firmarTokenCancelacion } from "@/lib/cancelacion/token";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
 import { linkWhatsapp } from "@/lib/notifications/whatsapp";
 import { textoWhatsapp } from "@/lib/notifications/custom-templates";
 import { calendarService } from "@/lib/services/calendar";
 import { claveDiaEnZona, formatearEnZona, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 interface StaffRow
 {
@@ -86,6 +88,7 @@ export default async function AgendaPage(props?: {
     }
 
     const datos = {
+      cliente: nombrePorCliente.get(turno.cliente_id) ?? "Cliente",
       negocio: negocioNombre,
       servicio: nombrePorServicio.get(turno.servicio_id) ?? "tu servicio",
       profesional: nombrePorStaff.get(turno.staff_id) ?? "tu profesional",
@@ -94,6 +97,21 @@ export default async function AgendaPage(props?: {
 
     if (turno.estado === "pagado" || turno.estado === "confirmado")
     {
+      const secreto = readEnv("CANCELACION_SECRET");
+      let cancelacionUrl = "";
+
+      if (base !== null && secreto !== null && secreto.trim().length >= 16)
+      {
+        const inicio = new Date(turno.inicio);
+        const token = firmarTokenCancelacion({
+          turnoId: turno.id,
+          clienteId: turno.cliente_id,
+          inicio,
+        }, secreto);
+
+        cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), turno.id, token);
+      }
+
       return linkWhatsapp(whatsapp, textoWhatsapp("recordatorio", {
         subject: typeof negocioRow.msg_recordatorio_subject === "string"
           ? negocioRow.msg_recordatorio_subject
@@ -101,7 +119,7 @@ export default async function AgendaPage(props?: {
         cuerpo: typeof negocioRow.msg_recordatorio_cuerpo === "string"
           ? negocioRow.msg_recordatorio_cuerpo
           : null,
-      }, datos));
+      }, datos, { cancelacion: cancelacionUrl }));
     }
 
     if (turno.estado === "completado" && base !== null)
@@ -109,7 +127,7 @@ export default async function AgendaPage(props?: {
       return linkWhatsapp(whatsapp, textoWhatsapp("resena", {
         subject: typeof negocioRow.msg_resena_subject === "string" ? negocioRow.msg_resena_subject : null,
         cuerpo: typeof negocioRow.msg_resena_cuerpo === "string" ? negocioRow.msg_resena_cuerpo : null,
-      }, datos, `${base}/resena/${turno.id}`));
+      }, datos, { resena: `${base}/resena/${turno.id}` }));
     }
 
     return null;
@@ -174,7 +192,7 @@ export default async function AgendaPage(props?: {
     <PageHeader
       title="Agenda"
       subtitle="Organizá tus turnos por día, semana o mes y actualizá el estado en un clic."
-      actions={(
+      actionsBelow={(
         <Link
           href={`/dashboard/agenda/nuevo?fecha=${fechaParaNuevo}`}
           className="ui-btn ui-btn-primary"

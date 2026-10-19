@@ -28,7 +28,7 @@ export default async function RemarketingPage()
             Activá el remarketing en Configuración para ver esta lista.
           </p>
           <Link
-            href="/dashboard/config"
+            href="/dashboard/config?seccion=clientes"
             className="ui-btn ui-btn-primary mt-4"
           >
             Ir a Configuración
@@ -41,8 +41,11 @@ export default async function RemarketingPage()
   const candidatos = candidatosDesdeDashboard(dashboard);
 
   const negocio = dashboard.negocio as {
+    readonly nombre?: unknown;
     readonly pais?: unknown;
     readonly slug?: unknown;
+    readonly msg_remarketing_subject?: unknown;
+    readonly msg_remarketing_cuerpo?: unknown;
   };
   const base = readEnv("NEXT_PUBLIC_APP_URL")
     ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : null);
@@ -68,7 +71,17 @@ export default async function RemarketingPage()
   return (
     <div className="space-y-4">
       {encabezado}
-      <ListaRemarketing items={candidatos} portalUrl={portalUrl} />
+      <ListaRemarketing
+        items={candidatos}
+        portalUrl={portalUrl}
+        negocioNombre={typeof negocio.nombre === "string" ? negocio.nombre : "tu negocio"}
+        msgRemarketingSubject={typeof negocio.msg_remarketing_subject === "string"
+          ? negocio.msg_remarketing_subject
+          : null}
+        msgRemarketingCuerpo={typeof negocio.msg_remarketing_cuerpo === "string"
+          ? negocio.msg_remarketing_cuerpo
+          : null}
+      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ interface TurnoCandidato
   } | null;
   readonly servicio: { nombre: string } | null;
   readonly staff: { nombre: string } | null;
-  readonly cliente: { email: string | null } | null;
+  readonly cliente: { email: string | null; nombre?: string | null } | null;
 }
 
 export async function POST(request: Request)
@@ -84,7 +84,7 @@ export async function POST(request: Request)
     .select("id, inicio, fin, resena_pedida," +
       " negocio:negocios(nombre, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo," +
       " google_maps_url, google_place_id)," +
-      " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email)")
+      " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email, nombre)")
     .eq("estado", "completado").eq("resena_pedida", false)
     .limit(LIMITE_BARRIDO);
 
@@ -104,6 +104,7 @@ export async function POST(request: Request)
     try
     {
       const datos = {
+        cliente: turno.cliente?.nombre ?? "cliente",
         negocio: turno.negocio?.nombre ?? "tu negocio",
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
@@ -118,7 +119,7 @@ export async function POST(request: Request)
       const plantilla = resolverPlantilla("resena", {
         subject: turno.negocio?.msg_resena_subject ?? null,
         cuerpo: turno.negocio?.msg_resena_cuerpo ?? null,
-      }, datos, reviewUrl, feedbackUrl);
+      }, datos, { resena: reviewUrl, opinionPrivada: feedbackUrl });
 
       await email.send({
         to: turno.cliente?.email as string,

@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 import { requierePagoSena } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { NegocioSinMpError } from "@/lib/payments/mp-token";
-import { resolverPlantilla } from "@/lib/notifications/custom-templates";
+import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { formatearFechaEnZona, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
@@ -83,6 +83,7 @@ async function enviarEmailReservaConSena(params: {
   readonly servicioNombre: string;
   readonly staffNombre: string;
   readonly clienteId: string;
+  readonly clienteNombre: string;
   readonly email: string;
   readonly inicio: Date;
   readonly timeZone: string;
@@ -111,9 +112,16 @@ async function enviarEmailReservaConSena(params: {
       cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), params.turnoId, token);
     }
 
+    const cuerpoBase = typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
+      ? params.plantillaCuerpo
+      : null;
     const pagoLinea = params.checkoutUrl !== null ? `\nPagá tu seña acá: ${params.checkoutUrl}` : "";
-    const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
+    const cancelaLinea = cancelacionUrl.length > 0
+      && (cuerpoBase === null || !incluyeComodinLink(cuerpoBase, "link_cancelacion"))
+      ? "\nSi no podés venir, cancelá acá: {link_cancelacion}"
+      : "";
     const datos = {
+      cliente: params.clienteNombre,
       negocio: params.negocioNombre,
       servicio: params.servicioNombre,
       profesional: params.staffNombre,
@@ -121,11 +129,11 @@ async function enviarEmailReservaConSena(params: {
     };
     const plantilla = resolverPlantilla("confirmacion", {
       subject: params.plantillaSubject,
-      cuerpo: typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
-        ? `${params.plantillaCuerpo}${pagoLinea}${cancelaLinea}`
-        : `Hola, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-          `en {negocio} está casi lista.${pagoLinea}${cancelaLinea}`,
-    }, datos, cancelacionUrl);
+      cuerpo: cuerpoBase === null
+        ? `Hola {cliente}, tu reserva de {servicio} con {profesional} para el {fecha} ` +
+          `en {negocio} está casi lista.${pagoLinea}${cancelaLinea}`
+        : `${cuerpoBase}${pagoLinea}${cancelaLinea}`,
+    }, datos, { cancelacion: cancelacionUrl });
 
     await new ResendAdapter().send({
       to: params.email,
@@ -593,6 +601,7 @@ export async function POST(request: Request)
         servicioNombre,
         staffNombre,
         clienteId,
+        clienteNombre: nombre,
         email,
         inicio,
         timeZone,

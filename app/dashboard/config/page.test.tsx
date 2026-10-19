@@ -121,10 +121,15 @@ function stubConfig(negocio: unknown, secretos: unknown = null): void
   } as never);
 }
 
+function seccionParams(seccion: string, mp?: string)
+{
+  return Promise.resolve({ seccion, ...(mp === undefined ? {} : { mp }) });
+}
+
 describe("ConfigPage",
 () =>
 {
-  it("debería mostrar secciones con valores del negocio",
+  it("debería mostrar solo General por defecto",
   async () =>
   {
     stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
@@ -133,16 +138,50 @@ describe("ConfigPage",
 
     expect(screen.getByRole("heading", { name: "Configuración" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Tu negocio" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Tu WhatsApp" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Tus horarios" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Tus mensajes" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Mensajes" }).getAttribute("href"))
+      .toBe("/dashboard/config?seccion=mensajes");
+  });
+
+  it("debería mostrar Horarios y avisos",
+  async () =>
+  {
+    stubConfig(negocioBase());
+
+    render(await ConfigPage({ searchParams: seccionParams("horarios") }));
+
     expect(screen.getByRole("heading", { name: "Tus horarios" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Si un cliente falta" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Cómo cuidás la seña" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Avisos antes del turno" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Pedir opiniones" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Cómo cobrás" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Borrar todo" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Tu negocio" })).toBeNull();
+  });
+
+  it("debería mostrar Clientes con la política de faltas",
+  async () =>
+  {
+    stubConfig(negocioBase());
+
+    render(await ConfigPage({ searchParams: seccionParams("clientes") }));
+
+    expect(screen.getByRole("heading", { name: "Si un cliente falta" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Remarketing" })).toBeDefined();
     expect(screen.getByText("Si un cliente falta 3 veces, no lo dejamos reservar más.")).toBeDefined();
-    expect(screen.getByText(/Si cancela faltando más de 48 hs/)).toBeDefined();
     expect((document.querySelector('input[name="umbral"]') as HTMLInputElement).value).toBe("3");
+  });
+
+  it("debería mostrar Cobros con seña y conexiones",
+  async () =>
+  {
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
+
+    expect(screen.getByRole("heading", { name: "Cómo cuidás la seña" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Cómo cobrás" })).toBeDefined();
+    expect(screen.getByText(/Si cancela faltando más de 48 hs/)).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Si un cliente falta" })).toBeNull();
   });
 
   it("debería mostrar link público y la ubicación de Google Maps",
@@ -150,7 +189,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase());
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("general") }));
 
     expect(screen.getByRole("link", { name: "/ar/barberia" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Guardar ubicación" })).toBeDefined();
@@ -163,7 +202,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase({ resena_activa: false }));
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("general") }));
 
     expect(screen.getByRole("button", { name: "Guardar ubicación" })).toBeDefined();
   });
@@ -173,7 +212,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getByText("Listo ••••5678")).toBeDefined();
     expect(screen.getByRole("button", { name: "Desconectar" })).toBeDefined();
@@ -185,7 +224,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase(), null);
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("link", { name: "Conectar MercadoPago" }))
@@ -237,7 +276,7 @@ describe("ConfigPage",
       }),
     } as never);
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.queryByRole("link", { name: "Conectar MercadoPago" })).toBeNull();
     expect(screen.getByText(/La demo no conecta cuentas reales/)).toBeDefined();
@@ -252,31 +291,40 @@ describe("ConfigPage",
       throw new Error("db caída");
     });
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getByRole("heading", { name: "Configuración" })).toBeDefined();
     expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("Tu link para compartir:")).toBeNull();
   });
 
-  it("debería invocar las acciones al guardar cada sección",
+  it("debería guardar los datos generales del negocio",
   async () =>
   {
     const user = userEvent.setup();
-    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+    stubConfig(negocioBase());
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("general") }));
 
     await user.click(screen.getByRole("button", { name: "Guardar nombre" }));
-
     expect(vi.mocked(actualizarNombreNegocio)).toHaveBeenCalledWith("Barbería");
 
     await user.click(screen.getByRole("button", { name: "Guardar ciudad" }));
-
     expect(vi.mocked(actualizarTimezoneNegocio)).toHaveBeenCalledWith("America/Mexico_City");
 
-    await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
+    await user.click(screen.getByRole("button", { name: "Guardar ubicación" }));
+    expect(vi.mocked(actualizarGoogleMapsUrl)).toHaveBeenCalledWith("https://www.google.com/maps/place/X");
+  });
 
+  it("debería guardar horarios y avisos",
+  async () =>
+  {
+    const user = userEvent.setup();
+    stubConfig(negocioBase());
+
+    render(await ConfigPage({ searchParams: seccionParams("horarios") }));
+
+    await user.click(screen.getByRole("button", { name: "Guardar horarios" }));
     expect(vi.mocked(actualizarHorariosNegocio)).toHaveBeenCalledWith(
       expect.objectContaining({ lun: "08:00-22:00" }));
 
@@ -285,24 +333,63 @@ describe("ConfigPage",
       await user.click(boton);
     }
 
-    expect(vi.mocked(actualizarPoliticaListaNegra)).toHaveBeenCalledWith(3, "blocked");
-    expect(vi.mocked(actualizarPoliticaSena)).toHaveBeenCalledWith(48);
     expect(vi.mocked(actualizarPoliticaRecordatorios)).toHaveBeenCalledWith(true, 12);
     expect(vi.mocked(actualizarPoliticaResenas)).toHaveBeenCalledWith(true, 5);
+  });
+
+  it("debería guardar clientes y remarketing",
+  async () =>
+  {
+    const user = userEvent.setup();
+    stubConfig(negocioBase());
+
+    render(await ConfigPage({ searchParams: seccionParams("clientes") }));
+
+    for (const boton of screen.getAllByRole("button", { name: "Guardar" }))
+    {
+      await user.click(boton);
+    }
+
+    expect(vi.mocked(actualizarPoliticaListaNegra)).toHaveBeenCalledWith(3, "blocked");
     expect(vi.mocked(actualizarPoliticaRemarketing)).toHaveBeenCalledWith(false, 10);
-    expect(vi.mocked(actualizarPlantillaMensaje)).toHaveBeenCalledTimes(4);
+  });
 
-    await user.click(screen.getByRole("button", { name: "Guardar ubicación" }));
+  it("debería guardar cobros y desconectar integraciones",
+  async () =>
+  {
+    const user = userEvent.setup();
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
 
-    expect(vi.mocked(actualizarGoogleMapsUrl)).toHaveBeenCalledWith("https://www.google.com/maps/place/X");
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
+
+    for (const boton of screen.getAllByRole("button", { name: "Guardar" }))
+    {
+      await user.click(boton);
+    }
+
+    expect(vi.mocked(actualizarPoliticaSena)).toHaveBeenCalledWith(48);
 
     await user.click(screen.getByRole("button", { name: "Desconectar" }));
-
     expect(vi.mocked(desconectarMercadoPago)).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole("button", { name: "Desconectar Google" }));
-
     expect(vi.mocked(desconectarGoogleCalendar)).toHaveBeenCalledOnce();
+  });
+
+  it("debería guardar las 4 plantillas de mensajes",
+  async () =>
+  {
+    const user = userEvent.setup();
+    stubConfig(negocioBase());
+
+    render(await ConfigPage({ searchParams: seccionParams("mensajes") }));
+
+    for (const boton of screen.getAllByRole("button", { name: "Guardar" }))
+    {
+      await user.click(boton);
+    }
+
+    expect(vi.mocked(actualizarPlantillaMensaje)).toHaveBeenCalledTimes(4);
   });
 
   it("debería mostrar franjas en array",
@@ -310,7 +397,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase({ horarios: { lun: ["09:00-13:00", "15:00-20:00"] } }));
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("horarios") }));
 
     expect((document.querySelector('input[type="hidden"][name="lun"]') as HTMLInputElement).value)
       .toBe("09:00-13:00, 15:00-20:00");
@@ -321,7 +408,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase({ horarios: { lun: "09:00-19:00", dom: "" } }));
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("horarios") }));
 
     expect(screen.getByRole("switch", { name: /Lunes abierto/ })).toBeChecked();
     expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
@@ -334,7 +421,7 @@ describe("ConfigPage",
   {
     stubConfig({ nombre: "Nuevo" });
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
   });
@@ -344,7 +431,7 @@ describe("ConfigPage",
   {
     stubConfig(negocioBase());
 
-    render(await ConfigPage());
+    render(await ConfigPage({ searchParams: seccionParams("mensajes") }));
 
     for (const titulo of ["Cuando alguien reserva", "Después del turno: pedir opinión"])
     {
@@ -353,5 +440,11 @@ describe("ConfigPage",
 
     expect(screen.getByText("Un día antes del turno")).toBeDefined();
     expect(screen.getByText("Mensaje de remarketing")).toBeDefined();
+    expect(screen.getByPlaceholderText(/Hola \{cliente\}, te esperamos mañana \{fecha\}/)).toBeDefined();
+    expect(screen.getByPlaceholderText(/cancelá tu turno acá: \{link_cancelacion\}/)).toBeDefined();
+    expect(screen.queryByPlaceholderText(/Ej: Hola \{negocio\}/)).toBeNull();
+    expect(screen.getAllByText(
+      /\{cliente\} \{negocio\} \{servicio\} \{profesional\} \{fecha\} \{link_cancelacion\}/).length)
+      .toBeGreaterThanOrEqual(1);
   });
 });

@@ -75,6 +75,19 @@ describe("etiquetas amigables de configuración",
     {
       expect(plantilla.titulo.length).toBeGreaterThan(0);
       expect(plantilla.ayuda.length).toBeGreaterThan(0);
+      expect(plantilla.variables).toContain("cliente");
+      expect(plantilla.ejemploSubject.length).toBeGreaterThan(0);
+      expect(plantilla.ejemploCuerpo).toContain("{cliente}");
     }
+  });
+
+  it("debería usar el texto default como ejemplo grisado",
+  () =>
+  {
+    const recordatorio = PLANTILLAS_AMIGABLES.find((p) => p.tipo === "recordatorio");
+
+    expect(recordatorio?.ejemploCuerpo).toContain("Hola {cliente}, te esperamos mañana {fecha}");
+    expect(recordatorio?.ejemploCuerpo).toContain("{link_cancelacion}");
+    expect(recordatorio?.ejemploSubject).toBe("Recordatorio: tu turno en {negocio} es mañana");
   });
 });

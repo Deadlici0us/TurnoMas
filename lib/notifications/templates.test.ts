@@ -10,6 +10,7 @@ import
 } from "./templates";
 
 const base = {
+  cliente: "Juan Pérez",
   negocio: "Barbería Diego",
   servicio: "Corte clásico",
   profesional: "Diego",
@@ -30,6 +31,7 @@ describe("plantillaConfirmacion",
     expect(t.html).not.toContain("Google Calendar");
     expect(t.html).not.toContain(".ics");
     expect(t.html).not.toMatch(/[A-Za-z]*your[A-Za-z]*/i);
+    expect(t.html).toContain("Hola Juan Pérez");
   });
 });
 
@@ -44,6 +46,7 @@ describe("plantillaRecordatorio",
     expect(t.subject).toContain("mañana");
     expect(t.html.toLowerCase()).toContain("te esperamos");
     expect(t.html).toContain("28/09/2026 10:00");
+    expect(t.html).toContain("Hola Juan Pérez");
   });
 
   it("debería incluir el link de cancelación cuando está disponible",

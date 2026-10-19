@@ -1,10 +1,10 @@
 /**
  * Plantillas personalizables por negocio (Configuración → Mensajes).
  *
- * Cada tipo admite subject + cuerpo con variables `{negocio} {servicio}
- * {profesional} {fecha} {link}`. El cuerpo admite varias líneas (se
- * convierten en párrafos). Si el dueño no configuró nada o el texto queda
- * vacío, se usa el default de `templates.ts`.
+ * Cada tipo admite subject + cuerpo con comodines propios (cliente, negocio,
+ * servicio, profesional, fecha y un link específico). El cuerpo admite varias
+ * líneas (se convierten en párrafos). Si el dueño no configuró nada o el texto
+ * queda vacío, se usa el default de `templates.ts`.
  */
 
 import
@@ -29,7 +29,28 @@ export interface PlantillaPersonalizada
   readonly cuerpo: unknown;
 }
 
-export const VARIABLES_PLANTILLA = ["negocio", "servicio", "profesional", "fecha", "link"] as const;
+/** Comodines comunes a todas las plantillas. */
+export const VARIABLES_PLANTILLA = ["cliente", "negocio", "servicio", "profesional", "fecha"] as const;
+
+/** Comodines válidos por tipo (los links son específicos, sin `{link}` genérico). */
+export const VARIABLES_POR_TIPO: Readonly<Record<TipoPlantilla, readonly string[]>> =
+{
+  confirmacion: [...VARIABLES_PLANTILLA, "link_cancelacion"],
+  recordatorio: [...VARIABLES_PLANTILLA, "link_cancelacion"],
+  resena: ["cliente", "negocio", "servicio", "profesional", "link_resena"],
+  remarketing: ["cliente", "negocio", "servicio", "link_reserva"],
+  cancelacion: [],
+};
+
+/** Links disponibles al resolver una plantilla. */
+export interface EnlacesPlantilla
+{
+  readonly cancelacion?: string;
+  readonly reserva?: string;
+  readonly resena?: string;
+  /** Link privado de feedback (interno, no se documenta como comodín). */
+  readonly opinionPrivada?: string;
+}
 
 const MAX_SUBJECT = 120;
 const MAX_CUERPO = 2000;
@@ -50,7 +71,7 @@ export function normalizarTextoPlantilla(valor: unknown, maximo: number): string
 /** Reemplaza `{variable}` por su valor (desconocidas se dejan intactas). */
 export function interpolarVariables(texto: string, datos: Record<string, string>): string
 {
-  return texto.replace(/\{([a-zA-Z]+)\}/g, (marca, clave: string) =>
+  return texto.replace(/\{([a-zA-Z_]+)\}/g, (marca, clave: string) =>
     Object.hasOwn(datos, clave) ? (datos[clave] as string) : marca);
 }
 
@@ -73,34 +94,78 @@ export function envolverCuerpo(titulo: string, cuerpoHtml: string): string
     `<p style="color:#64748b;font-size:12px">Enviado por TurnoMas</p></div>`;
 }
 
-/** Datos con `link` para interpolar según el tipo de plantilla. */
-export function datosConLink(
-  _tipo: TipoPlantilla,
+/** Link que representa al `{link}` legacy según el tipo de plantilla. */
+function linkLegacy(tipo: TipoPlantilla, enlaces: EnlacesPlantilla): string
+{
+  if (tipo === "remarketing")
+  {
+    return enlaces.reserva ?? "";
+  }
+
+  if (tipo === "resena")
+  {
+    return enlaces.resena ?? enlaces.opinionPrivada ?? "";
+  }
+
+  return enlaces.cancelacion ?? "";
+}
+
+/**
+ * Variables disponibles para interpolar una plantilla.
+ *
+ * Incluye `{link}` como alias de compatibilidad, pero la UI solo documenta
+ * los links específicos (`{link_cancelacion}`, `{link_resena}`, `{link_reserva}`).
+ *
+ * @param tipo Tipo de plantilla.
+ * @param datos Datos del turno.
+ * @param enlaces Links disponibles.
+ * @return Mapa de comodines a valores.
+ */
+export function datosPlantilla(
+  tipo: TipoPlantilla,
   datos: DatosTurno,
-  link: string,
+  enlaces: EnlacesPlantilla = {},
 ): Record<string, string>
 {
   return {
+    cliente: datos.cliente,
     negocio: datos.negocio,
     servicio: datos.servicio,
     profesional: datos.profesional,
     fecha: datos.fecha,
-    link,
+    link: linkLegacy(tipo, enlaces),
+    link_cancelacion: enlaces.cancelacion ?? "",
+    link_reserva: enlaces.reserva ?? "",
+    link_resena: enlaces.resena ?? "",
   };
+}
+
+/**
+ * Indica si un texto personalizado ya incluye un comodín de link.
+ *
+ * @param cuerpo Cuerpo personalizado.
+ * @param comodin Nombre específico (ej: `link_cancelacion`).
+ * @return Verdadero cuando usa el comodín específico o el alias `{link}`.
+ */
+export function incluyeComodinLink(cuerpo: string, comodin: string): boolean
+{
+  return cuerpo.includes(`{${comodin}}`) || cuerpo.includes("{link}");
 }
 
 /**
  * Resuelve subject + html: personalizada del negocio o default por tipo.
  *
- * `link` es portalUrl (remarketing), link de Google (reseña) o el link de
- * cancelación; para reseñas, `feedbackUrl` es el link privado opcional.
+ * @param tipo Tipo de plantilla.
+ * @param custom Textos personalizados.
+ * @param datos Datos del turno.
+ * @param enlaces Links específicos por tipo.
+ * @return Email listo para enviar.
  */
 export function resolverPlantilla(
   tipo: TipoPlantilla,
   custom: PlantillaPersonalizada,
   datos: DatosTurno,
-  link: string = "",
-  feedbackUrl: string = "",
+  enlaces: EnlacesPlantilla = {},
 ): EmailTemplate
 {
   const subject = normalizarTextoPlantilla(custom.subject, MAX_SUBJECT);
@@ -115,23 +180,32 @@ export function resolverPlantilla(
 
     if (tipo === "recordatorio")
     {
-      return plantillaRecordatorio({ ...datos, cancelacionUrl: link });
+      return plantillaRecordatorio({ ...datos, cancelacionUrl: enlaces.cancelacion ?? "" });
     }
 
     if (tipo === "resena")
     {
-      return plantillaResena({ ...datos, googleReviewUrl: link, feedbackUrl });
+      return plantillaResena({
+        ...datos,
+        googleReviewUrl: enlaces.resena ?? "",
+        feedbackUrl: enlaces.opinionPrivada ?? "",
+      });
     }
 
     if (tipo === "cancelacion")
     {
-      return plantillaCancelacion({ ...datos, cancelacionUrl: link, seDevuelve: true, retencionHs: 72 });
+      return plantillaCancelacion({
+        ...datos,
+        cancelacionUrl: enlaces.cancelacion ?? "",
+        seDevuelve: true,
+        retencionHs: 72,
+      });
     }
 
-    return plantillaRemarketing({ ...datos, portalUrl: link });
+    return plantillaRemarketing({ ...datos, portalUrl: enlaces.reserva ?? "" });
   }
 
-  const vars = datosConLink(tipo, datos, link);
+  const vars = datosPlantilla(tipo, datos, enlaces);
   const titulo = subject !== null ? sinSaltos(interpolarVariables(subject, vars)) : datos.negocio;
   const parrafos = cuerpo !== null
     ? interpolarVariables(cuerpo, vars).split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0)
@@ -199,35 +273,46 @@ export function textoWhatsapp(
   tipo: TipoPlantilla,
   custom: PlantillaPersonalizada,
   datos: DatosTurno,
-  link: string = "",
+  enlaces: EnlacesPlantilla = {},
 ): string
 {
   const cuerpo = normalizarTextoPlantilla(custom.cuerpo, MAX_CUERPO);
 
   if (cuerpo !== null)
   {
-    return interpolarVariables(cuerpo, datosConLink(tipo, datos, link));
+    return interpolarVariables(cuerpo, datosPlantilla(tipo, datos, enlaces));
   }
 
   if (tipo === "recordatorio")
   {
-    return `Hola, te esperamos ${datos.fecha} para ${datos.servicio} con ${datos.profesional} en ${datos.negocio}.`;
+    const cancelar = (enlaces.cancelacion ?? "").length > 0
+      ? `\nSi no podés venir, cancelá acá: ${enlaces.cancelacion}`
+      : "";
+
+    return `Hola ${datos.cliente}, te esperamos ${datos.fecha} para ${datos.servicio} ` +
+      `con ${datos.profesional} en ${datos.negocio}.${cancelar}`;
   }
 
   if (tipo === "resena")
   {
-    return `Hola, contanos tu opinión sobre ${datos.servicio} en ${datos.negocio}: ${link}`;
+    const link = enlaces.resena ?? enlaces.opinionPrivada ?? "";
+
+    return `Hola ${datos.cliente}, contanos tu opinión sobre ${datos.servicio} ` +
+      `en ${datos.negocio}: ${link}`;
   }
 
   if (tipo === "remarketing")
   {
-    return `Hola, pasó un tiempo desde tu última visita a ${datos.negocio}. ¿Renovamos tu ${datos.servicio}? ${link}`;
+    return `Hola ${datos.cliente}, pasó un tiempo desde tu última visita a ${datos.negocio}. ` +
+      `¿Renovamos tu ${datos.servicio}? ${enlaces.reserva ?? ""}`;
   }
 
   if (tipo === "cancelacion")
   {
-    return `Hola, si no podés venir a ${datos.negocio} el ${datos.fecha}, cancelá acá tu ${datos.servicio}: ${link}`;
+    return `Hola ${datos.cliente}, si no podés venir a ${datos.negocio} el ${datos.fecha}, ` +
+      `cancelá acá tu ${datos.servicio}: ${enlaces.cancelacion ?? ""}`;
   }
 
-  return `Hola, tu reserva de ${datos.servicio} con ${datos.profesional} para el ${datos.fecha} en ${datos.negocio} está confirmada.`;
+  return `Hola ${datos.cliente}, tu reserva de ${datos.servicio} con ${datos.profesional} ` +
+    `para el ${datos.fecha} en ${datos.negocio} está confirmada.`;
 }

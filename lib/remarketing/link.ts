@@ -11,6 +11,7 @@ import { linkWhatsapp } from "@/lib/notifications/whatsapp";
 export interface LinkRemarketingProps
 {
   readonly whatsapp: string;
+  readonly clienteNombre: string;
   readonly portalUrl: string | null;
   readonly negocioNombre: string;
   readonly msg_remarketing_subject: string | null;
@@ -30,9 +31,10 @@ export function linkRemarketingWhatsapp(props: LinkRemarketingProps): string | n
     subject: props.msg_remarketing_subject,
     cuerpo: props.msg_remarketing_cuerpo,
   }, {
+    cliente: props.clienteNombre,
     negocio: props.negocioNombre,
     servicio: props.servicioNombre,
     profesional: "",
     fecha: "",
-  }, props.portalUrl));
+  }, { reserva: props.portalUrl }));
 }

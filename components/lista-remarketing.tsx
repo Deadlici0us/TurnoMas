@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { deshacerRemarketingManual, marcarRemarketingManual } from "@/app/dashboard/remarketing/actions";
 import { useToast } from "@/components/ui/use-toast";
+import { linkRemarketingWhatsapp } from "@/lib/remarketing/link";
 
 export interface ListaItemProps
 {
@@ -23,9 +24,15 @@ export interface ListaItemProps
 export default function ListaRemarketing({
   items,
   portalUrl,
+  negocioNombre,
+  msgRemarketingSubject,
+  msgRemarketingCuerpo,
 }: {
   readonly items: readonly ListaItemProps[];
   readonly portalUrl: string | null;
+  readonly negocioNombre: string;
+  readonly msgRemarketingSubject: string | null;
+  readonly msgRemarketingCuerpo: string | null;
 })
 {
   const [pendiente, setPendiente] = useState(false);
@@ -97,17 +104,15 @@ export default function ListaRemarketing({
 
   function linkWhatsapp(item: ListaItemProps): string | null
   {
-    if (portalUrl === null)
-    {
-      return null;
-    }
-
-    const telefono = item.whatsapp.replace(/\D/g, "");
-    const texto = encodeURIComponent(
-      `¡Hola! Ya pasó el tiempo para volver a hacerte tu ${item.servicioNombre}. ¿Querés que te reserve un turno? ${portalUrl}`,
-    );
-
-    return `https://wa.me/${telefono}?text=${texto}`;
+    return linkRemarketingWhatsapp({
+      whatsapp: item.whatsapp,
+      clienteNombre: item.clienteNombre,
+      portalUrl,
+      negocioNombre,
+      msg_remarketing_subject: msgRemarketingSubject,
+      msg_remarketing_cuerpo: msgRemarketingCuerpo,
+      servicioNombre: item.servicioNombre,
+    });
   }
 
   const aMostrar = items.filter((item) => visibles.includes(item.turnoId));

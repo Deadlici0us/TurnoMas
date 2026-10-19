@@ -6,7 +6,7 @@
  */
 
 import { readEnv } from "@/lib/env/env";
-import { resolverPlantilla } from "@/lib/notifications/custom-templates";
+import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -103,23 +103,26 @@ export async function sincronizarTurnoConfirmado(params: SincronizarTurnoConfirm
     }
 
     const datos = {
+      cliente: params.clienteNombre,
       negocio: params.negocioNombre,
       servicio: params.servicioNombre,
       profesional: params.staffNombre,
       fecha: formatearFechaEnZona(params.inicio, params.timeZone),
     };
-    const plantilla = cancelacionUrl.length > 0
-      ? resolverPlantilla("confirmacion", {
-        subject: params.plantillaSubject,
-        cuerpo: typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
-          ? `${params.plantillaCuerpo}\nSi no podés venir, cancelá acá: {link}`
-          : `Hola, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-            `en {negocio} está confirmada.\nSi no podés venir, cancelá acá: {link}`,
-      }, datos, cancelacionUrl)
-      : resolverPlantilla("confirmacion", {
-        subject: params.plantillaSubject,
-        cuerpo: params.plantillaCuerpo,
-      }, datos);
+    const cuerpoBase = typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
+      ? params.plantillaCuerpo
+      : null;
+    const cancelaLinea = cancelacionUrl.length > 0
+      && (cuerpoBase === null || !incluyeComodinLink(cuerpoBase, "link_cancelacion"))
+      ? "\nSi no podés venir, cancelá acá: {link_cancelacion}"
+      : "";
+    const plantilla = resolverPlantilla("confirmacion", {
+      subject: params.plantillaSubject,
+      cuerpo: cuerpoBase === null
+        ? `Hola {cliente}, tu reserva de {servicio} con {profesional} para el {fecha} ` +
+          `en {negocio} está confirmada.${cancelaLinea}`
+        : `${cuerpoBase}${cancelaLinea}`,
+    }, datos, { cancelacion: cancelacionUrl });
 
     await new ResendAdapter().send({
       to: params.email,

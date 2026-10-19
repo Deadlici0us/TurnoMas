@@ -99,7 +99,12 @@ describe("FormularioTurnoManual",
   it("debería enviar los datos del turno a la acción",
   async () =>
   {
-    const action = vi.fn(async (_prev: string | null, _formData: FormData) => null);
+    const action = vi.fn(async (...args: [string | null, FormData]) =>
+    {
+      void args;
+
+      return null;
+    });
 
     render(<FormularioTurnoManual {...propsBase({ action })} />);
     fireEvent.change(screen.getByLabelText("Hora"), { target: { value: "15:30" } });
