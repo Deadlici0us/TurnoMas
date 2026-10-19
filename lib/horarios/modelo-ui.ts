@@ -174,7 +174,7 @@ export function convertirHorariosAUI(horarios: unknown): SemanaUI
 
     try
     {
-      semana[day] = parseDayRanges(typeof raw === "string" ? raw : raw);
+      semana[day] = parseDayRanges(raw);
     }
     catch
     {

@@ -25,9 +25,11 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 vi.mock("./actions", () =>
 {
   return {
+    actualizarDescripcionNegocio: vi.fn(),
     actualizarGoogleMapsUrl: vi.fn(),
     actualizarGooglePlaceId: vi.fn(),
     actualizarHorariosNegocio: vi.fn(),
+    actualizarLogoNegocio: vi.fn(),
     actualizarNombreNegocio: vi.fn(),
     actualizarPlantillaMensaje: vi.fn(),
     actualizarPoliticaListaNegra: vi.fn(),
@@ -143,7 +145,7 @@ describe("ConfigPage",
     expect((document.querySelector('input[name="umbral"]') as HTMLInputElement).value).toBe("3");
   });
 
-  it("debería mostrar link público y mapas con reseñas activas",
+  it("debería mostrar link público y la ubicación de Google Maps",
   async () =>
   {
     stubConfig(negocioBase());
@@ -151,17 +153,19 @@ describe("ConfigPage",
     render(await ConfigPage());
 
     expect(screen.getByRole("link", { name: "/ar/barberia" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Guardar link" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Guardar ubicación" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Guardar descripción" })).toBeDefined();
+    expect(screen.getByText("Logo de tu negocio")).toBeDefined();
   });
 
-  it("debería ocultar mapas sin reseñas activas",
+  it("debería mostrar la ubicación aunque las reseñas estén apagadas",
   async () =>
   {
     stubConfig(negocioBase({ resena_activa: false }));
 
     render(await ConfigPage());
 
-    expect(screen.queryByRole("button", { name: "Guardar link" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Guardar ubicación" })).toBeDefined();
   });
 
   it("debería mostrar conexiones activas",
@@ -288,7 +292,7 @@ describe("ConfigPage",
     expect(vi.mocked(actualizarPoliticaRemarketing)).toHaveBeenCalledWith(false, 10);
     expect(vi.mocked(actualizarPlantillaMensaje)).toHaveBeenCalledTimes(4);
 
-    await user.click(screen.getByRole("button", { name: "Guardar link" }));
+    await user.click(screen.getByRole("button", { name: "Guardar ubicación" }));
 
     expect(vi.mocked(actualizarGoogleMapsUrl)).toHaveBeenCalledWith("https://www.google.com/maps/place/X");
 

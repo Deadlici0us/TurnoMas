@@ -24,4 +24,23 @@ describe("formatearARS",
   {
     expect(formatearARS(0)).toContain("0");
   });
+
+  it("debería usar el símbolo de peso y separador de miles determinista",
+  () =>
+  {
+    expect(formatearARS(1500000)).toBe("$ 15.000");
+    expect(formatearARS(13000)).toBe("$ 130");
+  });
+
+  it("debería no depender del ICU del entorno para el símbolo",
+  () =>
+  {
+    expect(formatearARS(13000)).toMatch(/^\$ /);
+  });
+
+  it("debería formatear montos negativos con el signo antes del símbolo",
+  () =>
+  {
+    expect(formatearARS(-1500000)).toBe("-$ 15.000");
+  });
 });

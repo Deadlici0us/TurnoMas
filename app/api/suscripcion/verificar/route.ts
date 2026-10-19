@@ -20,6 +20,79 @@ function esProduccion(): boolean
   return process.env.VERCEL_ENV === "production";
 }
 
+interface FilaVerificacion
+{
+  readonly id: string;
+  readonly suscripcion_estado?: unknown;
+  readonly suscripcion_vence_en?: unknown;
+  readonly suscripcion_cancelada_en?: unknown;
+}
+
+/**
+ * Construye la respuesta 403 de modo demo de solo lectura.
+ *
+ * @param error Error lanzado por los guardas de modo editable.
+ * @return Respuesta HTTP 403 con el mensaje del guarda.
+ */
+function errorSoloLectura(error: unknown): NextResponse
+{
+  return NextResponse.json(
+    { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
+    { status: 403 },
+  );
+}
+
+/**
+ * Limpia el plan local cuando MP ya no lista la suscripción (cierra drift).
+ *
+ * @param fila Fila del negocio con sus columnas de suscripción.
+ * @param estado Estado devuelto por la reconciliación con MercadoPago.
+ */
+async function limpiarDriftSiAplica(fila: FilaVerificacion, estado: string): Promise<void>
+{
+  if (estado !== "none")
+  {
+    return;
+  }
+
+  const local = typeof fila.suscripcion_estado === "string" ? fila.suscripcion_estado : null;
+  const canceladaEn = typeof fila.suscripcion_cancelada_en === "string" ? fila.suscripcion_cancelada_en : null;
+  const venceEn = typeof fila.suscripcion_vence_en === "string" ? fila.suscripcion_vence_en : null;
+  const vencida = venceEn !== null && !Number.isNaN(new Date(venceEn).getTime())
+    && new Date(venceEn).getTime() < Date.now();
+  const enVentanaPaga = canceladaEn !== null && !vencida;
+
+  if (!enVentanaPaga && (local === "active" || local === "past_due"))
+  {
+    await subscriptionService.cancelarSuscripcionLocal(fila.id);
+  }
+}
+
+/**
+ * Construye la respuesta 502 de fallo de verificación.
+ *
+ * @param error Error capturado durante la verificación con MercadoPago.
+ * @return Respuesta HTTP 502 con detalle en entornos no productivos.
+ */
+function respuestaFalloVerificacion(error: unknown): NextResponse
+{
+  const detalle = error instanceof Error ? error.message : "";
+  console.error("[suscripcion/verificar]", detalle);
+
+  if (esProduccion())
+  {
+    return NextResponse.json(
+      { error: "No pudimos verificar el pago. Probá de nuevo." },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json(
+    { error: "No pudimos verificar el pago. Probá de nuevo.", detalle: detalle.slice(0, 300) },
+    { status: 502 },
+  );
+}
+
 export async function POST()
 {
   try
@@ -28,10 +101,7 @@ export async function POST()
   }
   catch (error)
   {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-      { status: 403 },
-    );
+    return errorSoloLectura(error);
   }
 
   try
@@ -53,10 +123,7 @@ export async function POST()
     }
     catch (error)
     {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-        { status: 403 },
-      );
+      return errorSoloLectura(error);
     }
 
     const admin = getSupabaseAdmin();
@@ -72,34 +139,14 @@ export async function POST()
       );
     }
 
-    const fila = negocio as {
-      id: string;
-      suscripcion_estado?: unknown;
-      suscripcion_vence_en?: unknown;
-      suscripcion_cancelada_en?: unknown;
-    };
+    const fila = negocio as FilaVerificacion;
     const resultado = await subscriptionService.reconciliar(fila.id);
 
     // Cierra el drift: si MP ya no tiene la suscripción pero el estado local
     // quedó activo o en mora (p. ej. se canceló desde MP), se limpia el plan.
     // Se exceptúa la ventana "cancelada pero activa": el dueño conserva el
     // acceso hasta `suscripcion_vence_en`, aunque MP ya no liste el preapproval.
-    if (resultado.estado === "none")
-    {
-      const local = typeof fila.suscripcion_estado === "string" ? fila.suscripcion_estado : null;
-      const canceladaEn = typeof fila.suscripcion_cancelada_en === "string"
-        ? fila.suscripcion_cancelada_en
-        : null;
-      const venceEn = typeof fila.suscripcion_vence_en === "string" ? fila.suscripcion_vence_en : null;
-      const vencida = venceEn !== null && !Number.isNaN(new Date(venceEn).getTime())
-        && new Date(venceEn).getTime() < Date.now();
-      const enVentanaPaga = canceladaEn !== null && !vencida;
-
-      if (!enVentanaPaga && (local === "active" || local === "past_due"))
-      {
-        await subscriptionService.cancelarSuscripcionLocal(fila.id);
-      }
-    }
+    await limpiarDriftSiAplica(fila, resultado.estado);
 
     return NextResponse.json(
       {
@@ -112,20 +159,6 @@ export async function POST()
   }
   catch (error)
   {
-    const detalle = error instanceof Error ? error.message : "";
-    console.error("[suscripcion/verificar]", detalle);
-
-    if (esProduccion())
-    {
-      return NextResponse.json(
-        { error: "No pudimos verificar el pago. Probá de nuevo." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: "No pudimos verificar el pago. Probá de nuevo.", detalle: detalle.slice(0, 300) },
-      { status: 502 },
-    );
+    return respuestaFalloVerificacion(error);
   }
 }

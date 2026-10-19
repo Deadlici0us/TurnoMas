@@ -189,10 +189,10 @@ export default function VerificarPago(props: VerificarPagoProps)
         {verificando ? "Verificando…" : "Ya pagué, verificar ahora"}
       </button>
       {mensaje !== null ? (
-        <p role="status" className="mt-2 text-xs font-semibold px-3 py-2 rounded-lg border
+        <output className="block mt-2 text-xs font-semibold px-3 py-2 rounded-lg border
           bg-amber-500/10 text-amber-200 border-amber-500/30">
           {mensaje}
-        </p>
+        </output>
       ) : null}
     </div>
   );

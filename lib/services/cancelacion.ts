@@ -114,6 +114,214 @@ async function registrarEvento(
 }
 
 /**
+ * Valida que el turno pueda pasar a cancelado, mapeando el error.
+ *
+ * @param estado Estado actual del turno.
+ * @throws CancelacionError cuando la transición no es válida.
+ */
+function asegurarTransicionCancelable(estado: EstadoTurno): void
+{
+  try
+  {
+    validarTransicionTurno(estado, "cancelado");
+  }
+  catch (error)
+  {
+    if (error instanceof RangeError && error.message.includes("ya está cerrado"))
+    {
+      throw new CancelacionError("ya_cerrado", "Ese turno ya está cerrado.", 409);
+    }
+
+    throw new CancelacionError(
+      "transicion_invalida",
+      error instanceof Error ? error.message : "No se puede cancelar ese turno.",
+      409,
+    );
+  }
+}
+
+interface ContextoReembolso
+{
+  readonly debeReembolsar: boolean;
+  readonly inicioValido: boolean;
+  readonly horasRestantes: number | null;
+  readonly retencionHs: number;
+  readonly detalleBase: Record<string, unknown>;
+}
+
+/**
+ * Carga servicio y negocio, y resuelve si corresponde reembolsar.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param turno Turno a cancelar.
+ * @param ipHash Hash de IP para auditoría, o null.
+ * @return Contexto con la decisión de reembolso y el detalle base del evento.
+ */
+async function cargarContextoReembolso(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  turno: TurnoCancelacion,
+  ipHash: string | null,
+): Promise<ContextoReembolso>
+{
+  const { data: servicio } = typeof turno.servicio_id === "string"
+    ? await admin.from("servicios").select("reembolso_auto")
+      .eq("id", turno.servicio_id).single()
+    : { data: null };
+  const { data: negocioRow } = await admin.from("negocios").select("sena_retencion_hs")
+    .eq("id", turno.negocio_id).single();
+  const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
+  const retencionHs = resolverRetencionHs(
+    (negocioRow as { sena_retencion_hs?: unknown } | null)?.sena_retencion_hs);
+  const inicio = new Date(turno.inicio);
+  const inicioValido = !Number.isNaN(inicio.getTime());
+  const horasRestantes = inicioValido ? horasRestantesPara(inicio, new Date()) : null;
+  const debeReembolsar = inicioValido && shouldAutoRefund({
+    reembolsoAuto,
+    estado: turno.estado as RefundableEstado,
+    mpPaymentId: turno.mp_payment_id,
+    horasRestantes,
+    retencionHs,
+  });
+
+  return {
+    debeReembolsar,
+    inicioValido,
+    horasRestantes,
+    retencionHs,
+    detalleBase: {
+      horasRestantes,
+      retencionHs,
+      estadoPrevio: turno.estado,
+      ipHash,
+    },
+  };
+}
+
+/**
+ * Reclama atómicamente un reembolso (RPC o fallback condicional).
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param turno Turno cuyo reembolso se reclama.
+ * @param mpPaymentId ID del pago en MercadoPago.
+ * @return Clave de idempotencia usada en el reclamo.
+ * @throws CancelacionError cuando otro proceso ya ganó el reclamo.
+ */
+async function reclamarReembolso(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  turno: TurnoCancelacion,
+  mpPaymentId: string,
+): Promise<string>
+{
+  const idempotencyKey = claveIdempotenciaReembolso(turno.id, mpPaymentId);
+  const { data: claimData, error: claimError } = await admin.rpc(
+    "reclamar_reembolso",
+    { p_turno_id: turno.id, p_mp_payment_id: mpPaymentId, p_idempotency_key: idempotencyKey },
+  );
+
+  if (claimError !== null)
+  {
+    // Sin RPC (DB sin migrar): fallback a UPDATE condicional con rowcount.
+    const ganado = await reclamarConUpdateCondicional(admin, turno.id);
+
+    if (!ganado)
+    {
+      throw new CancelacionError(
+        "conflicto_reembolso",
+        "Ese turno ya está siendo procesado. Probá de nuevo en unos segundos.",
+        409,
+      );
+    }
+
+    return idempotencyKey;
+  }
+
+  const fila = (Array.isArray(claimData) ? claimData[0] : claimData) as { ganador?: unknown } | null;
+
+  if (fila?.ganador !== true)
+  {
+    throw new CancelacionError(
+      "conflicto_reembolso",
+      "Ese turno ya está siendo procesado. Probá de nuevo en unos segundos.",
+      409,
+    );
+  }
+
+  return idempotencyKey;
+}
+
+/**
+ * Ejecuta el reembolso correspondiente y registra el evento resultante.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param turno Turno a cancelar.
+ * @param contexto Decisión de reembolso y detalle base.
+ * @param actor Actor que origina la cancelación.
+ * @return Resultado del reembolso.
+ */
+async function resolverReembolso(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  turno: TurnoCancelacion,
+  contexto: ContextoReembolso,
+  actor: ActorCancelacion,
+): Promise<ResultadoReembolso>
+{
+  if (turno.sena_reembolsada === true)
+  {
+    return "ya_devuelta";
+  }
+
+  if (contexto.debeReembolsar && turno.mp_payment_id !== null)
+  {
+    const mpPaymentId = turno.mp_payment_id;
+    const idempotencyKey = await reclamarReembolso(admin, turno, mpPaymentId);
+
+    try
+    {
+      const { refundId } = await paymentService.refundForNegocio(turno.negocio_id, mpPaymentId, idempotencyKey);
+
+      await admin.from("turnos").update({
+        sena_reembolsada: true,
+        sena_reembolsada_at: new Date().toISOString(),
+      }).eq("id", turno.id);
+      await admin.from("reembolsos").update({ estado: "ok", mp_refund_id: refundId })
+        .eq("turno_id", turno.id);
+      await registrarEvento(admin, turno.id, actor, "reembolso_ok", {
+        ...contexto.detalleBase,
+        mpRefundId: refundId,
+        idempotencyKey,
+      });
+
+      return "devuelta";
+    }
+    catch (error)
+    {
+      const mensaje = error instanceof Error ? error.message : "Error desconocido";
+
+      await admin.from("reembolsos").update({ estado: "fallido", error: mensaje })
+        .eq("turno_id", turno.id);
+      await registrarEvento(admin, turno.id, actor, "reembolso_fallido", {
+        ...contexto.detalleBase,
+        error: mensaje,
+        idempotencyKey,
+      });
+
+      return "fallido_reintentable";
+    }
+  }
+
+  if (turno.estado === "pagado" && turno.mp_payment_id !== null && contexto.inicioValido)
+  {
+    await registrarEvento(admin, turno.id, actor, "retenida_por_politica", contexto.detalleBase);
+
+    return "retenida";
+  }
+
+  await registrarEvento(admin, turno.id, actor, "cancelacion_sin_reembolso", contexto.detalleBase);
+
+  return "no_aplica";
+}
+
+/**
  * Cancela el turno con reembolso automático según política.
  *
  * @param input Turno, actor y contexto.
@@ -154,139 +362,13 @@ export async function cancelarTurno(input: CancelarTurnoInput): Promise<Cancelar
 
   const turno = turnoData as unknown as TurnoCancelacion;
 
-  try
-  {
-    validarTransicionTurno(turno.estado as EstadoTurno, "cancelado");
-  }
-  catch (error)
-  {
-    if (error instanceof RangeError && error.message.includes("ya está cerrado"))
-    {
-      throw new CancelacionError("ya_cerrado", "Ese turno ya está cerrado.", 409);
-    }
+  asegurarTransicionCancelable(turno.estado as EstadoTurno);
 
-    throw new CancelacionError(
-      "transicion_invalida",
-      error instanceof Error ? error.message : "No se puede cancelar ese turno.",
-      409,
-    );
-  }
+  const contexto = await cargarContextoReembolso(admin, turno, input.ipHash ?? null);
 
-  const { data: servicio } = typeof turno.servicio_id === "string"
-    ? await admin.from("servicios").select("reembolso_auto")
-      .eq("id", turno.servicio_id).single()
-    : { data: null };
-  const { data: negocioRow } = await admin.from("negocios").select("sena_retencion_hs")
-    .eq("id", turno.negocio_id).single();
-  const reembolsoAuto = (servicio as { reembolso_auto?: unknown } | null)?.reembolso_auto !== false;
-  const retencionHs = resolverRetencionHs(
-    (negocioRow as { sena_retencion_hs?: unknown } | null)?.sena_retencion_hs);
-  const inicio = new Date(turno.inicio);
-  const inicioValido = !Number.isNaN(inicio.getTime());
-  const ahora = new Date();
-  const horasRestantes = inicioValido ? horasRestantesPara(inicio, ahora) : null;
-  const debeReembolsar = inicioValido && shouldAutoRefund({
-    reembolsoAuto,
-    estado: turno.estado as RefundableEstado,
-    mpPaymentId: turno.mp_payment_id,
-    horasRestantes,
-    retencionHs,
-  });
-  const detalleBase = {
-    horasRestantes,
-    retencionHs,
-    estadoPrevio: turno.estado,
-    ipHash: input.ipHash ?? null,
-  };
+  await registrarEvento(admin, turno.id, input.actor, "cancelacion_solicitada", contexto.detalleBase);
 
-  await registrarEvento(admin, turno.id, input.actor, "cancelacion_solicitada", detalleBase);
-
-  let reembolso: ResultadoReembolso = "no_aplica";
-
-  if (turno.sena_reembolsada === true)
-  {
-    reembolso = "ya_devuelta";
-  }
-  else if (debeReembolsar && turno.mp_payment_id !== null)
-  {
-    const idempotencyKey = claveIdempotenciaReembolso(turno.id, turno.mp_payment_id);
-    const { data: claimData, error: claimError } = await admin.rpc(
-      "reclamar_reembolso",
-      { p_turno_id: turno.id, p_mp_payment_id: turno.mp_payment_id, p_idempotency_key: idempotencyKey },
-    );
-
-    if (claimError !== null)
-    {
-      // Sin RPC (DB sin migrar): fallback a UPDATE condicional con rowcount.
-      const ganado = await reclamarConUpdateCondicional(admin, turno.id);
-
-      if (!ganado)
-      {
-        throw new CancelacionError(
-          "conflicto_reembolso",
-          "Ese turno ya está siendo procesado. Probá de nuevo en unos segundos.",
-          409,
-        );
-      }
-    }
-    else
-    {
-      const fila = (Array.isArray(claimData) ? claimData[0] : claimData) as {
-        ganador?: unknown;
-      } | null;
-
-      if (fila?.ganador !== true)
-      {
-        throw new CancelacionError(
-          "conflicto_reembolso",
-          "Ese turno ya está siendo procesado. Probá de nuevo en unos segundos.",
-          409,
-        );
-      }
-    }
-
-    try
-    {
-      const { refundId } = await paymentService.refundForNegocio(
-        turno.negocio_id, turno.mp_payment_id, idempotencyKey);
-
-      await admin.from("turnos").update({
-        sena_reembolsada: true,
-        sena_reembolsada_at: new Date().toISOString(),
-      }).eq("id", turno.id);
-      await admin.from("reembolsos").update({ estado: "ok", mp_refund_id: refundId })
-        .eq("turno_id", turno.id);
-      await registrarEvento(admin, turno.id, input.actor, "reembolso_ok", {
-        ...detalleBase,
-        mpRefundId: refundId,
-        idempotencyKey,
-      });
-      reembolso = "devuelta";
-    }
-    catch (error)
-    {
-      const mensaje = error instanceof Error ? error.message : "Error desconocido";
-
-      await admin.from("reembolsos").update({ estado: "fallido", error: mensaje })
-        .eq("turno_id", turno.id);
-      await registrarEvento(admin, turno.id, input.actor, "reembolso_fallido", {
-        ...detalleBase,
-        error: mensaje,
-        idempotencyKey,
-      });
-      reembolso = "fallido_reintentable";
-    }
-  }
-  else if (turno.estado === "pagado" && turno.mp_payment_id !== null && inicioValido)
-  {
-    await registrarEvento(admin, turno.id, input.actor, "retenida_por_politica", detalleBase);
-    reembolso = "retenida";
-  }
-  else
-  {
-    await registrarEvento(admin, turno.id, input.actor, "cancelacion_sin_reembolso", detalleBase);
-    reembolso = "no_aplica";
-  }
+  const reembolso = await resolverReembolso(admin, turno, contexto, input.actor);
 
   const { error: cancelError } = await admin.from("turnos")
     .update({ estado: "cancelado" }).eq("id", turno.id)
@@ -306,7 +388,12 @@ export async function cancelarTurno(input: CancelarTurnoInput): Promise<Cancelar
     await calendarService.deleteEventForNegocio(turno.negocio_id, turno.google_calendar_event_id);
   }
 
-  const resultado = { estado: "cancelado", reembolso, horasRestantes, retencionHs } as const;
+  const resultado = {
+    estado: "cancelado",
+    reembolso,
+    horasRestantes: contexto.horasRestantes,
+    retencionHs: contexto.retencionHs,
+  } as const;
 
   await notificarCancelacion(admin, turno, resultado);
 

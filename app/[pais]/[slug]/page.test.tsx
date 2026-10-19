@@ -195,6 +195,46 @@ describe("PortalPage supabase",
     expect(screen.getByText("Barbería")).toBeDefined();
   });
 
+  it("debería mostrar logo, descripción y mapa cuando están cargados",
+  async () =>
+  {
+    modoSupabase();
+    stubPortal({
+      id: "neg-1",
+      nombre: "Barbería",
+      pais: "ar",
+      slug: "x",
+      logo_url: "https://cdn.example.com/logo.png",
+      descripcion: "Cortes sin esperas",
+      google_maps_url: "https://www.google.com/maps/@-34.6037,-58.3816,17z",
+      horarios: {},
+      timezone: "America/Argentina/Buenos_Aires",
+    });
+
+    render(await PortalPage({ params: params("ar", "x") }));
+
+    expect(screen.getByText("Cortes sin esperas")).toBeDefined();
+    expect(screen.getByAltText("Barbería")).toBeDefined();
+    expect(screen.getByTitle("Ubicación de Barbería")).toBeDefined();
+  });
+
+  it("no debería mostrar mapa sin link de Maps o sin coordenadas",
+  async () =>
+  {
+    modoSupabase();
+    stubPortal({
+      id: "neg-1",
+      nombre: "Barbería",
+      pais: "ar",
+      slug: "x",
+      google_maps_url: "https://www.google.com/maps/place/SinCoords",
+    });
+
+    render(await PortalPage({ params: params("ar", "x") }));
+
+    expect(screen.queryByTitle(/Ubicación de/)).toBeNull();
+  });
+
   it("debería normalizar filas con tipos raros",
   async () =>
   {

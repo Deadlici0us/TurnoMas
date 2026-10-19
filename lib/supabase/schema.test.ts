@@ -64,6 +64,10 @@ const STAFF_PERFIL_SERVICIOS = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0020_staff_perfil_servicios.sql"),
   "utf8",
 );
+const PERFIL_PUBLICO = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0021_negocio_perfil_publico.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -236,6 +240,18 @@ describe("esquema Supabase",
     expect(PORTAL_VIEWS).toContain("portal_servicios");
     expect(PORTAL_VIEWS).toMatch(/security_invoker = true/);
     expect(PORTAL_VIEWS).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
+  });
+
+  it("debería exponer logo, descripción y ubicación en el portal público",
+  () =>
+  {
+    expect(PERFIL_PUBLICO).toContain("descripcion");
+    expect(PERFIL_PUBLICO).toMatch(/alter table negocios add column if not exists descripcion/i);
+    expect(PERFIL_PUBLICO).toContain("negocios_descripcion_check");
+    expect(PERFIL_PUBLICO).toContain("google_maps_url");
+    expect(PERFIL_PUBLICO).toContain("portal_negocios");
+    expect(PERFIL_PUBLICO).toMatch(/security_invoker = true/);
+    expect(PERFIL_PUBLICO).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
   });
 
   it("debería permitir lectura anónima del portal (negocios/staff/servicios activos)",

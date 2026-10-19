@@ -232,10 +232,52 @@ async function errorMp(response: Response, mensaje: string): Promise<MpHttpError
     detalle = "";
   }
 
+  const sufijo = detalle.length > 0 ? `: ${detalle}` : "";
+
   return new MpHttpError(
-    `${mensaje} (HTTP ${response.status})${detalle.length > 0 ? `: ${detalle}` : ""}.`,
+    `${mensaje} (HTTP ${response.status})${sufijo}.`,
     response.status,
   );
+}
+
+/**
+ * Devuelve el primer valor que sea un string no vacío, o null.
+ *
+ * @param valores Valores candidatos evaluados en orden.
+ * @return El primer string no vacío, o null si ninguno califica.
+ */
+function primerTexto(...valores: readonly unknown[]): string | null
+{
+  for (const valor of valores)
+  {
+    if (typeof valor === "string" && valor.length > 0)
+    {
+      return valor;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Convierte un ID numérico o de texto a string, o null si no aplica.
+ *
+ * @param valor Valor recibido desde la API de MercadoPago.
+ * @return El ID como string, o null si no es string ni número.
+ */
+function idComoTexto(valor: unknown): string | null
+{
+  if (typeof valor === "string")
+  {
+    return valor;
+  }
+
+  if (typeof valor === "number")
+  {
+    return String(valor);
+  }
+
+  return null;
 }
 
 /**
@@ -278,7 +320,7 @@ export async function crearPreapproval(input: PreapprovalInput, fetchFn: FetchFn
 
   if (typeof data.id !== "string" || typeof data.init_point !== "string")
   {
-    throw new Error("Respuesta inválida de MercadoPago al crear la suscripción.");
+    throw new TypeError("Respuesta inválida de MercadoPago al crear la suscripción.");
   }
 
   return {
@@ -435,24 +477,16 @@ export async function consultarCobroSuscripcion(
   };
 
   const pago = data.payment ?? null;
-  const pagoId = pago?.id;
-  const pagoStatus = pago?.status;
-  const fecha = typeof data.debit_date === "string" && data.debit_date.length > 0
-    ? data.debit_date
-    : typeof data.date_created === "string" && data.date_created.length > 0
-    ? data.date_created
-    : null;
+  const fecha = primerTexto(data.debit_date, data.date_created);
 
   return {
-    id: data.id !== undefined && data.id !== null ? String(data.id) : paymentId,
+    id: idComoTexto(data.id) ?? paymentId,
     status: typeof data.status === "string" ? data.status : "unknown",
-    payerEmail: typeof data.payer?.email === "string" && data.payer.email.length > 0
-      ? data.payer.email
-      : null,
+    payerEmail: primerTexto(data.payer?.email),
     preapprovalId: typeof data.preapproval_id === "string" ? data.preapproval_id : null,
     externalReference: typeof data.external_reference === "string" ? data.external_reference : null,
-    paymentId: pagoId !== undefined && pagoId !== null ? String(pagoId) : null,
-    paymentStatus: typeof pagoStatus === "string" ? pagoStatus : null,
+    paymentId: idComoTexto(pago?.id),
+    paymentStatus: typeof pago?.status === "string" ? pago.status : null,
     montoCents: parsearMontoCentavos(data.transaction_amount),
     currency: typeof data.currency_id === "string" ? data.currency_id : null,
     fecha,

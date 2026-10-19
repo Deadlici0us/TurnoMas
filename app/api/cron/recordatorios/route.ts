@@ -51,6 +51,61 @@ function formatearFechaEnZona(fecha: Date, timeZone: string): string
   return `${dia}/${mes}/${fecha.getFullYear()} ${hora ?? ""}`.trim();
 }
 
+/**
+ * Compone y envía el recordatorio por email de un único turno.
+ *
+ * @param turno Turno candidato con sus relaciones resueltas.
+ * @param email Adaptador de envío por Resend.
+ * @param base URL pública de la app, o null si no está configurada.
+ * @param secreto Secreto de cancelación, o null si no está configurado.
+ */
+async function enviarRecordatorio(
+  turno: TurnoCandidato,
+  email: ResendAdapter,
+  base: string | null,
+  secreto: string | null,
+): Promise<void>
+{
+  const timeZone = resolverTimezoneNegocio({ timezone: turno.negocio?.timezone, pais: turno.negocio?.pais });
+  const datos = {
+    negocio: turno.negocio?.nombre ?? "tu negocio",
+    servicio: turno.servicio?.nombre ?? "tu servicio",
+    profesional: turno.staff?.nombre ?? "tu profesional",
+    fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
+  };
+
+  let cancelacionUrl = "";
+
+  if (base !== null && secreto !== null && secreto.trim().length >= 16)
+  {
+    const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
+    const token = firmarTokenCancelacion({
+      turnoId: turno.id,
+      clienteId: turno.cliente_id,
+      inicio: new Date(turno.inicio),
+    }, secreto);
+
+    cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), turno.id, token);
+  }
+
+  const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
+  const cuerpoCustom = typeof turno.negocio?.msg_recordatorio_cuerpo === "string"
+    && turno.negocio.msg_recordatorio_cuerpo.trim().length > 0
+    ? `${turno.negocio.msg_recordatorio_cuerpo}${cancelaLinea}`
+    : null;
+  const plantilla = resolverPlantilla("recordatorio", {
+    subject: turno.negocio?.msg_recordatorio_subject ?? null,
+    cuerpo: cuerpoCustom,
+  }, datos, cancelacionUrl);
+
+  await email.send({
+    to: turno.cliente?.email as string,
+    subject: plantilla.subject,
+    fromName: turno.negocio?.nombre,
+    html: plantilla.html,
+  });
+}
+
 export async function POST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
@@ -107,49 +162,12 @@ export async function POST(request: Request)
   const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
     ? `https://${readEnv("VERCEL_URL") as string}` : null);
   const secreto = readEnv("CANCELACION_SECRET");
-  const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
 
   for (const turno of candidatos)
   {
     try
     {
-      const timeZone = resolverTimezoneNegocio({ timezone: turno.negocio?.timezone, pais: turno.negocio?.pais });
-      const datos = {
-        negocio: turno.negocio?.nombre ?? "tu negocio",
-        servicio: turno.servicio?.nombre ?? "tu servicio",
-        profesional: turno.staff?.nombre ?? "tu profesional",
-        fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
-      };
-
-      let cancelacionUrl = "";
-
-      if (base !== null && secreto !== null && secreto.trim().length >= 16)
-      {
-        const token = firmarTokenCancelacion({
-          turnoId: turno.id,
-          clienteId: turno.cliente_id,
-          inicio: new Date(turno.inicio),
-        }, secreto);
-
-        cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), turno.id, token);
-      }
-
-      const cancelaLinea = cancelacionUrl.length > 0 ? "\nSi no podés venir, cancelá acá: {link}" : "";
-      const cuerpoCustom = typeof turno.negocio?.msg_recordatorio_cuerpo === "string"
-        && turno.negocio.msg_recordatorio_cuerpo.trim().length > 0
-        ? `${turno.negocio.msg_recordatorio_cuerpo}${cancelaLinea}`
-        : null;
-      const plantilla = resolverPlantilla("recordatorio", {
-        subject: turno.negocio?.msg_recordatorio_subject ?? null,
-        cuerpo: cuerpoCustom,
-      }, datos, cancelacionUrl);
-
-      await email.send({
-        to: turno.cliente?.email as string,
-        subject: plantilla.subject,
-        fromName: turno.negocio?.nombre,
-        html: plantilla.html,
-      });
+      await enviarRecordatorio(turno, email, base, secreto);
       await admin.from("turnos").update({ notificacion_enviada: true }).eq("id", turno.id);
       enviados += 1;
     }

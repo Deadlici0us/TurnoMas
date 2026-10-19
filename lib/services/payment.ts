@@ -41,7 +41,7 @@ export class PaymentService
         amountCents: result.amountCents,
       };
     }
-    catch (original)
+    catch (error_)
     {
       // El token pudo vencer (dura 180 días): renovar una vez y reintentar.
       // Sin refresh disponible se propaga el error original.
@@ -53,7 +53,7 @@ export class PaymentService
       }
       catch
       {
-        throw original;
+        throw error_;
       }
 
       const result = await this.adapter.createDepositPreference({ ...input, accessToken: renovado });
@@ -79,7 +79,7 @@ export class PaymentService
     {
       return await this.adapter.refundPayment(paymentId, accessToken, idempotencyKey);
     }
-    catch (original)
+    catch (error_)
     {
       let renovado: string;
 
@@ -89,7 +89,7 @@ export class PaymentService
       }
       catch
       {
-        throw original;
+        throw error_;
       }
 
       return await this.adapter.refundPayment(paymentId, renovado, idempotencyKey);
@@ -200,7 +200,9 @@ export class PaymentService
 
   async getPaymentStatus(paymentId: string, accessToken?: string | null): Promise<{ id: string; status: string; externalReference: string | null }>
   {
-    const token = accessToken ?? readEnv("MP_ACCESS_TOKEN");
+    // `null` explícito = negocio sin conectar: no cae al token de entorno.
+    // Solo `undefined` (sin argumento) usa el token de plataforma.
+    const token = accessToken === undefined ? readEnv("MP_ACCESS_TOKEN") : accessToken;
     if (!token) throw new Error("El negocio aún no conectó MercadoPago para cobrar señas.");
 
     const response = await fetch(

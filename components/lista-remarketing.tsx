@@ -103,7 +103,7 @@ export default function ListaRemarketing({
   return (
     <>
       {toast !== null ? (
-        <div className="fixed inset-x-0 top-6 z-50 flex justify-center px-4" role="status">
+        <output className="fixed inset-x-0 top-6 z-50 flex justify-center px-4">
           <div className="flex w-full max-w-sm items-center justify-between gap-3 rounded-xl border border-green-500/40
             bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300 shadow-lg">
             <span>{toast.mensaje}</span>
@@ -115,7 +115,7 @@ export default function ListaRemarketing({
               Deshacer
             </button>
           </div>
-        </div>
+        </output>
       ) : null}
       <ul className="space-y-3">
         {aMostrar.map((item) =>

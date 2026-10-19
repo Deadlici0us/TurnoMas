@@ -29,6 +29,7 @@ export function buildCspPolicy(nonce: string, isDev = false): string
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
+    "frame-src 'self' https://www.google.com https://maps.google.com",
     "connect-src 'self' https:",
     "object-src 'none'",
     "frame-ancestors 'self'",

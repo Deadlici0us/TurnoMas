@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 
 import BookingFlow from "@/components/booking-flow";
+import PortalMapa from "@/components/portal-mapa";
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { getDemoBusiness } from "@/lib/portal/demo-business";
 import type { PortalBusiness } from "@/lib/portal/demo-business";
+import { resolverUbicacionMaps } from "@/lib/portal/google-maps";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
@@ -78,7 +80,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const { data: negocio } = await supabase
     .from("portal_negocios")
-    .select("id, nombre, pais, slug, horarios, timezone, requiere_email")
+    .select("id, nombre, pais, slug, logo_url, descripcion, google_maps_url, horarios, timezone, requiere_email")
     .eq("pais", pais.toLowerCase())
     .eq("slug", slug.toLowerCase())
     .single();
@@ -159,6 +161,11 @@ async function buildPortalBusiness(
     pais: asString(negocioRow.pais),
     slug: asString(negocioRow.slug),
     timezone: resolverTimezoneNegocio({ timezone: negocioRow.timezone, pais: negocioRow.pais }),
+    logoUrl: sanitizeUrlExterna(negocioRow.logo_url),
+    descripcion: typeof negocioRow.descripcion === "string" && negocioRow.descripcion.trim().length > 0
+      ? negocioRow.descripcion.trim()
+      : null,
+    googleMapsUrl: sanitizeUrlExterna(negocioRow.google_maps_url),
     horarios: asHorarios(negocioRow.horarios),
     staff: ((staff ?? []) as unknown as Row[]).map((s) => ({
       id: asString(s.id),
@@ -205,11 +212,15 @@ export default async function PortalPage({ params }: { readonly params: Promise<
     notFound();
   }
 
+  const ubicacion = await resolverUbicacionMaps(business.googleMapsUrl);
+
   return (
     <div className="min-h-screen bg-transparent">
       <div className="max-w-lg w-full mx-auto px-4 py-8">
         <BookingFlow
           negocioNombre={business.nombre}
+          negocioLogoUrl={business.logoUrl}
+          negocioDescripcion={business.descripcion}
           pais={business.pais}
           slug={business.slug}
           staff={business.staff}
@@ -220,6 +231,16 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           horariosNegocio={business.horarios}
           requiereEmail={business.requiereEmail === true}
         />
+        {ubicacion !== null ? (
+          <div className="mt-4">
+            <PortalMapa
+              lat={ubicacion.lat}
+              lng={ubicacion.lng}
+              nombre={business.nombre}
+              href={business.googleMapsUrl}
+            />
+          </div>
+        ) : null}
         <p className="text-xs text-slate-500 text-center mt-4">Reservas por TurnoMas</p>
       </div>
     </div>

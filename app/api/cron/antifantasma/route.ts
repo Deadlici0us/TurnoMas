@@ -78,6 +78,76 @@ async function cancelarSiPendiente(
   return Array.isArray(data) && data.length > 0;
 }
 
+/**
+ * Extrae el `turnoId` del cuerpo JSON, o null si no es válido.
+ *
+ * @param request Solicitud entrante del cron.
+ * @return ID del turno, o null si el cuerpo no lo trae.
+ */
+async function leerTurnoId(request: Request): Promise<string | null>
+{
+  try
+  {
+    const body = (await request.json()) as { turnoId?: unknown };
+
+    return typeof body.turnoId === "string" && body.turnoId.length > 0 ? body.turnoId : null;
+  }
+  catch
+  {
+    return null;
+  }
+}
+
+/**
+ * Libera un turno pendiente puntual si venció su período de gracia.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param turnoId ID del turno a evaluar.
+ * @param ahora Momento de referencia para el cálculo de gracia.
+ * @return Respuesta JSON con el resultado de la liberación.
+ */
+async function liberarTurno(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  turnoId: string,
+  ahora: Date,
+): Promise<NextResponse>
+{
+  const { data: turno } = await admin.from("turnos")
+    .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
+    .eq("id", turnoId).single();
+
+  if (turno === null)
+  {
+    return NextResponse.json({ success: true, liberado: false, motivo: "sin-turno" });
+  }
+
+  const pendiente = turno as unknown as TurnoPendiente;
+
+  if (!esPendienteConSena(pendiente))
+  {
+    return NextResponse.json({ success: true, liberado: false, motivo: "sin-deuda" });
+  }
+
+  const vencido = shouldReleaseBooking({
+    createdAt: new Date(pendiente.created_at),
+    paymentRegistered: false,
+  }, ahora, GRACIA_MINUTOS);
+
+  if (!vencido)
+  {
+    return NextResponse.json({ success: true, liberado: false, motivo: "en-gracia" });
+  }
+
+  if (!await cancelarSiPendiente(admin, turnoId))
+  {
+    return NextResponse.json({ success: true, liberado: false, motivo: "ya-procesado" });
+  }
+
+  await borrarEventoGoogle(pendiente);
+
+  return NextResponse.json({ success: true, liberado: true });
+}
+
 export async function POST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
@@ -110,56 +180,12 @@ export async function POST(request: Request)
     return NextResponse.json({ error: "Cron no disponible sin base configurada." }, { status: 503 });
   }
 
-  let turnoId: string | null = null;
-
-  try
-  {
-    const body = (await request.json()) as { turnoId?: unknown };
-    turnoId = typeof body.turnoId === "string" && body.turnoId.length > 0 ? body.turnoId : null;
-  }
-  catch
-  {
-    turnoId = null;
-  }
-
+  const turnoId = await leerTurnoId(request);
   const ahora = new Date();
 
   if (turnoId !== null)
   {
-    const { data: turno } = await admin.from("turnos")
-      .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
-      .eq("id", turnoId).single();
-
-    if (turno === null)
-    {
-      return NextResponse.json({ success: true, liberado: false, motivo: "sin-turno" });
-    }
-
-    const pendiente = turno as unknown as TurnoPendiente;
-
-    if (!esPendienteConSena(pendiente))
-    {
-      return NextResponse.json({ success: true, liberado: false, motivo: "sin-deuda" });
-    }
-
-    const vencido = shouldReleaseBooking({
-      createdAt: new Date(pendiente.created_at),
-      paymentRegistered: false,
-    }, ahora, GRACIA_MINUTOS);
-
-    if (!vencido)
-    {
-      return NextResponse.json({ success: true, liberado: false, motivo: "en-gracia" });
-    }
-
-    if (!await cancelarSiPendiente(admin, turnoId))
-    {
-      return NextResponse.json({ success: true, liberado: false, motivo: "ya-procesado" });
-    }
-
-    await borrarEventoGoogle(pendiente);
-
-    return NextResponse.json({ success: true, liberado: true });
+    return liberarTurno(admin, turnoId, ahora);
   }
 
   const corte = new Date(ahora.getTime() - GRACIA_MINUTOS * 60_000).toISOString();

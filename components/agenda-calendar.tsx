@@ -45,6 +45,22 @@ export interface CalendarExterno
   readonly fin: string;
 }
 
+interface BloqueDia
+{
+  readonly key: string;
+  readonly top: number;
+  readonly height: number;
+  readonly clase: string;
+  readonly titulo: string;
+}
+
+interface RangoHoras
+{
+  readonly horaDesde: number;
+  readonly horaHasta: number;
+  readonly cerrado: boolean;
+}
+
 interface AgendaCalendarProps
 {
   readonly base: string;
@@ -115,7 +131,7 @@ function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaC
   }
 
   const primero = dias[0] as DiaCivil;
-  const ultimo = dias[dias.length - 1] as DiaCivil;
+  const ultimo = dias.at(-1) as DiaCivil;
 
   if (vista === "mes")
   {
@@ -128,6 +144,69 @@ function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaC
   }
 
   return `${etiquetaDiaCorta(primero).fecha} – ${etiquetaDiaCorta(ultimo).fecha}`;
+}
+
+/**
+ * Renderiza la vista de un día: encabezado, grilla horaria y bloques.
+ *
+ * @param props Día base, claves, horas, rango, alto y bloques calculados.
+ * @return Grilla del día seleccionado.
+ */
+function renderVistaDia(props: {
+  readonly base: DiaCivil;
+  readonly claveHoy: string;
+  readonly horas: readonly number[];
+  readonly rango: RangoHoras;
+  readonly altoDia: number;
+  readonly bloques: readonly BloqueDia[];
+})
+{
+  const esHoy = claveDeBase(props.base) === props.claveHoy;
+
+  return (
+    <div className="grid grid-cols-[56px_1fr] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
+      <div className="bg-white/5 px-2 py-2 text-center">
+        <div className="text-[11px] font-semibold text-slate-400 uppercase">
+          {etiquetaDiaCorta(props.base).semana}
+        </div>
+        <div className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold
+          ${esHoy ? "bg-violet-600 text-white" : "text-slate-100"}`}>
+          {etiquetaDiaCorta(props.base).numero}
+        </div>
+        <div className="mt-1 text-[11px] font-semibold text-slate-400">
+          {esHoy ? "Hoy" : etiquetaDiaCorta(props.base).fecha}
+        </div>
+      </div>
+      <div className="bg-slate-950/60 relative" style={{ height: props.altoDia }}>
+        {props.horas.map((h, indice) => (
+          <div
+            key={h}
+            className="absolute inset-x-0 border-t border-white/10"
+            style={{ top: (h - props.rango.horaDesde) * PX_POR_HORA_DIA }}
+          >
+            <span className={claseEtiquetaHora(indice === 0)}>
+              {`${String(h).padStart(2, "0")}:00`}
+            </span>
+          </div>
+        ))}
+        {props.bloques.map((b) => (
+          <div
+            key={b.key}
+            title={b.titulo}
+            className={`absolute inset-x-1 rounded-[10px] border p-2 text-xs leading-[18px] font-semibold overflow-hidden ${b.clase}`}
+            style={{ top: b.top, height: b.height }}
+          >
+            {b.titulo}
+          </div>
+        ))}
+        {props.bloques.length === 0 ? (
+          <p className="absolute inset-x-0 top-1/2 text-center text-sm text-slate-400">
+            {props.rango.cerrado ? "Sin turnos este día · Cerrado." : "Sin turnos este día."}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -216,7 +295,17 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
 
   const rango = useMemo(() =>
   {
-    const diasParaBase = vista === "dia" ? [base] : vista === "semana" ? dias : [];
+    let diasParaBase: readonly DiaCivil[] = [];
+
+    if (vista === "dia")
+    {
+      diasParaBase = [base];
+    }
+    else if (vista === "semana")
+    {
+      diasParaBase = dias;
+    }
+
     const usaHorario = props.horariosNegocio !== undefined && diasParaBase.length > 0;
     const baseHorario = usaHorario
       ? resolverBaseHorarioNegocio(diasParaBase, props.horariosNegocio ?? {})
@@ -309,9 +398,9 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
     }
   }
 
-  function bloquesDelDia(diaKey: string): Array<{ key: string; top: number; height: number; clase: string; titulo: string }>
+  function bloquesDelDia(diaKey: string): BloqueDia[]
   {
-    const salida: Array<{ key: string; top: number; height: number; clase: string; titulo: string }> = [];
+    const salida: BloqueDia[] = [];
     const pxPorHora = vista === "dia" ? PX_POR_HORA_DIA : 44;
 
     const empujar = (key: string, inicioIso: string, finIso: string, clase: string, titulo: string): void =>
@@ -392,7 +481,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
     return puntos;
   }
 
-  const etiquetaMovimiento = vista === "dia" ? "Día" : vista === "semana" ? "Semana" : "Mes";
+  const etiquetaMovimiento = ETIQUETA_VISTA[vista];
   const altoDia = (rango.horaHasta - rango.horaDesde) * PX_POR_HORA_DIA;
   const altoSemana = (rango.horaHasta - rango.horaDesde) * 44;
 
@@ -407,7 +496,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
             {`${etiquetaRango(vista, dias, base)} · ${props.timeZone}`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Vista de agenda">
+        <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0" aria-label="Vista de agenda">
           {VISTAS_AGENDA.map((v) => (
             <button
               key={v}
@@ -423,7 +512,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
               {ETIQUETA_VISTA[v]}
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button
@@ -489,56 +578,20 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           ))}
         </div>
       </div>
-      {vista === "dia" ? (
-        <div className="grid grid-cols-[56px_1fr] gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-          <div className="bg-white/5 px-2 py-2 text-center">
-            <div className="text-[11px] font-semibold text-slate-400 uppercase">
-              {etiquetaDiaCorta(base).semana}
-            </div>
-            <div className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold
-              ${claveDeBase(base) === claveHoy ? "bg-violet-600 text-white" : "text-slate-100"}`}>
-              {etiquetaDiaCorta(base).numero}
-            </div>
-            <div className="mt-1 text-[11px] font-semibold text-slate-400">
-              {claveDeBase(base) === claveHoy ? "Hoy" : etiquetaDiaCorta(base).fecha}
-            </div>
-          </div>
-          <div className="bg-slate-950/60 relative" style={{ height: altoDia }}>
-            {horas.map((h, indice) => (
-              <div
-                key={h}
-                className="absolute inset-x-0 border-t border-white/10"
-                style={{ top: (h - rango.horaDesde) * PX_POR_HORA_DIA }}
-              >
-                <span className={claseEtiquetaHora(indice === 0)}>
-                  {`${String(h).padStart(2, "0")}:00`}
-                </span>
-              </div>
-            ))}
-            {bloquesDelDia(claveDeBase(base)).map((b) => (
-              <div
-                key={b.key}
-                title={b.titulo}
-                className={`absolute inset-x-1 rounded-[10px] border p-2 text-xs leading-[18px] font-semibold overflow-hidden ${b.clase}`}
-                style={{ top: b.top, height: b.height }}
-              >
-                {b.titulo}
-              </div>
-            ))}
-            {bloquesDelDia(claveDeBase(base)).length === 0 ? (
-              <p className="absolute inset-x-0 top-1/2 text-center text-sm text-slate-400">
-                {rango.cerrado ? "Sin turnos este día · Cerrado." : "Sin turnos este día."}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      {vista === "dia"
+        ? renderVistaDia({
+            base,
+            claveHoy,
+            horas,
+            rango,
+            altoDia,
+            bloques: bloquesDelDia(claveDeBase(base)),
+          })
+        : null}
       {vista === "semana" ? (
-        <div
+        <section
           ref={refRegionSemana}
-          role="region"
           aria-label="Calendario semanal, deslizar horizontalmente para ver todos los días"
-          tabIndex={0}
           data-testid="agenda-semana-scroll"
           className="overflow-x-auto"
         >
@@ -602,7 +655,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
               ))}
             </div>
           </div>
-        </div>
+        </section>
       ) : null}
       {vista === "mes" ? (
         <div>

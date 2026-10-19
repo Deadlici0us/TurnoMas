@@ -9,6 +9,27 @@ interface ResultadoCancelacion
   readonly error?: string;
 }
 
+/**
+ * Traduce el estado del reembolso a un mensaje legible para el cliente.
+ *
+ * @param reembolso Estado devuelto por la cancelación.
+ * @return Mensaje de confirmación según el reembolso.
+ */
+function mensajeReembolso(reembolso: string | undefined): string
+{
+  if (reembolso === "devuelta")
+  {
+    return "Turno cancelado. Tu seña vuelve a tu cuenta en los próximos días.";
+  }
+
+  if (reembolso === "retenida")
+  {
+    return "Turno cancelado. La seña quedó retenida por la política del negocio.";
+  }
+
+  return "Turno cancelado.";
+}
+
 /** Formulario de confirmación de cancelación (botón anti doble-clic). */
 export default function FormularioCancelacion(
   { turnoId, token }: { readonly turnoId: string; readonly token: string },
@@ -51,11 +72,7 @@ export default function FormularioCancelacion(
   {
     return (
       <p className="text-sm text-emerald-300 text-center">
-        {resultado.reembolso === "devuelta"
-          ? "Turno cancelado. Tu seña vuelve a tu cuenta en los próximos días."
-          : (resultado.reembolso === "retenida"
-            ? "Turno cancelado. La seña quedó retenida por la política del negocio."
-            : "Turno cancelado.")}
+        {mensajeReembolso(resultado.reembolso)}
       </p>
     );
   }

@@ -106,54 +106,38 @@ describe("verificarFirmaMp",
     })).resolves.toBe(true);
   });
 
-  it("debería omitir pares vacíos del manifest",
-  async () =>
-  {
-    const { createHmac } = await import("node:crypto");
-    const secreto = "secreto-webhook-test";
-    const manifest = "id:182796568127;ts:1704908010;";
-    const v1 = createHmac("sha256", secreto).update(manifest, "utf8").digest("hex");
-
-    await expect(verificarFirmaMp({
-      firma: `ts=1704908010,v1=${v1}`,
-      secreto,
+  it.each([
+    {
+      nombre: "omite pares vacíos del manifest",
+      manifest: "id:182796568127;ts:1704908010;",
       pagoId: "182796568127",
-      requestId: null,
-      timestamp: "1704908010",
-    })).resolves.toBe(true);
-  });
-
-  it("debería rechazar si falta el request-id firmado por MP",
-  async () =>
-  {
-    const { createHmac } = await import("node:crypto");
-    const secreto = "secreto-webhook-test";
-    const manifest = "id:182796568127;request-id:req-1;ts:1704908010;";
-    const v1 = createHmac("sha256", secreto).update(manifest, "utf8").digest("hex");
-
-    await expect(verificarFirmaMp({
-      firma: `ts=1704908010,v1=${v1}`,
-      secreto,
+      esperado: true,
+    },
+    {
+      nombre: "rechaza si falta el request-id firmado por MP",
+      manifest: "id:182796568127;request-id:req-1;ts:1704908010;",
       pagoId: "182796568127",
-      requestId: null,
-      timestamp: "1704908010",
-    })).resolves.toBe(false);
-  });
-
-  it("debería minúsculas en data.id antes de firmar",
-  async () =>
-  {
-    const { createHmac } = await import("node:crypto");
-    const secreto = "secreto-webhook-test";
-    const manifest = "id:ord01jq4s4ky8hwq6na5pxb65b3d3;ts:1704908010;";
-    const v1 = createHmac("sha256", secreto).update(manifest, "utf8").digest("hex");
-
-    await expect(verificarFirmaMp({
-      firma: `ts=1704908010,v1=${v1}`,
-      secreto,
+      esperado: false,
+    },
+    {
+      nombre: "baja data.id a minúsculas antes de firmar",
+      manifest: "id:ord01jq4s4ky8hwq6na5pxb65b3d3;ts:1704908010;",
       pagoId: "ORD01JQ4S4KY8HWQ6NA5PXB65B3D3",
+      esperado: true,
+    },
+  ])("debería $nombre",
+  async ({ manifest, pagoId, esperado }) =>
+  {
+    const { createHmac } = await import("node:crypto");
+    const secreto = "secreto-webhook-test";
+    const v1 = createHmac("sha256", secreto).update(manifest, "utf8").digest("hex");
+
+    await expect(verificarFirmaMp({
+      firma: `ts=1704908010,v1=${v1}`,
+      secreto,
+      pagoId,
       requestId: null,
       timestamp: "1704908010",
-    })).resolves.toBe(true);
+    })).resolves.toBe(esperado);
   });
 });

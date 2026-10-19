@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import GuiaWhatsapp from "@/components/guia-whatsapp";
+import LogoNegocioUploader from "@/components/logo-negocio-uploader";
 import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
-import { actualizarGoogleMapsUrl, actualizarGooglePlaceId, actualizarHorariosNegocio, actualizarNombreNegocio,
+import { actualizarDescripcionNegocio, actualizarGoogleMapsUrl, actualizarGooglePlaceId, actualizarHorariosNegocio,
+  actualizarLogoNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
   actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
@@ -103,6 +106,22 @@ async function guardarPlaceId(formData: FormData): Promise<void>
   const placeId = formData.get("placeId");
 
   await actualizarGooglePlaceId(typeof placeId === "string" ? placeId : null);
+}
+
+async function guardarDescripcion(formData: FormData): Promise<void>
+{
+  "use server";
+
+  const descripcion = formData.get("descripcion");
+
+  await actualizarDescripcionNegocio(typeof descripcion === "string" ? descripcion : null);
+}
+
+async function guardarLogo(url: string | null): Promise<void>
+{
+  "use server";
+
+  await actualizarLogoNegocio(url);
 }
 
 async function guardarWhatsapp(formData: FormData): Promise<void>
@@ -327,6 +346,113 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
   return null;
 }
 
+interface ContextoConfig
+{
+  readonly negocioIdTexto: string;
+  readonly mpToken: string | null;
+  readonly mpConectadoAt: string | null;
+  readonly gcalConectado: boolean;
+  readonly demo: boolean;
+  readonly avisoMp: ReturnType<typeof mensajeMp>;
+  readonly mpConectado: boolean;
+  readonly portalUrl: string;
+  readonly whatsappGuia: ReturnType<typeof guiaWhatsapp>;
+}
+
+/**
+ * Reúne el contexto de configuración (conexiones, portal y guía de WhatsApp).
+ *
+ * @param negocioIdCrudo ID crudo del negocio del dashboard.
+ * @param negocio Fila del negocio con sus datos públicos.
+ * @param searchParams Params de la URL con el aviso de MercadoPago.
+ * @return Contexto normalizado para el render de la página.
+ */
+async function cargarContextoConfig(
+  negocioIdCrudo: unknown,
+  negocio: { readonly pais?: unknown; readonly slug?: unknown; readonly nombre?: unknown },
+  searchParams: Promise<{ mp?: string }> | undefined,
+): Promise<ContextoConfig>
+{
+  const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
+  const { mpToken, mpConectadoAt, gcalConectado } = await cargarConexiones(negocioIdCrudo);
+  const demo = await esDuenoDemo();
+  const avisoMp = mensajeMp(searchParams === undefined ? undefined : (await searchParams)?.mp);
+  const mpConectado = mpToken !== null;
+
+  const rutaPortal = typeof negocio.pais === "string" && typeof negocio.slug === "string"
+    ? `/${negocio.pais}/${negocio.slug}`
+    : "/";
+  const basePublica = readEnv("NEXT_PUBLIC_APP_URL")
+    ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : "");
+  const portalUrl = basePublica.length > 0 ? `${stripTrailingSlashes(basePublica)}${rutaPortal}` : rutaPortal;
+  const whatsappGuia = guiaWhatsapp({
+    negocioNombre: typeof negocio.nombre === "string" ? negocio.nombre : "",
+    portalUrl,
+  });
+
+  return {
+    negocioIdTexto,
+    mpToken,
+    mpConectadoAt,
+    gcalConectado,
+    demo,
+    avisoMp,
+    mpConectado,
+    portalUrl,
+    whatsappGuia,
+  };
+}
+
+/**
+ * Renderiza la tarjeta de conexión de MercadoPago según su estado.
+ *
+ * @param demo Indica si el lector es el dueño demo.
+ * @param mpConectado Indica si ya hay un token de MercadoPago.
+ * @param desconectar Acción de servidor para desconectar la cuenta.
+ * @return Panel de conexión correspondiente al estado.
+ */
+function panelMercadoPago(
+  demo: boolean,
+  mpConectado: boolean,
+  desconectar: () => Promise<void>,
+): ReactNode
+{
+  if (demo)
+  {
+    return (
+      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+        La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
+        con tu MercadoPago.
+      </p>
+    );
+  }
+
+  if (mpConectado)
+  {
+    return (
+      <form action={desconectar}>
+        <button
+          type="submit"
+          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+            text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
+        >
+          Desconectar
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <Link
+      href="/api/integrations/mercadopago/authorize"
+      className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
+        hover:bg-blue-700 transition-colors"
+    >
+      Conectar MercadoPago
+    </Link>
+  );
+}
+
 export default async function ConfigPage(
   props?: { readonly searchParams?: Promise<{ mp?: string }> },
 )
@@ -340,6 +466,8 @@ export default async function ConfigPage(
     msg_remarketing_subject?: string | null; msg_remarketing_cuerpo?: string | null;
     google_maps_url?: string | null;
     google_place_id?: string | null;
+    descripcion?: string | null;
+    logo_url?: string | null;
     whatsapp?: string | null;
   };
   const {
@@ -356,24 +484,16 @@ export default async function ConfigPage(
   } = normalizarConfigNegocio(negocio);
 
   const negocioId = (dashboard.negocio as { id?: unknown }).id;
-  const { mpToken, mpConectadoAt, gcalConectado } = await cargarConexiones(negocioId);
-  const demo = await esDuenoDemo();
-  const avisoMp = mensajeMp(props?.searchParams === undefined
-    ? undefined
-    : (await props.searchParams)?.mp);
-
-  const mpConectado = mpToken !== null;
-
-  const rutaPortal = typeof negocio.pais === "string" && typeof negocio.slug === "string"
-    ? `/${negocio.pais}/${negocio.slug}`
-    : "/";
-  const basePublica = readEnv("NEXT_PUBLIC_APP_URL")
-    ?? (readEnv("VERCEL_URL") !== null ? `https://${readEnv("VERCEL_URL") as string}` : "");
-  const portalUrl = basePublica.length > 0 ? `${stripTrailingSlashes(basePublica)}${rutaPortal}` : rutaPortal;
-  const whatsappGuia = guiaWhatsapp({
-    negocioNombre: typeof negocio.nombre === "string" ? negocio.nombre : "",
-    portalUrl,
-  });
+  const {
+    negocioIdTexto,
+    mpToken,
+    mpConectadoAt,
+    gcalConectado,
+    demo,
+    avisoMp,
+    mpConectado,
+    whatsappGuia,
+  } = await cargarContextoConfig(negocioId, negocio, props?.searchParams);
 
   return (
     <div className="space-y-4">
@@ -424,6 +544,37 @@ export default async function ConfigPage(
             Guardar nombre
           </button>
         </form>
+        <LogoNegocioUploader
+          negocioId={negocioIdTexto}
+          nombre={negocio.nombre ?? ""}
+          logoUrl={negocio.logo_url ?? null}
+          action={guardarLogo}
+        />
+        <form action={guardarDescripcion} className="space-y-3">
+          <label className="block text-sm font-semibold text-slate-200">
+            {"Descripción breve de tu negocio"}
+            <span className="block text-xs font-normal text-slate-400">
+              Se muestra debajo del nombre en tu página de reservas.
+            </span>
+            <textarea
+              name="descripcion"
+              rows={2}
+              maxLength={300}
+              defaultValue={negocio.descripcion ?? ""}
+              placeholder="Ej: Barbería de barrio con turnos sin esperas."
+              className="mt-1 w-full px-4 py-3 bg-white/5 border border-white/15 text-slate-100 rounded-xl
+                outline-none placeholder:text-slate-500 [color-scheme:dark] resize-none
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar descripción
+          </button>
+        </form>
         <form action={guardarTimezone} className="space-y-3">
           <label className="block text-sm font-semibold text-slate-200">
             {"¿En qué ciudad mostramos tus turnos?"}
@@ -449,6 +600,30 @@ export default async function ConfigPage(
               hover:bg-blue-700 transition-colors"
           >
             Guardar ciudad
+          </button>
+        </form>
+        <form action={guardarMaps} className="space-y-3">
+          <label className="block text-sm font-semibold text-slate-200">
+            {"Link de Google Maps de tu negocio"}
+            <span className="block text-xs font-normal text-slate-400">
+              Si lo cargamos, mostramos un pequeño mapa del local en tu página de reservas.
+            </span>
+            <input
+              type="url"
+              name="mapsUrl"
+              defaultValue={negocio.google_maps_url ?? ""}
+              placeholder="https://maps.app.goo.gl/..."
+              className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
+                text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
+              hover:bg-blue-700 transition-colors"
+          >
+            Guardar ubicación
           </button>
         </form>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
@@ -625,32 +800,6 @@ export default async function ConfigPage(
           </button>
         </form>
         {resenaActiva ? (
-          <form action={guardarMaps} className="space-y-3">
-            <label className="block text-sm font-semibold text-slate-200">
-              {"Link de Google Maps de tu negocio"}
-              <span className="block text-xs font-normal text-slate-400">
-                Se usa si no cargás el place ID
-              </span>
-              <input
-                type="url"
-                name="mapsUrl"
-                defaultValue={negocio.google_maps_url ?? ""}
-                placeholder="https://maps.app.goo.gl/..."
-                className="mt-1 w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/15
-                  text-slate-100 rounded-xl outline-none placeholder:text-slate-500 [color-scheme:dark]
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </label>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-                hover:bg-blue-700 transition-colors"
-            >
-              Guardar link
-            </button>
-          </form>
-        ) : null}
-        {resenaActiva ? (
           <form action={guardarPlaceId} className="space-y-3">
             <label className="block text-sm font-semibold text-slate-200">
               {"Place ID de Google (link directo de reseña)"}
@@ -800,30 +949,7 @@ export default async function ConfigPage(
               {mpConectado ? `Listo ${maskMpToken(mpToken)}` : "Falta conectar"}
             </span>
           </div>
-          {demo ? (
-            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
-              La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
-              con tu MercadoPago.
-            </p>
-          ) : mpConectado ? (
-            <form action={quitarTokenMp}>
-              <button
-                type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                  text-slate-400 hover:bg-white/10 transition-colors min-h-[44px]"
-              >
-                Desconectar
-              </button>
-            </form>
-          ) : (
-            <Link
-              href="/api/integrations/mercadopago/authorize"
-              className="inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-3 rounded-xl min-h-[48px]
-                hover:bg-blue-700 transition-colors"
-            >
-              Conectar MercadoPago
-            </Link>
-          )}
+          {panelMercadoPago(demo, mpConectado, quitarTokenMp)}
           <p className="text-xs text-slate-400">
             {mpConectado && mpConectadoAt !== null
               ? "Listo: cuando te pagan, el turno se confirma solo."

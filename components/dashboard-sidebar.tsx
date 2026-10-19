@@ -40,6 +40,36 @@ const SECCIONES: readonly Seccion[] =
   { href: "/dashboard/suscripcion", etiqueta: "Suscripción", Icono: ReceiptText },
 ];
 
+const CLASE_DESHABILITADA =
+  "flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold text-slate-500 cursor-not-allowed";
+
+/**
+ * Devuelve el contador de pendientes que corresponde a una sección.
+ *
+ * @param href Ruta de la sección.
+ * @param pendientesRemarketing Pendientes del módulo de remarketing.
+ * @param resenasPendientes Reseñas pendientes de moderación.
+ * @return Conteo de pendientes, o undefined si la sección no tiene contador.
+ */
+function pendientesDeSeccion(
+  href: string,
+  pendientesRemarketing: number | undefined,
+  resenasPendientes: number | undefined,
+): number | undefined
+{
+  if (href === "/dashboard/remarketing")
+  {
+    return pendientesRemarketing;
+  }
+
+  if (href === "/dashboard/resenas")
+  {
+    return resenasPendientes;
+  }
+
+  return undefined;
+}
+
 /**
  * Navegación lateral del panel con sección activa e iconos.
  *
@@ -80,11 +110,6 @@ export default function DashboardSidebar({
     }
 
     return `${base} text-slate-400 hover:bg-white/5 hover:text-white`;
-  }
-
-  function claseDeshabilitada(): string
-  {
-    return "flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold text-slate-500 cursor-not-allowed";
   }
 
   return (
@@ -128,9 +153,7 @@ export default function DashboardSidebar({
           {SECCIONES.map(({ href, etiqueta, Icono }) =>
           {
             const deshabilitada = bloqueado && href !== "/dashboard/suscripcion";
-            const pendientes = href === "/dashboard/remarketing"
-              ? pendientesRemarketing
-              : href === "/dashboard/resenas" ? resenasPendientes : undefined;
+            const pendientes = pendientesDeSeccion(href, pendientesRemarketing, resenasPendientes);
 
             const contenido = (
               <>
@@ -147,7 +170,7 @@ export default function DashboardSidebar({
             if (deshabilitada)
             {
               return (
-                <span key={href} aria-disabled="true" className={claseDeshabilitada()}>
+                <span key={href} aria-disabled="true" className={CLASE_DESHABILITADA}>
                   {contenido}
                 </span>
               );

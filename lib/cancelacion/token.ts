@@ -101,7 +101,7 @@ export function verificarTokenCancelacion(
   if (typeof payload.turnoId !== "string" || typeof payload.clienteId !== "string"
     || typeof payload.exp !== "number")
   {
-    throw new Error("El link de cancelación no es válido. Pedí uno nuevo.");
+    throw new TypeError("El link de cancelación no es válido. Pedí uno nuevo.");
   }
 
   if (typeof turnoIdEsperado === "string" && payload.turnoId !== turnoIdEsperado)

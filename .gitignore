@@ -15,6 +15,9 @@
 /test-results
 /playwright-report
 
+# sonar
+.scannerwork/
+
 # next.js
 /.next/
 /out/

@@ -8,7 +8,8 @@
 -- Idempotente: re-ejecutable gracias a `on conflict do nothing`.
 
 -- NEGOCIO DEMO --------------------------------------------------------------
-insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado, horarios, timezone)
+insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado, descripcion,
+  google_maps_url, horarios, timezone)
 values (
   'd0e6b000-0000-4000-8000-000000000001',
   'DEMO_DUENIO_ID', -- << pegar UID de demo@turnomas.com
@@ -16,6 +17,8 @@ values (
   'ar',
   'barberia-diego',
   'active',
+  'Barbería de barrio con turnos sin esperas. Cortes clásicos, barba y color.',
+  'https://www.google.com/maps/@-34.6037389,-58.3815704,17z',
   '{"lun": ["08:00-22:00"], "mar": ["08:00-22:00"], "mié": ["08:00-22:00"], "jue": ["08:00-22:00"],
     "vie": ["08:00-22:00"], "sáb": ["08:00-20:00"], "dom": []}',
   'America/Argentina/Buenos_Aires'

@@ -10,19 +10,50 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 /**
+ * Lee un campo de texto del formulario y lo normaliza sin espacios extremos.
+ *
+ * @param formData Formulario enviado por el cliente.
+ * @param campo Nombre del campo a leer.
+ * @return Valor de texto recortado, o cadena vacía si no es texto.
+ */
+function leerTexto(formData: FormData, campo: string): string
+{
+  const crudo = formData.get(campo);
+
+  return (typeof crudo === "string" ? crudo : "").trim();
+}
+
+/**
+ * Recolecta y valida los horarios de staff enviados en el formulario.
+ *
+ * @param formData Formulario enviado por el cliente.
+ * @return Horarios normalizados, o null si no se cargó ningún rango.
+ */
+function horariosDeFormulario(formData: FormData): Record<string, string[]> | null
+{
+  const crudos: Record<string, unknown> = {};
+
+  for (const day of DAY_ORDER)
+  {
+    crudos[day] = leerTexto(formData, day);
+  }
+
+  const normalizados = validarHorariosStaff(crudos);
+
+  return DAY_ORDER.some((day) => normalizados[day].length > 0) ? normalizados : null;
+}
+
+/**
  * Crea el perfil del negocio (paso 1 del onboarding).
  * En Vercel persiste en `negocios` y sigue al paso 2 (conectar MercadoPago,
  * obligatorio para cobrar señas); en local redirige al dashboard demo.
  */
 export async function createBusiness(formData: FormData): Promise<void>
 {
-  const nombreCrudo = formData.get("nombre");
-  const nombre = (typeof nombreCrudo === "string" ? nombreCrudo : "").trim();
-  const paisCrudo = formData.get("pais");
-  const pais = (typeof paisCrudo === "string" ? paisCrudo : "").trim();
-  const timezoneCruda = formData.get("timezone");
+  const nombre = leerTexto(formData, "nombre");
+  const pais = leerTexto(formData, "pais");
   const timezone = resolverTimezoneNegocio({
-    timezone: typeof timezoneCruda === "string" ? timezoneCruda : "",
+    timezone: leerTexto(formData, "timezone"),
     pais,
   });
 
@@ -62,21 +93,7 @@ export async function createBusiness(formData: FormData): Promise<void>
 
   try
   {
-    const crudos: Record<string, unknown> = {};
-
-    for (const day of DAY_ORDER)
-    {
-      const valor = formData.get(day);
-
-      crudos[day] = typeof valor === "string" ? valor : "";
-    }
-
-    const normalizados = validarHorariosStaff(crudos);
-
-    if (DAY_ORDER.some((day) => normalizados[day].length > 0))
-    {
-      horarios = normalizados;
-    }
+    horarios = horariosDeFormulario(formData);
   }
   catch
   {

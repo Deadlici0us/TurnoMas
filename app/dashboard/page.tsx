@@ -155,15 +155,15 @@ export default async function DashboardPage()
   return (
     <div>
       {avisos.length > 0 ? (
-        <div className="space-y-2 mb-6" role="status">
+        <output className="space-y-2 mb-6 block">
           {avisos.map((a) => (
-            <p key={a.cta} className="text-[13px] font-semibold px-3 py-2.5 rounded-xl border
+            <span key={a.cta} className="block text-[13px] font-semibold px-3 py-2.5 rounded-xl border
               bg-amber-500/10 text-amber-300 border-amber-500/30">
               {a.texto}{" "}
               <Link href={a.href} className="underline">{a.cta}</Link>
-            </p>
+            </span>
           ))}
-        </div>
+        </output>
       ) : null}
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-slate-100">

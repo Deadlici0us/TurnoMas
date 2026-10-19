@@ -553,7 +553,20 @@ async function crearCheckoutConSena(
   return { checkoutUrl, checkoutError, sinMp };
 }
 
-export async function POST(request: Request)
+interface LecturaReserva
+{
+  readonly ok: boolean;
+  readonly validada?: ReservaValidada;
+  readonly respuesta?: NextResponse;
+}
+
+/**
+ * Lee y valida el cuerpo de la reserva, devolviendo la respuesta de error lista.
+ *
+ * @param request Solicitud entrante con el JSON de la reserva.
+ * @return Datos validados o la respuesta HTTP de error a devolver.
+ */
+async function leerYValidarReserva(request: Request): Promise<LecturaReserva>
 {
   let body: ReservaBody;
 
@@ -563,24 +576,56 @@ export async function POST(request: Request)
   }
   catch
   {
-    return NextResponse.json({ error: "No pudimos leer tu reserva. Probá de nuevo." }, { status: 400 });
+    return {
+      ok: false,
+      respuesta: NextResponse.json({ error: "No pudimos leer tu reserva. Probá de nuevo." }, { status: 400 }),
+    };
   }
-
-  let validada: ReservaValidada;
 
   try
   {
-    validada = parseReservaBody(body);
+    return { ok: true, validada: parseReservaBody(body) };
   }
   catch (error)
   {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Revisá los datos de tu reserva." },
-      { status: 400 },
-    );
+    return {
+      ok: false,
+      respuesta: NextResponse.json(
+        { error: error instanceof Error ? error.message : "Revisá los datos de tu reserva." },
+        { status: 400 },
+      ),
+    };
+  }
+}
+
+/**
+ * Traduce un error de persistencia de reserva a su respuesta HTTP.
+ *
+ * @param error Error capturado durante el alta de la reserva.
+ * @return Respuesta HTTP con el mensaje correspondiente.
+ */
+function respuestaErrorReserva(error: unknown): NextResponse
+{
+  const mensaje = error instanceof Error ? error.message : "";
+
+  if (mensaje.includes("Supabase"))
+  {
+    return NextResponse.json({ error: "Reserva no disponible en modo demo." }, { status: 503 });
   }
 
-  const { pais, slug, staffId, servicioId, nombre, whatsapp, email, inicio } = validada;
+  return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." }, { status: 500 });
+}
+
+export async function POST(request: Request)
+{
+  const lectura = await leerYValidarReserva(request);
+
+  if (!lectura.ok || lectura.validada === undefined)
+  {
+    return lectura.respuesta ?? NextResponse.json({ error: "Revisá los datos de tu reserva." }, { status: 400 });
+  }
+
+  const { pais, slug, staffId, servicioId, nombre, whatsapp, email, inicio } = lectura.validada;
 
   try
   {
@@ -740,13 +785,6 @@ export async function POST(request: Request)
   }
   catch (error)
   {
-    const mensaje = error instanceof Error ? error.message : "";
-
-    if (mensaje.includes("Supabase"))
-    {
-      return NextResponse.json({ error: "Reserva no disponible en modo demo." }, { status: 503 });
-    }
-
-    return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." }, { status: 500 });
+    return respuestaErrorReserva(error);
   }
 }

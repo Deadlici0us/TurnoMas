@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-// El run local (Supabase vacío) corre en auth-mode demo y nunca bloquea: el
-// caso sólo es reproducible contra el preview, con Supabase y la cuenta demo
-// con la prueba vencida.
 const preview = process.env.PREVIEW_URL;
 
+// Reason: el run local (Supabase vacío) corre en auth-mode demo y nunca
+// bloquea; el caso sólo es reproducible contra el preview, con Supabase y la
+// cuenta demo con la prueba vencida.
 test.skip(preview === undefined || preview.length === 0,
   "Requiere PREVIEW_URL con Supabase y la cuenta demo vencida.");
 

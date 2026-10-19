@@ -24,6 +24,7 @@ export interface DemoNegocioRow
   readonly resena_hs: number;
   readonly remarketing_activo: boolean;
   readonly remarketing_dias: number;
+  readonly descripcion: string | null;
   readonly google_maps_url: string | null;
   readonly horarios: Record<string, readonly string[]>;
 }
@@ -130,7 +131,8 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       resena_hs: 2,
       remarketing_activo: true,
       remarketing_dias: 30,
-      google_maps_url: null,
+      descripcion: "Barbería de barrio con turnos sin esperas. Cortes clásicos, barba y color.",
+      google_maps_url: "https://www.google.com/maps/@-34.6037389,-58.3815704,17z",
       horarios: {
         lun: ["08:00-22:00"],
         mar: ["08:00-22:00"],

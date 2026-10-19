@@ -17,7 +17,7 @@ export default function HomePage() {
           <p className="animate-reveal-up inline-flex items-center gap-2 rounded-full border border-white/10
             bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-widest text-slate-300 uppercase
             backdrop-blur" style={{ animationDelay: "0ms" }}>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)]" />{" "}
             Reservas con seña para profesionales
           </p>
           <h1 className="animate-reveal-up text-4xl md:text-6xl font-bold tracking-tight text-white"

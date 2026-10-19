@@ -193,7 +193,8 @@ describe("AgendaCalendar",
 
     const region = screen.getByRole("region", { name: /semana/i });
 
-    expect(region.getAttribute("tabindex")).toBe("0");
+    expect(region.className).toContain("overflow-x-auto");
+    expect(region.getAttribute("aria-label")).toMatch(/semana/i);
   });
 
   it("debería marcar la columna de hoy en la vista semana",

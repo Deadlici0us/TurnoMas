@@ -1,6 +1,7 @@
 import CopiarComprobante from "@/components/copiar-comprobante";
 import LeyendaEstados from "@/components/leyenda-estados";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { formatearARS } from "@/lib/dashboard/moneda";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import
 {
@@ -24,17 +25,6 @@ interface TurnoRow
 }
 
 const ESTADOS_CON_PAGO: ReadonlySet<TurnoRow["estado"]> = new Set(["pagado", "completado"]);
-
-function formatARS(cents: number | null): string
-{
-  if (cents === null)
-  {
-    return "—";
-  }
-
-  return new Intl.NumberFormat("es-AR",
-    { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(cents / 100);
-}
 
 /**
  * Celda de comprobante: badge con nro copiable o guion sin pago.
@@ -95,8 +85,8 @@ function ordenarPorFecha(turnos: TurnoRow[]): TurnoRow[]
       return porInicio;
     }
 
-    const actualizadoA = typeof a.updated_at === "string" ? new Date(a.updated_at).getTime() : NaN;
-    const actualizadoB = typeof b.updated_at === "string" ? new Date(b.updated_at).getTime() : NaN;
+    const actualizadoA = typeof a.updated_at === "string" ? new Date(a.updated_at).getTime() : Number.NaN;
+    const actualizadoB = typeof b.updated_at === "string" ? new Date(b.updated_at).getTime() : Number.NaN;
     const porActualizado = (Number.isNaN(actualizadoB) ? 0 : actualizadoB)
       - (Number.isNaN(actualizadoA) ? 0 : actualizadoA);
 
@@ -135,7 +125,7 @@ export default async function PagosPage()
             </div>
             <div className="text-right">
               <div className="text-sm text-slate-400">Pendiente cobrar</div>
-              <div className="text-2xl font-bold text-blue-400">{formatARS(totalPendiente)}</div>
+              <div className="text-2xl font-bold text-blue-400">{formatearARS(totalPendiente)}</div>
             </div>
           </div>
           <div className="mb-4"><LeyendaEstados /></div>
@@ -163,9 +153,9 @@ export default async function PagosPage()
                     <td className="py-3 text-slate-400">
                       {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
                     </td>
-                    <td className="py-3 text-slate-400">{formatARS(turno.monto_total)}</td>
-                    <td className="py-3 text-slate-400">{formatARS(turno.sena_monto)}</td>
-                    <td className="py-3 text-slate-400">{formatARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
+                    <td className="py-3 text-slate-400">{formatearARS(turno.monto_total)}</td>
+                    <td className="py-3 text-slate-400">{formatearARS(turno.sena_monto)}</td>
+                    <td className="py-3 text-slate-400">{formatearARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
                     <td className="py-3">
                       <span className={"px-2 py-0.5 text-xs rounded-full font-semibold border "
                         + claseBadgePara(turno.estado)}>

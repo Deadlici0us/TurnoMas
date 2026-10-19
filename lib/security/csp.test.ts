@@ -18,6 +18,14 @@ describe("buildCspPolicy",
     expect(csp).toContain("default-src 'self'");
   });
 
+  it("debería permitir embeber el mapa de Google Maps",
+  () =>
+  {
+    const csp = buildCspPolicy("abc123");
+
+    expect(csp).toContain("frame-src 'self' https://www.google.com https://maps.google.com");
+  });
+
   it("debería permitir unsafe-eval y omitir upgrade en desarrollo",
   () =>
   {

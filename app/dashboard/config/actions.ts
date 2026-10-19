@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
-import { validarNombreNegocio } from "@/lib/negocios/validation";
+import { validarDescripcionNegocio, validarNombreNegocio } from "@/lib/negocios/validation";
 import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
 import { validarTimezone } from "@/lib/timezone/timezone";
+import { sanitizeUrlExterna } from "@/lib/validation/url";
 import
 {
   codigoCoincide,
@@ -251,7 +252,7 @@ export async function actualizarPlantillaMensaje(
   revalidatePath("/dashboard/config");
 }
 
-/** Guarda el link de Google Maps (solo editable con reseñas activas). */
+/** Guarda el link de Google Maps del negocio (dato de ubicación del local). */
 export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
 {
   const valor = validarGoogleMapsUrl(url);
@@ -267,19 +268,78 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
   }
 
   const admin = getSupabaseAdmin();
-  const negocio = await exigirNegocioDelDueno(admin, user.id);
-
-  if (negocio.resena_activa === false && valor !== null)
-  {
-    throw new RangeError("Activá las reseñas para guardar el link de Google Maps.");
-  }
-
   const { error } = await admin.from("negocios")
     .update({ google_maps_url: valor }).eq("duenio_id", user.id);
 
   if (error !== null)
   {
     throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/**
+ * Guarda la descripción breve del negocio (se muestra en el portal público).
+ */
+export async function actualizarDescripcionNegocio(descripcion: string | null): Promise<void>
+{
+  const valor = validarDescripcionNegocio(descripcion);
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar la descripción.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ descripcion: valor }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar la descripción. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/config");
+}
+
+/**
+ * Guarda (o quita) el logo del negocio.
+ *
+ * El archivo se sube desde el navegador al bucket público `logos`; acá solo
+ * se persiste la URL pública saneada.
+ */
+export async function actualizarLogoNegocio(url: string | null): Promise<void>
+{
+  const valor = url === null || url === undefined ? null : sanitizeUrlExterna(url);
+
+  if (url !== null && url !== undefined && valor === null)
+  {
+    throw new RangeError("La imagen del logo no es válida.");
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new Error("Tenés que iniciar sesión para cambiar el logo.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("negocios")
+    .update({ logo_url: valor }).eq("duenio_id", user.id);
+
+  if (error !== null)
+  {
+    throw new Error("No pudimos guardar el logo. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");

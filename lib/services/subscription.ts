@@ -440,7 +440,7 @@ export class SubscriptionService
 
       const preapproval = await buscarPreapprovalPorEmail(cobro.payerEmail, platformToken);
 
-      if (preapproval === null || preapproval.externalReference === null)
+      if (!preapproval?.externalReference)
       {
         return null;
       }

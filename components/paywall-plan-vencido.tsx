@@ -33,12 +33,11 @@ export default function PaywallPlanVencido({
 }: PaywallPlanVencidoProps)
 {
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
       aria-labelledby="paywall-title"
-      className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto
-        bg-slate-950/85 px-4 py-8 backdrop-blur-md"
+      className="fixed inset-0 z-[60] m-0 flex h-full w-full max-w-none max-h-none items-center
+        justify-center overflow-y-auto border-0 bg-slate-950/85 px-4 py-8 backdrop-blur-md"
     >
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/5 p-8
         backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
@@ -80,6 +79,6 @@ export default function PaywallPlanVencido({
           </button>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }

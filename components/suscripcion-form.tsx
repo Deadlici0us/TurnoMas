@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 
 export interface SuscripcionFormProps
 {
@@ -31,7 +31,7 @@ export default function SuscripcionForm(props: SuscripcionFormProps)
   const [error, setError] = useState<string | null>(null);
   const emailId = `${props.idPrefix}-payer-email`;
 
-  async function enviar(event: FormEvent<HTMLFormElement>): Promise<void>
+  async function enviar(event: React.SyntheticEvent<HTMLFormElement>): Promise<void>
   {
     event.preventDefault();
 

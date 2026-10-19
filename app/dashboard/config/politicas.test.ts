@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import
 {
+  actualizarDescripcionNegocio,
   actualizarGoogleMapsUrl,
   actualizarHorariosNegocio,
+  actualizarLogoNegocio,
   actualizarNombreNegocio,
   actualizarPlantillaMensaje,
   actualizarPoliticaListaNegra,
@@ -437,24 +439,16 @@ describe("actualizarGoogleMapsUrl",
     await expect(actualizarGoogleMapsUrl("https://ejemplo.com/mapa")).rejects.toThrow(RangeError);
   });
 
-  it("debería exigir reseñas activas para guardar el link",
+  it("debería guardar el link aunque las reseñas estén apagadas",
   async () =>
   {
     sesionDueno();
-    stubConfig(null, { id: "neg-1", resena_activa: false });
+    const updates: unknown[] = [];
+    stubConfig(null, { id: "neg-1", resena_activa: false }, updates);
 
-    await expect(actualizarGoogleMapsUrl("https://www.google.com/maps/place/X"))
-      .rejects.toThrow("Activá las reseñas para guardar el link de Google Maps.");
-  });
+    await actualizarGoogleMapsUrl("https://www.google.com/maps/place/X");
 
-  it("debería exigir negocio del dueño",
-  async () =>
-  {
-    sesionDueno();
-    stubConfig(null, null);
-
-    await expect(actualizarGoogleMapsUrl("https://www.google.com/maps/place/X"))
-      .rejects.toThrow("No encontramos tu negocio.");
+    expect(updates).toEqual([{ google_maps_url: "https://www.google.com/maps/place/X" }]);
   });
 
   it("debería exigir sesión iniciada",
@@ -475,6 +469,120 @@ describe("actualizarGoogleMapsUrl",
 
     await expect(actualizarGoogleMapsUrl("https://www.google.com/maps/place/X"))
       .rejects.toThrow("No pudimos guardar la configuración. Probá de nuevo.");
+  });
+});
+
+describe("actualizarDescripcionNegocio",
+() =>
+{
+  it("debería guardar la descripción normalizada",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarDescripcionNegocio("  Cortes clásicos  y barba  ");
+
+    expect(updates).toEqual([{ descripcion: "Cortes clásicos y barba" }]);
+  });
+
+  it("debería limpiar la descripción con null",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarDescripcionNegocio("");
+
+    expect(updates).toEqual([{ descripcion: null }]);
+  });
+
+  it("debería rechazar descripciones muy largas",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig();
+
+    await expect(actualizarDescripcionNegocio("a".repeat(301))).rejects.toThrow(RangeError);
+  });
+
+  it("debería exigir sesión iniciada",
+  async () =>
+  {
+    sesionAnonima();
+    stubConfig();
+
+    await expect(actualizarDescripcionNegocio("hola"))
+      .rejects.toThrow("Tenés que iniciar sesión para cambiar la descripción.");
+  });
+
+  it("debería lanzar cuando Supabase falla",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig({});
+
+    await expect(actualizarDescripcionNegocio("hola"))
+      .rejects.toThrow("No pudimos guardar la descripción. Probá de nuevo.");
+  });
+});
+
+describe("actualizarLogoNegocio",
+() =>
+{
+  it("debería guardar la URL saneada del logo",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarLogoNegocio("https://cdn.example.com/logo.png");
+
+    expect(updates).toEqual([{ logo_url: "https://cdn.example.com/logo.png" }]);
+  });
+
+  it("debería quitar el logo con null",
+  async () =>
+  {
+    sesionDueno();
+    const updates: unknown[] = [];
+    stubConfig(null, undefined, updates);
+
+    await actualizarLogoNegocio(null);
+
+    expect(updates).toEqual([{ logo_url: null }]);
+  });
+
+  it("debería rechazar una URL con esquema inseguro",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig();
+
+    await expect(actualizarLogoNegocio("javascript:alert(1)")).rejects.toThrow(RangeError);
+  });
+
+  it("debería exigir sesión iniciada",
+  async () =>
+  {
+    sesionAnonima();
+    stubConfig();
+
+    await expect(actualizarLogoNegocio("https://cdn.example.com/logo.png"))
+      .rejects.toThrow("Tenés que iniciar sesión para cambiar el logo.");
+  });
+
+  it("debería lanzar cuando Supabase falla",
+  async () =>
+  {
+    sesionDueno();
+    stubConfig({});
+
+    await expect(actualizarLogoNegocio("https://cdn.example.com/logo.png"))
+      .rejects.toThrow("No pudimos guardar el logo. Probá de nuevo.");
   });
 });
 

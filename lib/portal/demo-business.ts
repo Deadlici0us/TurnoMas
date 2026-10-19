@@ -55,6 +55,9 @@ export interface PortalBusiness
   readonly pais: string;
   readonly slug: string;
   readonly timezone: string;
+  readonly logoUrl: string | null;
+  readonly descripcion: string | null;
+  readonly googleMapsUrl: string | null;
   readonly horarios: Record<string, string>;
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
@@ -82,6 +85,9 @@ export function getDemoBusiness(pais: string, slug: string): PortalBusiness | nu
     pais: seed.negocio.pais,
     slug: seed.negocio.slug,
     timezone: seed.negocio.timezone,
+    logoUrl: null,
+    descripcion: seed.negocio.descripcion,
+    googleMapsUrl: seed.negocio.google_maps_url,
     horarios: Object.fromEntries(
       Object.entries(seed.negocio.horarios).map(([day, ranges]) => [day, ranges.join(", ")]),
     ),

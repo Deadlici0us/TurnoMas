@@ -112,8 +112,9 @@ export function filtrarCandidatosVigentes(
       continue;
     }
 
-    const ultimo = completados.reduce((mejor, actual) =>
-      actual.fin!.getTime() > mejor.fin!.getTime() ? actual : mejor,
+    const ultimo = completados.reduce(
+      (mejor, actual) => (actual.fin!.getTime() > mejor.fin!.getTime() ? actual : mejor),
+      completados[0],
     );
     const tieneFuturo = vecinos.some((t) =>
       ESTADOS_FUTUROS.has(t.estado)
@@ -206,8 +207,9 @@ export function armarCandidatosRemarketing(
       continue;
     }
 
-    const ultimo = completados.reduce((mejor, actual) =>
-      actual.fin!.getTime() > mejor.fin!.getTime() ? actual : mejor,
+    const ultimo = completados.reduce(
+      (mejor, actual) => (actual.fin!.getTime() > mejor.fin!.getTime() ? actual : mejor),
+      completados[0],
     );
 
     const servicio = servicioPorId.get(ultimo.turno.servicio_id);

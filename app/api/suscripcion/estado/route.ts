@@ -12,6 +12,61 @@ import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
+interface FilaNegocio
+{
+  readonly created_at?: unknown;
+  readonly suscripcion_estado?: unknown;
+  readonly suscripcion_mp_id?: unknown;
+  readonly suscripcion_mora_desde?: unknown;
+  readonly suscripcion_vence_en?: unknown;
+  readonly suscripcion_cancelada_en?: unknown;
+  readonly suscripcion_mp_status?: unknown;
+}
+
+/**
+ * Normaliza un valor a string o null.
+ *
+ * @param valor Valor recibido desde la fila de Supabase.
+ * @return El string, o null si no lo es.
+ */
+function textoONull(valor: unknown): string | null
+{
+  return typeof valor === "string" ? valor : null;
+}
+
+/**
+ * Calcula el estado de suscripción a partir de la fila del negocio.
+ *
+ * @param fila Fila de `negocios` con las columnas de suscripción.
+ * @return Estado de suscripción normalizado para el paywall.
+ */
+function estadoDeFila(fila: FilaNegocio): ReturnType<typeof getNegocioSubscriptionStatus>
+{
+  return getNegocioSubscriptionStatus({
+    created_at: textoONull(fila.created_at),
+    suscripcion_estado: textoONull(fila.suscripcion_estado),
+    suscripcion_mp_id: textoONull(fila.suscripcion_mp_id),
+    suscripcion_mora_desde: textoONull(fila.suscripcion_mora_desde),
+    suscripcion_vence_en: textoONull(fila.suscripcion_vence_en),
+    suscripcion_cancelada_en: textoONull(fila.suscripcion_cancelada_en),
+    suscripcion_mp_status: textoONull(fila.suscripcion_mp_status),
+  });
+}
+
+/**
+ * Construye la respuesta 403 de modo demo de solo lectura.
+ *
+ * @param error Error lanzado por los guardas de modo editable.
+ * @return Respuesta HTTP 403 con el mensaje del guarda.
+ */
+function errorSoloLectura(error: unknown): NextResponse
+{
+  return NextResponse.json(
+    { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
+    { status: 403 },
+  );
+}
+
 export async function GET()
 {
   try
@@ -20,10 +75,7 @@ export async function GET()
   }
   catch (error)
   {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-      { status: 403 },
-    );
+    return errorSoloLectura(error);
   }
 
   try
@@ -45,10 +97,7 @@ export async function GET()
     }
     catch (error)
     {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-        { status: 403 },
-      );
+      return errorSoloLectura(error);
     }
 
     const admin = getSupabaseAdmin();
@@ -65,30 +114,7 @@ export async function GET()
       );
     }
 
-    const fila = negocio as {
-      created_at?: unknown;
-      suscripcion_estado?: unknown;
-      suscripcion_mp_id?: unknown;
-      suscripcion_mora_desde?: unknown;
-      suscripcion_vence_en?: unknown;
-      suscripcion_cancelada_en?: unknown;
-      suscripcion_mp_status?: unknown;
-    };
-    const estado = getNegocioSubscriptionStatus({
-      created_at: typeof fila.created_at === "string" ? fila.created_at : null,
-      suscripcion_estado:
-        typeof fila.suscripcion_estado === "string" ? fila.suscripcion_estado : null,
-      suscripcion_mp_id:
-        typeof fila.suscripcion_mp_id === "string" ? fila.suscripcion_mp_id : null,
-      suscripcion_mora_desde:
-        typeof fila.suscripcion_mora_desde === "string" ? fila.suscripcion_mora_desde : null,
-      suscripcion_vence_en:
-        typeof fila.suscripcion_vence_en === "string" ? fila.suscripcion_vence_en : null,
-      suscripcion_cancelada_en:
-        typeof fila.suscripcion_cancelada_en === "string" ? fila.suscripcion_cancelada_en : null,
-      suscripcion_mp_status:
-        typeof fila.suscripcion_mp_status === "string" ? fila.suscripcion_mp_status : null,
-    });
+    const estado = estadoDeFila(negocio as FilaNegocio);
 
     return NextResponse.json(
       { success: true, estado, bloqueado: estado === "blocked" },

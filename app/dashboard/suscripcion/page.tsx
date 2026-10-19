@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 
 import { cancelarPlan } from "./actions";
@@ -137,6 +137,188 @@ async function reconciliarRetorno(negocio: { id?: unknown }): Promise<void>
   }
 }
 
+interface NegocioSuscripcion
+{
+  readonly id?: unknown;
+  readonly created_at?: unknown;
+  readonly pais?: unknown;
+  readonly timezone?: unknown;
+  readonly suscripcion_estado?: unknown;
+  readonly suscripcion_mp_id?: unknown;
+  readonly suscripcion_mora_desde?: unknown;
+  readonly suscripcion_vence_en?: unknown;
+  readonly suscripcion_cancelada_en?: unknown;
+  readonly suscripcion_mp_status?: unknown;
+}
+
+interface ContextoPlan
+{
+  readonly plan: ReturnType<typeof resolverPlanPais>;
+  readonly estado: ReturnType<typeof getNegocioSubscriptionStatus>;
+  readonly venceEn: string | null;
+  readonly diasRestantes: number | null;
+  readonly diasPlan: number | null;
+  readonly planCancelado: boolean;
+  readonly negocioId: string | null;
+  readonly timeZone: ReturnType<typeof resolverTimezoneNegocio>;
+}
+
+/** Devuelve el valor si es string, o null. */
+function textoONull(valor: unknown): string | null
+{
+  return typeof valor === "string" ? valor : null;
+}
+
+/**
+ * Normaliza la fila del negocio en el contexto de suscripción plano.
+ *
+ * @param negocio Fila cruda del negocio.
+ * @return Plan, estado, vencimientos y zona horaria resueltos.
+ */
+function contextoPlan(negocio: NegocioSuscripcion): ContextoPlan
+{
+  const creado = textoONull(negocio.created_at);
+  const venceEn = textoONull(negocio.suscripcion_vence_en);
+  const canceladaEn = textoONull(negocio.suscripcion_cancelada_en);
+  const estado = getNegocioSubscriptionStatus({
+    created_at: creado,
+    suscripcion_estado: textoONull(negocio.suscripcion_estado),
+    suscripcion_mp_id: textoONull(negocio.suscripcion_mp_id),
+    suscripcion_mora_desde: textoONull(negocio.suscripcion_mora_desde),
+    suscripcion_vence_en: venceEn,
+    suscripcion_cancelada_en: canceladaEn,
+    suscripcion_mp_status: textoONull(negocio.suscripcion_mp_status),
+  });
+
+  return {
+    plan: resolverPlanPais(textoONull(negocio.pais)),
+    estado,
+    venceEn,
+    diasRestantes: diasTrialRestantes(creado),
+    diasPlan: diasSuscripcionRestantes(venceEn),
+    planCancelado: estado === "active" && canceladaEn !== null,
+    negocioId: typeof negocio.id === "string" && negocio.id.length > 0 ? negocio.id : null,
+    timeZone: resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais }),
+  };
+}
+
+/** Etiqueta corta del badge de estado del plan. */
+function etiquetaEstado(estado: string, planCancelado: boolean, diasRestantes: number | null): string
+{
+  if (estado === "active")
+  {
+    return planCancelado ? "Cancelado" : "Activo";
+  }
+
+  if (estado === "past_due")
+  {
+    return "En mora";
+  }
+
+  if (estado === "blocked")
+  {
+    return "Bloqueado";
+  }
+
+  return diasRestantes !== null ? `Prueba: ${diasRestantes} días restantes` : "Prueba";
+}
+
+/** Descripción larga del estado del plan. */
+function descripcionEstado(
+  estado: string,
+  planCancelado: boolean,
+  venceEn: string | null,
+  diasPlan: number | null,
+  timeZone: string,
+): string
+{
+  if (estado === "past_due")
+  {
+    return "Falló el último cobro. Regularizá tu tarjeta antes de que termine la gracia o se bloquea el acceso.";
+  }
+
+  if (estado === "blocked")
+  {
+    return "Tu acceso está bloqueado por falta de pago. Activá el plan para continuar.";
+  }
+
+  if (estado !== "active")
+  {
+    return "Tenés 14 días gratis. Activá el plan para no interrumpir tu agenda.";
+  }
+
+  if (!planCancelado)
+  {
+    return "Tu plan está activo. El débito es automático cada mes."
+      + (diasPlan !== null ? ` Se renueva en ${diasPlan} días.` : "");
+  }
+
+  if (venceEn === null)
+  {
+    return "Cancelaste el plan. Conservás el acceso hasta que termine el período ya pago.";
+  }
+
+  return "Cancelaste el plan. Seguís con acceso hasta el "
+    + `${formatearEnZonaConFecha(venceEn, timeZone)}`
+    + (diasPlan !== null ? ` (${diasPlan} días restantes).` : ".");
+}
+
+interface PanelAccionProps
+{
+  readonly demo: boolean;
+  readonly estado: string;
+  readonly planCancelado: boolean;
+  readonly userEmail: string | null;
+}
+
+/** Acción principal del plan (demo, cancelar, reactivar o suscribir). */
+function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
+{
+  if (props.demo)
+  {
+    return (
+      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+        La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
+      </p>
+    );
+  }
+
+  if (props.estado === "active" && !props.planCancelado)
+  {
+    return (
+      <form action={cancelarPlan}>
+        <button
+          type="submit"
+          className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
+            text-slate-400 hover:bg-white/10 transition-colors"
+        >
+          Cancelar plan
+        </button>
+      </form>
+    );
+  }
+
+  if (props.estado === "blocked")
+  {
+    return (
+      <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
+        Completá el pago en el aviso para reactivar tu plan.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {props.planCancelado && (
+        <p className="text-xs text-slate-400 mb-3">
+          Reactivá tu plan para volver a renovar automáticamente cada mes.
+        </p>
+      )}
+      <SuscripcionForm idPrefix="suscripcion" emailInicial={props.userEmail ?? undefined} />
+    </div>
+  );
+}
+
 export default async function SuscripcionPage(
   props?: { readonly searchParams?: Promise<{ suscripcion?: string; preapproval_id?: string; error?: string }> },
 )
@@ -161,50 +343,15 @@ export default async function SuscripcionPage(
     userEmail = refrescado.userEmail;
   }
 
-  const negocio = dashboard.negocio as {
-    id?: unknown;
-    created_at?: unknown;
-    pais?: unknown;
-    timezone?: unknown;
-    suscripcion_estado?: unknown;
-    suscripcion_mp_id?: unknown;
-    suscripcion_mora_desde?: unknown;
-    suscripcion_vence_en?: unknown;
-    suscripcion_cancelada_en?: unknown;
-    suscripcion_mp_status?: unknown;
-  };
-  const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
-  const creado = typeof negocio.created_at === "string" ? negocio.created_at : null;
-  const venceEn = typeof negocio.suscripcion_vence_en === "string" ? negocio.suscripcion_vence_en : null;
-  const canceladaEn = typeof negocio.suscripcion_cancelada_en === "string"
-    ? negocio.suscripcion_cancelada_en
-    : null;
-  const estado = getNegocioSubscriptionStatus({
-    created_at: creado,
-    suscripcion_estado:
-      typeof negocio.suscripcion_estado === "string" ? negocio.suscripcion_estado : null,
-    suscripcion_mp_id:
-      typeof negocio.suscripcion_mp_id === "string" ? negocio.suscripcion_mp_id : null,
-    suscripcion_mora_desde:
-      typeof negocio.suscripcion_mora_desde === "string" ? negocio.suscripcion_mora_desde : null,
-    suscripcion_vence_en: venceEn,
-    suscripcion_cancelada_en: canceladaEn,
-    suscripcion_mp_status:
-      typeof negocio.suscripcion_mp_status === "string" ? negocio.suscripcion_mp_status : null,
-  });
-  const diasRestantes = diasTrialRestantes(creado);
-  const planCancelado = estado === "active" && canceladaEn !== null;
-  const diasPlan = diasSuscripcionRestantes(venceEn);
-  const negocioId = typeof negocio.id === "string" && negocio.id.length > 0 ? negocio.id : null;
-  const timeZone = resolverTimezoneNegocio({ timezone: negocio.timezone, pais: negocio.pais });
-  const pagos = demo ? [] : await cargarPagos(negocioId);
+  const ctx = contextoPlan(dashboard.negocio as NegocioSuscripcion);
+  const pagos = demo ? [] : await cargarPagos(ctx.negocioId);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Suscripción</h1>
-          <p className="text-slate-400 mt-1 text-sm">Plan mensual de TurnoMas: {plan.etiqueta}.</p>
+          <p className="text-slate-400 mt-1 text-sm">Plan mensual de TurnoMas: {ctx.plan.etiqueta}.</p>
         </div>
         <Link
           href="/dashboard"
@@ -214,7 +361,7 @@ export default async function SuscripcionPage(
         </Link>
       </div>
 
-      {retorno && estado !== "active" && (
+      {retorno && ctx.estado !== "active" && (
         <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
           bg-green-500/10 text-green-300 border-green-500/30">
           Pago registrado. Tu plan se activa cuando MercadoPago confirma la autorización.
@@ -228,7 +375,7 @@ export default async function SuscripcionPage(
         </p>
       )}
 
-      {estado === "active" && !planCancelado && venceEn !== null && diasPlan === 0 && (
+      {ctx.estado === "active" && !ctx.planCancelado && ctx.venceEn !== null && ctx.diasPlan === 0 && (
         <p className="text-xs font-semibold px-3 py-2 rounded-lg border mb-4
           bg-amber-500/10 text-amber-300 border-amber-500/30">
           Estamos confirmando la renovación de tu plan con MercadoPago. Conservás el acceso mientras tanto.
@@ -240,57 +387,18 @@ export default async function SuscripcionPage(
             <h3 className="font-semibold text-slate-100">Plan mensual</h3>
             <span className="text-xs font-semibold px-3 py-1 rounded-full border
               bg-white/10 text-slate-400 border-white/10">
-              {estado === "active"
-                ? planCancelado ? "Cancelado" : "Activo"
-                : estado === "past_due" ? "En mora"
-                : estado === "blocked" ? "Bloqueado"
-                : diasRestantes !== null ? `Prueba: ${diasRestantes} días restantes` : "Prueba"}
+              {etiquetaEstado(ctx.estado, ctx.planCancelado, ctx.diasRestantes)}
             </span>
           </div>
           <p className="text-sm text-slate-400 mb-4">
-            {estado === "active"
-              ? planCancelado
-                ? venceEn !== null
-                  ? `Cancelaste el plan. Seguís con acceso hasta el `
-                    + `${formatearEnZonaConFecha(venceEn, timeZone)}`
-                    + (diasPlan !== null ? ` (${diasPlan} días restantes).` : ".")
-                  : "Cancelaste el plan. Conservás el acceso hasta que termine el período ya pago."
-                : "Tu plan está activo. El débito es automático cada mes."
-                  + (diasPlan !== null ? ` Se renueva en ${diasPlan} días.` : "")
-              : estado === "past_due"
-              ? "Falló el último cobro. Regularizá tu tarjeta antes de que termine la gracia o se bloquea el acceso."
-              : estado === "blocked"
-              ? "Tu acceso está bloqueado por falta de pago. Activá el plan para continuar."
-              : "Tenés 14 días gratis. Activá el plan para no interrumpir tu agenda."}
+            {descripcionEstado(ctx.estado, ctx.planCancelado, ctx.venceEn, ctx.diasPlan, ctx.timeZone)}
           </p>
-          {demo ? (
-            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
-              La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
-            </p>
-          ) : estado === "active" && !planCancelado ? (
-            <form action={cancelarPlan}>
-              <button
-                type="submit"
-                className="text-xs font-semibold px-4 py-2 rounded-lg border border-white/15
-                  text-slate-400 hover:bg-white/10 transition-colors"
-              >
-                Cancelar plan
-              </button>
-            </form>
-          ) : estado === "blocked" ? (
-            <p className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg p-3">
-              Completá el pago en el aviso para reactivar tu plan.
-            </p>
-          ) : (
-            <div>
-              {planCancelado && (
-                <p className="text-xs text-slate-400 mb-3">
-                  Reactivá tu plan para volver a renovar automáticamente cada mes.
-                </p>
-              )}
-              <SuscripcionForm idPrefix="suscripcion" emailInicial={userEmail ?? undefined} />
-            </div>
-          )}
+          {panelAccionSuscripcion({
+            demo,
+            estado: ctx.estado,
+            planCancelado: ctx.planCancelado,
+            userEmail,
+          })}
         </div>
 
       <div className="bg-slate-900/70 rounded-2xl shadow-black/20 border border-white/10 backdrop-blur p-4 sm:p-6 mb-4">
@@ -312,7 +420,7 @@ export default async function SuscripcionPage(
                 {pagos.map((pago) => (
                   <tr key={pago.id} className="hover:bg-white/10">
                     <td className="py-3 text-slate-400 tabular-nums whitespace-nowrap">
-                      {formatearEnZonaConFecha(pago.fecha, timeZone)}
+                      {formatearEnZonaConFecha(pago.fecha, ctx.timeZone)}
                     </td>
                     <td className="py-3 text-slate-300 tabular-nums whitespace-nowrap">
                       {formatearMonto(pago.currency, pago.montoCents)}
@@ -334,7 +442,7 @@ export default async function SuscripcionPage(
         )}
       </div>
 
-      {retorno && !demo && estado !== "active" && estado !== "blocked" ? (
+      {retorno && !demo && ctx.estado !== "active" && ctx.estado !== "blocked" ? (
         <Suspense fallback={null}>
           <VerificarPago />
         </Suspense>
