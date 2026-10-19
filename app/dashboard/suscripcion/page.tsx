@@ -10,7 +10,9 @@ import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasSuscripcionRestantes, diasTrialRestantes } from "@/lib/onboarding/trial";
 import { esRetornoCheckout } from "@/lib/payments/checkout-return";
+import { calcularPrecioConPromo } from "@/lib/payments/promocion";
 import { resolverPlanPais } from "@/lib/payments/subscription";
+import { promocionService, type Promocion } from "@/lib/services/promociones";
 import { subscriptionService, type PagoSuscripcion } from "@/lib/services/subscription";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { formatearEnZonaConFecha, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
@@ -30,6 +32,47 @@ function formatearMonto(currency: string, cents: number): string
   catch
   {
     return `${cents / 100} ${currency}`;
+  }
+}
+
+/**
+ * Formatea un precio del plan (unidades de moneda, no centavos).
+ *
+ * @param currency Moneda ISO.
+ * @param monto Monto mensual.
+ * @return Precio legible.
+ */
+function formatearPrecioPlan(currency: string, monto: number): string
+{
+  try
+  {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(monto);
+  }
+  catch
+  {
+    return `${monto} ${currency}`;
+  }
+}
+
+/**
+ * Carga la promo vigente sin romper la página si la migración no está aplicada.
+ *
+ * @param negocioId ID del negocio.
+ * @return Promo vigente o null.
+ */
+async function cargarPromo(negocioId: string): Promise<Promocion | null>
+{
+  try
+  {
+    return await promocionService.obtenerVigente(negocioId);
+  }
+  catch
+  {
+    return null;
   }
 }
 
@@ -344,6 +387,8 @@ export default async function SuscripcionPage(
   }
 
   const ctx = contextoPlan(dashboard.negocio as NegocioSuscripcion);
+  const promo = ctx.negocioId === null ? null : await cargarPromo(ctx.negocioId);
+  const precioPlan = calcularPrecioConPromo(ctx.plan.monto, promo);
   const pagos = demo ? [] : await cargarPagos(ctx.negocioId);
 
   return (
@@ -351,7 +396,25 @@ export default async function SuscripcionPage(
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-100">Suscripción</h1>
-          <p className="text-slate-400 mt-1 text-sm">Plan mensual de TurnoMas: {ctx.plan.etiqueta}.</p>
+          <p className="text-slate-400 mt-1 text-sm">
+            {precioPlan.aplicada && promo !== null ? (
+              <>
+                Plan mensual:{" "}
+                <span className="line-through text-slate-500">
+                  {formatearPrecioPlan(ctx.plan.currency, ctx.plan.monto)}
+                </span>{" "}
+                <span className="font-semibold text-emerald-300">
+                  {formatearPrecioPlan(ctx.plan.currency, precioPlan.montoFinal)}
+                </span>
+                {` · ${precioPlan.porcentaje}% off hasta `}
+                {new Date(promo.vigenteHasta).toLocaleDateString("es-AR", {
+                  timeZone: ctx.timeZone,
+                })}.
+              </>
+            ) : (
+              <>Plan mensual de TurnoMas: {ctx.plan.etiqueta}.</>
+            )}
+          </p>
         </div>
         <Link
           href="/dashboard"
@@ -393,6 +456,13 @@ export default async function SuscripcionPage(
           <p className="text-sm text-slate-400 mb-4">
             {descripcionEstado(ctx.estado, ctx.planCancelado, ctx.venceEn, ctx.diasPlan, ctx.timeZone)}
           </p>
+          {promo !== null && promo.ultimoError !== null && (
+            <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs
+              font-semibold text-amber-300">
+              Estamos terminando de aplicar tu descuento en MercadoPago. Si el próximo cobro sale con el
+              precio de lista, escribinos y lo corregimos.
+            </p>
+          )}
           {panelAccionSuscripcion({
             demo,
             estado: ctx.estado,

@@ -11,6 +11,26 @@ vi.mock("@/lib/supabase/admin", () =>
 
 const mockGetSupabaseAdmin = vi.mocked(getSupabaseAdmin);
 
+/** Stub de la consulta de promo vigente en `crearParaNegocio`. */
+function stubPromoVigente(fila: unknown = null)
+{
+  mockGetSupabaseAdmin.mockReturnValue({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            lte: () => ({
+              gt: () => ({
+                maybeSingle: async () => ({ data: fila, error: null }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    }),
+  } as never);
+}
+
 /** Stub de update().eq() que captura valores. */
 function stubUpdate(updates: unknown[] = [], error: { message?: string } | null = null)
 {
@@ -71,6 +91,7 @@ describe("subscriptionService.crearParaNegocio",
   {
     vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
+    stubPromoVigente();
     const cuerpos: string[] = [];
     vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body?: unknown } = {}) =>
     {
@@ -91,6 +112,40 @@ describe("subscriptionService.crearParaNegocio",
       status: "pending",
       auto_recurring: { transaction_amount: 14999, currency_id: "ARS" },
       notification_url: "https://turnomas.com/api/webhooks/mercadopago",
+    });
+  });
+
+  it("debería crear la suscripción con el precio promo vigente",
+  async () =>
+  {
+    vi.stubEnv("MP_ACCESS_TOKEN", "APP_USR-platform");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://turnomas.com");
+    stubPromoVigente({
+      id: "promo-1",
+      negocio_id: "neg-ar",
+      porcentaje: 20,
+      motivo: null,
+      vigente_desde: "2026-10-01T00:00:00.000Z",
+      vigente_hasta: "2026-11-01T00:00:00.000Z",
+      activo: true,
+      sincronizado_en: null,
+      ultimo_error: null,
+      created_by: "admin@turnomas.com",
+    });
+    const cuerpos: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body?: unknown } = {}) =>
+    {
+      cuerpos.push(typeof init.body === "string" ? init.body : "");
+
+      return { ok: true, json: async () => ({ id: "pre-1", status: "pending", init_point: "https://mp/checkout/pre-1" }) };
+    }));
+
+    await subscriptionService.crearParaNegocio("neg-ar", "pagador@mp.com", "ar");
+
+    const body = JSON.parse(cuerpos[0]) as Record<string, unknown>;
+
+    expect(body).toMatchObject({
+      auto_recurring: { transaction_amount: 11999, currency_id: "ARS" },
     });
   });
 });

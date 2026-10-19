@@ -23,6 +23,17 @@ describe("DashboardSidebar",
     }
   });
 
+  it("debería mostrar Promociones solo al administrador",
+  () =>
+  {
+    const { unmount } = render(<DashboardSidebar esAdmin />);
+    expect(screen.getByRole("link", { name: "Promociones" })).toBeDefined();
+    unmount();
+
+    render(<DashboardSidebar />);
+    expect(screen.queryByRole("link", { name: "Promociones" })).toBeNull();
+  });
+
   it("debería marcar la sección activa según la ruta",
   async () =>
   {

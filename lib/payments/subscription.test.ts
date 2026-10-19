@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  actualizarMontoPreapproval,
   buscarPreapprovalPorEmail,
   buscarPreapprovalsPorEstado,
   cancelarPreapproval,
@@ -518,3 +519,53 @@ describe("buscarPreapprovalsPorEstado",
         .rejects.toThrow("No se pudieron listar las suscripciones: 500");
     });
   });
+
+describe("actualizarMontoPreapproval",
+() =>
+{
+  it("debería enviar el nuevo monto y moneda por PUT",
+  async () =>
+  {
+    const { fetchMock, cuerpos } = instalarMpFetch(respuestaOk({ id: "pre-1" }));
+
+    await actualizarMontoPreapproval({
+      preapprovalId: "pre-1",
+      monto: 11999,
+      currency: "ARS",
+      platformToken: "APP_USR-platform",
+    }, fetchMock);
+
+    expect(ultimoBody(cuerpos)).toEqual({
+      auto_recurring: {
+        transaction_amount: 11999,
+        currency_id: "ARS",
+      },
+    });
+  });
+
+  it("debería rechazar montos inválidos",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaOk({}));
+
+    await expect(actualizarMontoPreapproval({
+      preapprovalId: "pre-1",
+      monto: 0,
+      currency: "ARS",
+      platformToken: "APP_USR-platform",
+    }, fetchMock)).rejects.toThrow("El monto debe ser un entero positivo.");
+  });
+
+  it("debería propagar el status de MercadoPago",
+  async () =>
+  {
+    const { fetchMock } = instalarMpFetch(respuestaError(400));
+
+    await expect(actualizarMontoPreapproval({
+      preapprovalId: "pre-1",
+      monto: 11999,
+      currency: "ARS",
+      platformToken: "APP_USR-platform",
+    }, fetchMock)).rejects.toThrow("HTTP 400");
+  });
+});

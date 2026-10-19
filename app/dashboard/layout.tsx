@@ -3,6 +3,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar";
 import DemoEditableBanner from "@/components/demo-editable-banner";
 import PaywallPlanVencido from "@/components/paywall-plan-vencido";
 import { logout } from "@/app/login/actions";
+import { isAdminEmail } from "@/lib/auth/admin";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { resolverPlanPais } from "@/lib/payments/subscription";
@@ -49,11 +50,17 @@ export default async function DashboardLayout({
       typeof negocio.suscripcion_mp_status === "string" ? negocio.suscripcion_mp_status : null,
   }) === "blocked";
   const plan = resolverPlanPais(typeof negocio.pais === "string" ? negocio.pais : null);
+  const esAdmin = isAdminEmail(userEmail);
 
   return (
     <>
       <div className="relative z-10 flex min-h-screen bg-slate-950 text-slate-100 scheme-dark">
-        <DashboardSidebar pendientesRemarketing={candidatos.length} resenasPendientes={resenasPendientes} bloqueado={bloqueado} />
+        <DashboardSidebar
+          pendientesRemarketing={candidatos.length}
+          resenasPendientes={resenasPendientes}
+          bloqueado={bloqueado}
+          esAdmin={esAdmin}
+        />
         <div className="min-w-0 flex-1">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
             {isDemo ? <DemoEditableBanner /> : null}

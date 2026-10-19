@@ -2,11 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { criterioRiesgo, GET, POST } from "./route";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { promocionService } from "@/lib/services/promociones";
 import { subscriptionService } from "@/lib/services/subscription";
 
 vi.mock("@/lib/supabase/admin", () =>
 {
   return { getSupabaseAdmin: vi.fn() };
+});
+
+vi.mock("@/lib/services/promociones", () =>
+{
+  return { promocionService: { sincronizarPendientes: vi.fn() } };
 });
 
 vi.mock("@/lib/services/subscription", () =>
@@ -15,6 +21,7 @@ vi.mock("@/lib/services/subscription", () =>
 });
 
 const mockAdmin = vi.mocked(getSupabaseAdmin);
+const mockPromociones = vi.mocked(promocionService.sincronizarPendientes);
 const mockVerificar = vi.mocked(subscriptionService.verificarPreapproval);
 
 /** Stub del admin con la cadena select().not().or().order().limit(). */
@@ -55,6 +62,7 @@ beforeEach(() =>
 {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
+  mockPromociones.mockResolvedValue({ revisadas: 0, sincronizadas: 0, errores: 0 });
   mockAdmin.mockImplementation(() =>
   {
     throw new Error("Falta configurar Supabase en el entorno (URL y clave de servicio).");
@@ -158,6 +166,21 @@ describe("POST /api/cron/suscripciones",
     expect(body).toMatchObject({ success: true, revisadas: 2, activadas: 1, errores: 0 });
     expect(mockVerificar).toHaveBeenCalledTimes(2);
     expect(mockVerificar).toHaveBeenCalledWith("neg-1", "pre-1", expect.any(Date));
+  });
+
+  it("debería sincronizar promociones sin cortar el barrido principal",
+  async () =>
+  {
+    stubBarrido([]);
+    mockPromociones.mockResolvedValue({ revisadas: 2, sincronizadas: 1, errores: 1 });
+
+    const response = await POST(requestWith());
+    const body = await response.json() as {
+      promociones: { revisadas: number; sincronizadas: number; errores: number };
+    };
+
+    expect(body.promociones).toEqual({ revisadas: 2, sincronizadas: 1, errores: 1 });
+    expect(mockPromociones).toHaveBeenCalledWith(expect.any(Date));
   });
 
   it("debería aislar el error de un negocio sin cortar el barrido",

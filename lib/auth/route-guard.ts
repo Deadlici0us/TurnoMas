@@ -13,15 +13,19 @@ import type { SubscriptionStatus } from "@/lib/onboarding/trial";
 export const DASHBOARD_ROUTE = "/dashboard";
 export const ONBOARDING_ROUTE = "/onboarding";
 export const ADQUIRIR_SERVICIO_ROUTE = "/dashboard/suscripcion";
+export const ADMIN_ROUTE = "/admin";
 
 /**
  * Rutas exentas del bloqueo por servicio vencido.
  *
  * La de adquisición es el único destino permitido. `login` y `auth` son
  * exenciones técnicas: sin ellas un usuario bloqueado no podría desloguearse
- * ni reautenticarse y quedaría atrapado en un bucle de redirección.
+ * ni reautenticarse y quedaría atrapado en un bucle de redirección. `admin`
+ * queda exenta para que el administrador de la plataforma pueda gestionar
+ * promociones aunque su propio negocio esté bloqueado; la página valida
+ * ADMIN_EMAIL por su cuenta.
  */
-const RUTAS_EXENTAS_BLOQUEO = ["/login", "/auth"] as const;
+const RUTAS_EXENTAS_BLOQUEO = ["/login", "/auth", ADMIN_ROUTE] as const;
 
 /** Foto de acceso resuelta para una request. */
 export interface AccessSnapshot

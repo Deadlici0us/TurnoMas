@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import
 {
+  BadgePercent,
   BookUser,
   CalendarDays,
   LayoutDashboard,
@@ -81,14 +82,23 @@ export default function DashboardSidebar({
   pendientesRemarketing,
   resenasPendientes,
   bloqueado = false,
+  esAdmin = false,
 }: {
   readonly pendientesRemarketing?: number;
   readonly resenasPendientes?: number;
   readonly bloqueado?: boolean;
+  readonly esAdmin?: boolean;
 } = {})
 {
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
+  const secciones: readonly Seccion[] = esAdmin
+    ? [...SECCIONES, {
+      href: "/admin/promociones",
+      etiqueta: "Promociones",
+      Icono: BadgePercent,
+    }]
+    : SECCIONES;
 
   function esActiva(href: string): boolean
   {
@@ -150,9 +160,11 @@ export default function DashboardSidebar({
           </button>
         </div>
         <nav className="flex flex-col gap-1">
-          {SECCIONES.map(({ href, etiqueta, Icono }) =>
+          {secciones.map(({ href, etiqueta, Icono }) =>
           {
-            const deshabilitada = bloqueado && href !== "/dashboard/suscripcion";
+            const deshabilitada = bloqueado
+              && href !== "/dashboard/suscripcion"
+              && href !== "/admin/promociones";
             const pendientes = pendientesDeSeccion(href, pendientesRemarketing, resenasPendientes);
 
             const contenido = (

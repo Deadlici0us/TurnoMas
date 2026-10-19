@@ -81,6 +81,13 @@ describe("resolveBlockedRedirect",
     expect(resolveBlockedRedirect("/auth/callback", "authenticated", "blocked")).toBeNull();
   });
 
+  it("debería permitir /admin al administrador bloqueado",
+  () =>
+  {
+    expect(resolveBlockedRedirect("/admin", "authenticated", "blocked")).toBeNull();
+    expect(resolveBlockedRedirect("/admin/promociones", "authenticated", "blocked")).toBeNull();
+  });
+
   it("no debería bloquear con servicio activo, en prueba o en mora",
   () =>
   {
@@ -138,6 +145,8 @@ describe("isRutaAdquirirServicio / isRutaExentaBloqueo",
     expect(isRutaExentaBloqueo("/login")).toBe(true);
     expect(isRutaExentaBloqueo("/login?error=x")).toBe(false);
     expect(isRutaExentaBloqueo("/auth/callback")).toBe(true);
+    expect(isRutaExentaBloqueo("/admin")).toBe(true);
+    expect(isRutaExentaBloqueo("/admin/promociones")).toBe(true);
     expect(isRutaExentaBloqueo("/dashboard/agenda")).toBe(false);
   });
 });

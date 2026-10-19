@@ -416,6 +416,66 @@ export async function buscarPreapprovalsPorEstado(
   });
 }
 
+export interface ActualizarMontoInput
+{
+  readonly preapprovalId: string;
+  readonly monto: number;
+  readonly currency: string;
+  readonly platformToken: string;
+}
+
+/**
+ * Actualiza el monto recurrente de una suscripción existente.
+ *
+ * MercadoPago aplica el nuevo `transaction_amount` a los próximos cobros, no
+ * al período ya facturado. Sirve tanto para aplicar una promo como para
+ * restaurar el precio base al vencer, sin que el pagador reautorice.
+ *
+ * @param input Preapproval, monto en unidades de la moneda y token de plataforma.
+ * @param fetchFn Fetch inyectable para tests.
+ * @throws RangeError Cuando el monto o el ID no son válidos.
+ * @throws MpHttpError Cuando MercadoPago rechaza la actualización.
+ */
+export async function actualizarMontoPreapproval(
+  input: ActualizarMontoInput,
+  fetchFn: FetchFn = fetch,
+): Promise<void>
+{
+  if (input.preapprovalId.trim().length === 0)
+  {
+    throw new RangeError("El preapproval es obligatorio.");
+  }
+
+  if (!Number.isInteger(input.monto) || input.monto <= 0)
+  {
+    throw new RangeError("El monto debe ser un entero positivo.");
+  }
+
+  if (input.currency.trim().length === 0)
+  {
+    throw new RangeError("La moneda es obligatoria.");
+  }
+
+  const response = await fetchFn(`${MP_API_BASE}/preapproval/${input.preapprovalId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${input.platformToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      auto_recurring: {
+        transaction_amount: input.monto,
+        currency_id: input.currency,
+      },
+    }),
+  });
+
+  if (!response.ok)
+  {
+    throw await errorMp(response, "No se pudo actualizar el monto de la suscripción");
+  }
+}
+
 /** Cancela un preapproval con el token de plataforma. */
 export async function cancelarPreapproval(
   preapprovalId: string,

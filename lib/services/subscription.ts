@@ -14,6 +14,8 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
+import { promocionService } from "./promociones";
+
 /** Cuota persistida del plan SaaS (historial de pagos). */
 export interface PagoSuscripcion
 {
@@ -70,6 +72,7 @@ export class SubscriptionService
     }
 
     const plan = resolverPlanPais(pais);
+    const { precio } = await promocionService.precioParaNegocio(negocioId, plan.monto);
 
     const publicUrl = readEnv("NEXT_PUBLIC_APP_URL");
     const vercelUrl = readEnv("VERCEL_URL");
@@ -85,7 +88,7 @@ export class SubscriptionService
       payerEmail,
       backUrl: `${stripTrailingSlashes(base)}/dashboard/suscripcion?suscripcion=ok`,
       notificationUrl: `${stripTrailingSlashes(base)}/api/webhooks/mercadopago`,
-      monto: plan.monto,
+      monto: precio.montoFinal,
       currency: plan.currency,
       platformToken,
     });

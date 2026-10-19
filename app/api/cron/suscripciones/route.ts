@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 
 import { exigeFirmas, readEnv } from "@/lib/env/env";
+import { promocionService } from "@/lib/services/promociones";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verificarFirmaQStash } from "@/lib/webhooks/qstash";
@@ -134,7 +135,35 @@ export async function POST(request: Request): Promise<ReturnType<typeof NextResp
     }
   }
 
-  return NextResponse.json({ success: true, revisadas: filas.length, activadas, errores });
+  // Promos: vence las que expiraron, restaura el precio base y reintenta las
+  // que quedaron desincronizadas con MercadoPago. Aislado del barrido de
+  // suscripciones para que un fallo de promociones no corte el rescate.
+  let promociones: { revisadas: number; sincronizadas: number; errores: number } = {
+    revisadas: 0,
+    sincronizadas: 0,
+    errores: 0,
+  };
+
+  try
+  {
+    promociones = await promocionService.sincronizarPendientes(ahora);
+  }
+  catch (error)
+  {
+    console.error(
+      "[cron/suscripciones] promociones",
+      error instanceof Error ? error.message : error,
+    );
+    promociones = { revisadas: 0, sincronizadas: 0, errores: 1 };
+  }
+
+  return NextResponse.json({
+    success: true,
+    revisadas: filas.length,
+    activadas,
+    errores,
+    promociones,
+  });
 }
 
 export async function GET(): Promise<ReturnType<typeof NextResponse.json>>
