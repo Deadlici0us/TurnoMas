@@ -60,6 +60,10 @@ const RESENAS = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0019_resenas.sql"),
   "utf8",
 );
+const STAFF_PERFIL_SERVICIOS = readFileSync(
+  join(REPO_ROOT, "supabase", "migrations", "0020_staff_perfil_servicios.sql"),
+  "utf8",
+);
 const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
@@ -296,6 +300,34 @@ describe("esquema Supabase",
     expect(SUSCRIPCION_RECONCILIACION).toMatch(/alter table negocios add column/i);
     expect(SUSCRIPCION_RECONCILIACION).toContain("negocios_suscripcion_riesgo");
     expect(SUSCRIPCION_RECONCILIACION).toMatch(/create index if not exists/i);
+  });
+
+  it("debería guardar foto, descripción y servicios que brinda el equipo",
+  () =>
+  {
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/alter table staff add column if not exists foto_url/i);
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/alter table staff add column if not exists descripcion/i);
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/create table if not exists staff_servicios/i);
+
+    for (const columna of ["staff_id", "servicio_id", "negocio_id"])
+    {
+      expect(STAFF_PERFIL_SERVICIOS).toContain(columna);
+    }
+
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/primary key \(staff_id, servicio_id\)/);
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/enable row level security/);
+    expect(STAFF_PERFIL_SERVICIOS).toContain("staff_servicios_owner_all");
+    expect(STAFF_PERFIL_SERVICIOS).toContain("staff_servicios_portal_anon");
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/portal_staff with \(security_invoker = true\)/);
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/portal_staff_servicios with \(security_invoker = true\)/);
+    expect(STAFF_PERFIL_SERVICIOS).toMatch(/grant select on portal_staff, portal_staff_servicios/);
+  });
+
+  it("debería sembrar los servicios de cada profesional demo",
+  () =>
+  {
+    expect(SEED).toContain("staff_servicios");
+    expect(SEED).toContain("descripcion");
   });
 
   it("debería persistir las reseñas y el place ID de Google",

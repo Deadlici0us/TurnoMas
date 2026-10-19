@@ -7,6 +7,23 @@ import { buildDemoSeed } from "@/lib/seed/demo-rows";
 
 const DEMO_DUENIO_ID = "demo-duenio";
 
+/** Par profesional ↔ servicio en camelCase para la UI. */
+interface AsociacionStaffServicio
+{
+  readonly staffId: string;
+  readonly servicioId: string;
+}
+
+/** Normaliza las filas de `staff_servicios` a la forma de la UI. */
+function asociacionesDeFilas(
+  filas: ReadonlyArray<{ readonly staff_id: unknown; readonly servicio_id: unknown }> | null,
+): AsociacionStaffServicio[]
+{
+  return (filas ?? [])
+    .filter((fila) => typeof fila.staff_id === "string" && typeof fila.servicio_id === "string")
+    .map((fila) => ({ staffId: fila.staff_id as string, servicioId: fila.servicio_id as string }));
+}
+
 /** Datos del dashboard: negocio + staff + servicios + clientes + turnos + `isDemo`. */
 export async function getDashboardData()
 {
@@ -38,6 +55,7 @@ export async function getDashboardData()
         negocio: seed.negocio,
         staff: seed.staff,
         servicios: seed.servicios,
+        asociaciones: asociacionesDeFilas(seed.staffServicios),
         clientes: seed.clientes,
         turnos: seed.turnos,
       },
@@ -65,6 +83,7 @@ export async function getDashboardData()
         negocio: seed.negocio,
         staff: seed.staff,
         servicios: seed.servicios,
+        asociaciones: asociacionesDeFilas(seed.staffServicios),
         clientes: seed.clientes,
         turnos: seed.turnos,
       },
@@ -77,11 +96,13 @@ export async function getDashboardData()
   const [
     { data: staff },
     { data: servicios },
+    { data: asociaciones },
     { data: clientes },
     { data: turnos },
   ] = await Promise.all([
     admin.from("staff").select("*").eq("negocio_id", negocio.id),
     admin.from("servicios").select("*").eq("negocio_id", negocio.id),
+    admin.from("staff_servicios").select("staff_id, servicio_id").eq("negocio_id", negocio.id),
     admin.from("clientes").select("*").eq("negocio_id", negocio.id),
     admin.from("turnos").select("*").eq("negocio_id", negocio.id).order("inicio", { ascending: false }),
   ]);
@@ -91,6 +112,7 @@ export async function getDashboardData()
       negocio,
       staff: staff ?? [],
       servicios: servicios ?? [],
+      asociaciones: asociacionesDeFilas(asociaciones as Array<{ staff_id: unknown; servicio_id: unknown }> | null),
       clientes: clientes ?? [],
       turnos: turnos ?? [],
     },

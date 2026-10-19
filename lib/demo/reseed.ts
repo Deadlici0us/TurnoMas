@@ -41,6 +41,8 @@ export async function reseedDemoBusiness(ownerId: string): Promise<string>
     admin.from("staff").insert([...seed.staff.map((s) => ({ ...s, negocio_id: negocioId }))]),
     admin.from("servicios").insert([...seed.servicios.map((s) => ({ ...s, negocio_id: negocioId }))]),
     admin.from("clientes").insert([...seed.clientes.map((c) => ({ ...c, negocio_id: negocioId }))]),
+    admin.from("staff_servicios").insert(
+      [...seed.staffServicios].map((par) => ({ ...par, negocio_id: negocioId }))),
   ];
 
   for (const step of steps)

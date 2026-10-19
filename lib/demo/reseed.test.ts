@@ -92,7 +92,7 @@ describe("reseedDemoBusiness",
     expect(negocioId).toBe("neg-demo");
     expect(auditor.deletes).toEqual(["turnos", "clientes", "servicios", "staff"]);
     expect(auditor.inserts?.[0]?.startsWith("staff:")).toBe(true);
-    expect(auditor.inserts?.[3]?.startsWith("turnos:")).toBe(true);
+    expect(auditor.inserts?.[4]?.startsWith("turnos:")).toBe(true);
   });
 
   it("debería lanzar cuando un insert de hijos falla",
@@ -148,6 +148,6 @@ describe("reseedDemoBusiness integración",
     await reseedDemoBusiness("  duenio-1  ");
 
     expect(auditor.deletes).toHaveLength(4);
-    expect(auditor.inserts).toHaveLength(4);
+    expect(auditor.inserts).toHaveLength(5);
   });
 });

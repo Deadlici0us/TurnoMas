@@ -34,6 +34,15 @@ export interface DemoStaffRow
   readonly negocio_id: string;
   readonly nombre: string;
   readonly horarios: Record<string, string>;
+  readonly descripcion: string | null;
+  readonly foto_url: string | null;
+}
+
+export interface DemoStaffServicioRow
+{
+  readonly staff_id: string;
+  readonly servicio_id: string;
+  readonly negocio_id: string;
 }
 
 export interface DemoServicioRow
@@ -78,6 +87,7 @@ export interface DemoSeed
   readonly negocio: DemoNegocioRow;
   readonly staff: readonly DemoStaffRow[];
   readonly servicios: readonly DemoServicioRow[];
+  readonly staffServicios: readonly DemoStaffServicioRow[];
   readonly clientes: readonly DemoClienteRow[];
   readonly turnos: readonly DemoTurnoRow[];
 }
@@ -137,12 +147,16 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: NEGOCIO_ID,
         nombre: "Diego",
         horarios: { "lun-vie": "09:00-19:00", sab: "09:00-14:00" },
+        descripcion: "Barbero con 10 años de experiencia. Especialista en corte clásico y perfilado.",
+        foto_url: null,
       },
       {
         id: STAFF_CAMILA,
         negocio_id: NEGOCIO_ID,
         nombre: "Camila",
         horarios: { "lun-vie": "10:00-20:00" },
+        descripcion: "Colorista y estilista. Te asesora para encontrar tu mejor versión.",
+        foto_url: null,
       },
     ],
     servicios: [
@@ -182,6 +196,13 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         remarketing: true,
         remarketing_dias: null,
       },
+    ],
+    staffServicios: [
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_CORTE, negocio_id: NEGOCIO_ID },
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA_CORTE, negocio_id: NEGOCIO_ID },
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA, negocio_id: NEGOCIO_ID },
+      { staff_id: STAFF_CAMILA, servicio_id: SERV_CORTE, negocio_id: NEGOCIO_ID },
+      { staff_id: STAFF_CAMILA, servicio_id: SERV_BARBA, negocio_id: NEGOCIO_ID },
     ],
     clientes: [
       {

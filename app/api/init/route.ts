@@ -50,6 +50,7 @@ export async function POST()
     admin.from("staff").upsert([...seed.staff], { onConflict: "id" }),
     admin.from("servicios").upsert([...seed.servicios], { onConflict: "id" }),
     admin.from("clientes").upsert([...seed.clientes], { onConflict: "id" }),
+    admin.from("staff_servicios").upsert([...seed.staffServicios], { onConflict: "staff_id,servicio_id" }),
   ];
 
   for (const step of steps)

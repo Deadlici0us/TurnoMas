@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { actualizarHorariosStaff, agregarStaff, cambiarEstadoStaff, eliminarStaff } from "./actions";
+import
+{
+  actualizarFotoStaff,
+  actualizarHorariosStaff,
+  actualizarPerfilStaff,
+  agregarStaff,
+  cambiarEstadoStaff,
+  eliminarStaff,
+} from "./actions";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -80,6 +88,66 @@ function stubAdmin(error: { code?: string } | null, count: number | null = 0, fi
   mockAdmin.mockReturnValue(admin as never);
 
   return admin;
+}
+
+interface PerfilCapturas
+{
+  readonly perfil?: unknown[];
+  readonly asociaciones?: unknown[];
+}
+
+interface PerfilOpts
+{
+  readonly servicios?: Array<{ id: string }>;
+  readonly updateError?: { code?: string } | null;
+  readonly deleteError?: { code?: string } | null;
+  readonly insertError?: { code?: string } | null;
+}
+
+/**
+ * Stub del admin para perfil/foto: select de servicios + update/delete/insert.
+ *
+ * @param opts Servicios permitidos y errores por operación.
+ * @param capturas Captura de updates de staff e inserts de asociaciones.
+ */
+function stubPerfilAdmin(opts: PerfilOpts = {}, capturas: PerfilCapturas = {})
+{
+  mockAdmin.mockReturnValue({
+    from: (tabla: string) => ({
+      select: () => ({
+        eq: () => Object.assign(
+          Promise.resolve({ data: tabla === "servicios" ? (opts.servicios ?? []) : [] }),
+          { eq: () => ({ data: [] }), single: async () => ({ data: null }) },
+        ),
+      }),
+      update: (fila: unknown) =>
+      {
+        if (tabla === "staff") capturas.perfil?.push(fila);
+
+        const q: Record<string, unknown> = {};
+        q.eq = () => q;
+        q.then = (resolve: (value: unknown) => unknown) => resolve({ error: opts.updateError ?? null });
+
+        return q;
+      },
+      delete: () =>
+      {
+        const q: Record<string, unknown> = {};
+        q.eq = () => q;
+        q.then = (resolve: (value: unknown) => unknown) => resolve({ error: opts.deleteError ?? null });
+
+        return q;
+      },
+      insert: (filas: unknown) =>
+      {
+        capturas.asociaciones?.push(filas);
+
+        return Promise.resolve({ error: opts.insertError ?? null });
+      },
+    }),
+  } as never);
+
+  return capturas;
 }
 
 beforeEach(() =>
@@ -297,5 +365,144 @@ describe("agregarStaff integración",
 
     expect(filas).toHaveLength(1);
     expect(mockRevalidate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("actualizarPerfilStaff",
+() =>
+{
+  it("debería guardar descripción y servicios válidos del negocio",
+  async () =>
+  {
+    sesionDueno();
+    const capturas = stubPerfilAdmin({ servicios: [{ id: "sv1" }] }, { perfil: [], asociaciones: [] });
+
+    await actualizarPerfilStaff("staff-1", "  Especialista  ", ["sv1", "sv2"]);
+
+    expect(capturas.perfil?.[0]).toEqual({ descripcion: "Especialista" });
+    expect(capturas.asociaciones?.[0]).toEqual([
+      { staff_id: "staff-1", servicio_id: "sv1", negocio_id: "neg-1" },
+    ]);
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/staff");
+  });
+
+  it("debería limpiar la descripción vacía a null",
+  async () =>
+  {
+    sesionDueno();
+    const capturas = stubPerfilAdmin({ servicios: [] }, { perfil: [], asociaciones: [] });
+
+    await actualizarPerfilStaff("staff-1", "   ", []);
+
+    expect(capturas.perfil?.[0]).toEqual({ descripcion: null });
+    expect(capturas.asociaciones).toHaveLength(0);
+  });
+
+  it("debería rechazar servicios que no son lista",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin();
+
+    await expect(actualizarPerfilStaff("staff-1", "ok", "sv1")).rejects.toThrow(RangeError);
+  });
+
+  it("debería lanzar cuando falla el guardado del perfil",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin({ updateError: {} });
+
+    await expect(actualizarPerfilStaff("staff-1", "ok", []))
+      .rejects.toThrow("No pudimos guardar el perfil. Probá de nuevo.");
+  });
+
+  it("debería lanzar cuando falla el borrado de asociaciones",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin({ deleteError: {} });
+
+    await expect(actualizarPerfilStaff("staff-1", "ok", []))
+      .rejects.toThrow("No pudimos guardar los servicios. Probá de nuevo.");
+  });
+
+  it("debería lanzar cuando falla el insert de asociaciones",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin({ servicios: [{ id: "sv1" }], insertError: {} });
+
+    await expect(actualizarPerfilStaff("staff-1", "ok", ["sv1"]))
+      .rejects.toThrow("No pudimos guardar los servicios. Probá de nuevo.");
+  });
+
+  it("debería exigir sesión iniciada",
+  async () =>
+  {
+    mockAssert.mockResolvedValue(undefined);
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: null } }) },
+    } as never);
+
+    await expect(actualizarPerfilStaff("staff-1", "ok", []))
+      .rejects.toThrow("Tenés que iniciar sesión para modificar el equipo.");
+  });
+});
+
+describe("actualizarFotoStaff",
+() =>
+{
+  it("debería guardar la URL saneada",
+  async () =>
+  {
+    sesionDueno();
+    const capturas = stubPerfilAdmin({}, { perfil: [] });
+
+    await actualizarFotoStaff("staff-1", " https://cdn.test/a.jpg ");
+
+    expect(capturas.perfil?.[0]).toEqual({ foto_url: "https://cdn.test/a.jpg" });
+  });
+
+  it("debería limpiar la foto vacía a null",
+  async () =>
+  {
+    sesionDueno();
+    const capturas = stubPerfilAdmin({}, { perfil: [] });
+
+    await actualizarFotoStaff("staff-1", "");
+
+    expect(capturas.perfil?.[0]).toEqual({ foto_url: null });
+  });
+
+  it("debería rechazar esquemas peligrosos",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin();
+
+    await expect(actualizarFotoStaff("staff-1", "javascript:alert(1)")).rejects.toThrow(RangeError);
+  });
+
+  it("debería lanzar cuando la actualización falla",
+  async () =>
+  {
+    sesionDueno();
+    stubPerfilAdmin({ updateError: {} });
+
+    await expect(actualizarFotoStaff("staff-1", "https://cdn.test/a.jpg"))
+      .rejects.toThrow("No pudimos guardar la foto. Probá de nuevo.");
+  });
+
+  it("debería exigir sesión iniciada",
+  async () =>
+  {
+    mockAssert.mockResolvedValue(undefined);
+    mockServer.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: null } }) },
+    } as never);
+
+    await expect(actualizarFotoStaff("staff-1", "https://cdn.test/a.jpg"))
+      .rejects.toThrow("Tenés que iniciar sesión para modificar el equipo.");
   });
 });

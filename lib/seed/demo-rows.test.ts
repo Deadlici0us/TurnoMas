@@ -36,6 +36,23 @@ describe("buildDemoSeed",
     }
   });
 
+  it("debería asignar servicios a cada profesional del equipo",
+  () =>
+  {
+    const seed = buildDemoSeed("11111111-1111-4111-8111-111111111111");
+    const staffIds = new Set(seed.staff.map((s) => s.id));
+    const servicioIds = new Set(seed.servicios.map((s) => s.id));
+
+    expect(seed.staffServicios.length).toBeGreaterThan(0);
+
+    for (const par of seed.staffServicios)
+    {
+      expect(par.negocio_id).toBe(seed.negocio.id);
+      expect(staffIds.has(par.staff_id)).toBe(true);
+      expect(servicioIds.has(par.servicio_id)).toBe(true);
+    }
+  });
+
   it("debería incluir un cliente que dispare la lista negra con umbral 2",
   () =>
   {

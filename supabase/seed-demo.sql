@@ -2,7 +2,7 @@
 -- Vía preferida (automática): setear DEMO_DUENIO_ID en Vercel y llamar
 -- `curl -X POST https://<app>/api/init` una vez tras el deploy.
 -- Vía manual alternativa:
--- Orden: 1) aplicar 0000_init.sql
+-- Orden: 1) aplicar todas las migraciones (0000 … 0020)
 --        2) Authentication → Add user → demo@turnomas.com / demo123 (auto-confirm)
 --        3) copiar el UID del usuario, reemplazar DEMO_DUENIO_ID abajo, Run.
 -- Idempotente: re-ejecutable gracias a `on conflict do nothing`.
@@ -23,13 +23,15 @@ values (
 on conflict (id) do nothing;
 
 -- STAFF ---------------------------------------------------------------------
-insert into staff (id, negocio_id, nombre, horarios) values
+insert into staff (id, negocio_id, nombre, horarios, descripcion) values
   ('d0e6b000-0000-4000-8000-000000000011',
    'd0e6b000-0000-4000-8000-000000000001', 'Diego',
-   '{"lun-vie": "09:00-19:00", "sab": "09:00-14:00"}'),
+   '{"lun-vie": "09:00-19:00", "sab": "09:00-14:00"}',
+   'Barbero con 10 años de experiencia. Especialista en corte clásico y perfilado.'),
   ('d0e6b000-0000-4000-8000-000000000012',
    'd0e6b000-0000-4000-8000-000000000001', 'Camila',
-   '{"lun-vie": "10:00-20:00"}')
+   '{"lun-vie": "10:00-20:00"}',
+   'Colorista y estilista. Te asesora para encontrar tu mejor versión.')
 on conflict (id) do nothing;
 
 -- SERVICIOS -----------------------------------------------------------------
@@ -47,6 +49,20 @@ values
    'd0e6b000-0000-4000-8000-000000000001', 'Perfilado de barba', 20,
    800000, null, false, 50)
 on conflict (id) do nothing;
+
+-- STAFF ↔ SERVICIOS (qué brinda cada profesional) ---------------------------
+insert into staff_servicios (staff_id, servicio_id, negocio_id) values
+  ('d0e6b000-0000-4000-8000-000000000011', 'd0e6b000-0000-4000-8000-000000000021',
+   'd0e6b000-0000-4000-8000-000000000001'),
+  ('d0e6b000-0000-4000-8000-000000000011', 'd0e6b000-0000-4000-8000-000000000022',
+   'd0e6b000-0000-4000-8000-000000000001'),
+  ('d0e6b000-0000-4000-8000-000000000011', 'd0e6b000-0000-4000-8000-000000000023',
+   'd0e6b000-0000-4000-8000-000000000001'),
+  ('d0e6b000-0000-4000-8000-000000000012', 'd0e6b000-0000-4000-8000-000000000021',
+   'd0e6b000-0000-4000-8000-000000000001'),
+  ('d0e6b000-0000-4000-8000-000000000012', 'd0e6b000-0000-4000-8000-000000000023',
+   'd0e6b000-0000-4000-8000-000000000001')
+on conflict (staff_id, servicio_id) do nothing;
 
 -- CLIENTES (uno con 2 ausencias → dispara lista negra con umbral 2) ----------
 insert into clientes (id, negocio_id, nombre, whatsapp, ausencias) values

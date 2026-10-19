@@ -23,6 +23,7 @@ describe("BookingFlow",
         slug={business!.slug}
         staff={business!.staff}
         servicios={business!.servicios}
+        asociaciones={business!.asociaciones}
         turnos={business!.turnos}
         bloqueos={business!.bloqueos}
       />,
@@ -46,6 +47,7 @@ describe("BookingFlow",
         staff={[{ id: "s1", nombre: "Diego", horarios: { lun: "09:00-12:00" }, activo: true }]}
         servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
           precioPromocional: null, senaRequerida: true, senaPorcentaje: 0 }]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
         turnos={[]}
         bloqueos={[]}
       />,
@@ -74,6 +76,7 @@ describe("BookingFlow",
         slug="barberia-diego"
         staff={staff}
         servicios={servicios}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
         turnos={[]}
         bloqueos={[]}
         horariosNegocio={{ mié: "09:00-12:00", jue: "09:00-12:00", vie: "09:00-12:00" }}
@@ -102,6 +105,7 @@ describe("BookingFlow",
         slug="barberia-diego"
         staff={staff}
         servicios={servicios}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
         turnos={[]}
         bloqueos={[]}
         horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
@@ -132,6 +136,7 @@ describe("BookingFlow",
         slug="barberia-diego"
         staff={staff}
         servicios={servicios}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
         turnos={[]}
         bloqueos={[]}
         horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
@@ -162,6 +167,7 @@ describe("BookingFlow",
         slug="barberia-diego"
         staff={staff}
         servicios={servicios}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
         turnos={[]}
         bloqueos={[]}
         horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
@@ -179,5 +185,58 @@ describe("BookingFlow",
     await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
 
     expect(screen.getByText(/Revisá tu email/)).toBeDefined();
+  });
+
+  it("debería mostrar solo los servicios que brinda el profesional",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Diego", horarios: { lun: "09:00-12:00" }, activo: true }]}
+        servicios={[
+          { id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+            precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 },
+          { id: "sv2", nombre: "Barba", duracionMin: 20, precioBase: 800000,
+            precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 },
+        ]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
+        turnos={[]}
+        bloqueos={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+
+    expect(screen.getByRole("button", { name: /Corte/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Barba/ })).toBeNull();
+  });
+
+  it("debería avisar cuando el profesional no tiene servicios asignados",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Diego", horarios: { lun: "09:00-12:00" }, activo: true }]}
+        servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+          precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }]}
+        asociaciones={[]}
+        turnos={[]}
+        bloqueos={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+
+    expect(screen.getByText(/todavía no tiene servicios asignados/)).toBeDefined();
   });
 });

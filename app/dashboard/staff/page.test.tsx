@@ -11,6 +11,8 @@ vi.mock("./actions", () =>
   return {
     agregarStaff: vi.fn(),
     actualizarHorariosStaff: vi.fn(),
+    actualizarPerfilStaff: vi.fn(),
+    actualizarFotoStaff: vi.fn(),
     cambiarEstadoStaff: vi.fn(),
     eliminarStaff: vi.fn(),
   };

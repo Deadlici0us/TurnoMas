@@ -7,6 +7,7 @@ import type { PortalBusiness } from "@/lib/portal/demo-business";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { sanitizeUrlExterna } from "@/lib/validation/url";
 
 type Row = Record<string, unknown>;
 
@@ -109,10 +110,12 @@ async function buildPortalBusiness(
   supabase: Awaited<ReturnType<typeof getSupabaseServer>>,
 ): Promise<PortalBusiness | null>
 {
-  const [{ data: staff }, { data: servicios }] = await Promise.all([
-    supabase.from("portal_staff").select("id, nombre, horarios").eq("negocio_id", negocio.id),
+  const [{ data: staff }, { data: servicios }, { data: asociaciones }] = await Promise.all([
+    supabase.from("portal_staff").select("id, nombre, horarios, foto_url, descripcion")
+      .eq("negocio_id", negocio.id),
     supabase.from("portal_servicios").select("id, nombre, duracion_min, precio_base," +
       " precio_promocional, sena_requerida, sena_porcentaje").eq("negocio_id", negocio.id),
+    supabase.from("portal_staff_servicios").select("staff_id, servicio_id").eq("negocio_id", negocio.id),
   ]);
 
   // Los turnos tienen RLS solo-dueño: se leen con service role (solo servidor)
@@ -162,7 +165,14 @@ async function buildPortalBusiness(
       nombre: asString(s.nombre),
       horarios: ((s.horarios ?? {}) as Record<string, string>),
       activo: true,
+      fotoUrl: sanitizeUrlExterna(s.foto_url),
+      descripcion: typeof s.descripcion === "string" && s.descripcion.trim().length > 0
+        ? s.descripcion
+        : null,
     })),
+    asociaciones: ((asociaciones ?? []) as unknown as Row[])
+      .filter((par) => typeof par.staff_id === "string" && typeof par.servicio_id === "string")
+      .map((par) => ({ staffId: par.staff_id as string, servicioId: par.servicio_id as string })),
     servicios: ((servicios ?? []) as unknown as Row[]).map((s) => ({
       id: asString(s.id),
       nombre: asString(s.nombre),
@@ -204,6 +214,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           slug={business.slug}
           staff={business.staff}
           servicios={business.servicios}
+          asociaciones={business.asociaciones}
           turnos={business.turnos}
           bloqueos={business.bloqueos}
           horariosNegocio={business.horarios}

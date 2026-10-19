@@ -1,5 +1,15 @@
-import { actualizarHorariosStaff, agregarStaff, cambiarEstadoStaff, eliminarStaff } from "./actions";
+import
+{
+  actualizarFotoStaff,
+  actualizarHorariosStaff,
+  actualizarPerfilStaff,
+  agregarStaff,
+  cambiarEstadoStaff,
+  eliminarStaff,
+} from "./actions";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
+import FotoStaffUploader from "@/components/foto-staff-uploader";
+import PerfilStaffForm from "@/components/perfil-staff-form";
 import StaffDeleteForm from "@/components/staff-delete-form";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { DAY_ORDER } from "@/lib/staff/schedule";
@@ -10,6 +20,20 @@ interface StaffRow
   readonly nombre: string;
   readonly activo?: boolean | null;
   readonly horarios?: unknown;
+  readonly foto_url?: string | null;
+  readonly descripcion?: string | null;
+}
+
+interface ServicioRow
+{
+  readonly id: string;
+  readonly nombre: string;
+}
+
+interface AsociacionRow
+{
+  readonly staffId: string;
+  readonly servicioId: string;
 }
 
 async function crearStaff(formData: FormData): Promise<void>
@@ -51,9 +75,38 @@ async function guardarHorarios(staffId: string, formData: FormData): Promise<voi
   await actualizarHorariosStaff(staffId, horarios);
 }
 
+async function guardarPerfil(
+  staffId: string,
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null>
+{
+  "use server";
+
+  try
+  {
+    await actualizarPerfilStaff(staffId, formData.get("descripcion"), formData.getAll("servicios"));
+  }
+  catch (error)
+  {
+    return error instanceof Error ? error.message : "No pudimos guardar el perfil. Probá de nuevo.";
+  }
+
+  return null;
+}
+
+async function guardarFoto(staffId: string, fotoUrl: string | null): Promise<void>
+{
+  "use server";
+
+  await actualizarFotoStaff(staffId, fotoUrl);
+}
+
 export default async function StaffPage()
 {
   const { data: dashboard } = await getDashboardData();
+  const servicios = (dashboard.servicios as ServicioRow[]).map((s) => ({ id: s.id, nombre: s.nombre }));
+  const asociaciones = (dashboard as { asociaciones?: AsociacionRow[] }).asociaciones ?? [];
 
   return (
     <div>
@@ -103,6 +156,23 @@ export default async function StaffPage()
                 </button>
               </form>
               <StaffDeleteForm action={quitarStaff.bind(null, member.id)} />
+            </div>
+            <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
+              <h4 className="text-sm font-semibold text-slate-100">Perfil</h4>
+              <FotoStaffUploader
+                staffId={member.id}
+                nombre={member.nombre}
+                fotoUrl={member.foto_url ?? null}
+                action={guardarFoto.bind(null, member.id)}
+              />
+              <PerfilStaffForm
+                action={guardarPerfil.bind(null, member.id)}
+                descripcion={member.descripcion ?? null}
+                servicios={servicios}
+                seleccionados={asociaciones
+                  .filter((par) => par.staffId === member.id)
+                  .map((par) => par.servicioId)}
+              />
             </div>
             <div className="mt-4 space-y-2">
               <h4 className="text-sm font-semibold text-slate-100">Horarios por día</h4>

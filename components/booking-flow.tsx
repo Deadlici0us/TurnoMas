@@ -6,12 +6,14 @@ import { BUFFER_MINUTOS, buildAvailableSlots } from "@/lib/booking/slots";
 import type { DiaDisponible } from "@/lib/booking/slots";
 import type
 {
+  PortalAsociacion,
   PortalBloqueo,
   PortalServicio,
   PortalStaff,
   PortalTurno,
 } from "@/lib/portal/demo-business";
 import { tieneSenaEfectiva } from "@/lib/reservas/montos";
+import { serviciosDeStaff } from "@/lib/staff/servicios";
 import { esEmailValido } from "@/lib/validation/email";
 
 interface BookingFlowProps
@@ -21,6 +23,7 @@ interface BookingFlowProps
   readonly slug: string;
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
+  readonly asociaciones: readonly PortalAsociacion[];
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
   readonly horariosNegocio?: Record<string, string> | null;
@@ -43,8 +46,8 @@ function formatSlot(date: Date): string
 
 const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 
-export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, turnos, bloqueos,
-  horariosNegocio = null, requiereEmail = false }: BookingFlowProps)
+export default function BookingFlow({ negocioNombre, pais, slug, staff, servicios, asociaciones, turnos,
+  bloqueos, horariosNegocio = null, requiereEmail = false }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -59,6 +62,11 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
 
   const profesional = staff.find((s) => s.id === staffId) ?? null;
   const servicio = servicios.find((s) => s.id === servicioId) ?? null;
+
+  const serviciosDisponibles = useMemo(
+    () => profesional === null ? [] : serviciosDeStaff(servicios, asociaciones, profesional.id),
+    [profesional, servicios, asociaciones],
+  );
 
   const dias: readonly DiaDisponible[] = useMemo(
   () =>
@@ -261,13 +269,26 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
             <button
               key={s.id}
               onClick={() => elegirProfesional(s.id)}
+              aria-label={s.nombre}
               className={`p-4 border rounded-xl text-left transition-all duration-200 ${
                 s.id === staffId
                   ? "border-brand-500 bg-brand-500/15 shadow-[0_0_24px_-6px_var(--brand-500)]"
                   : "border-white/10 hover:border-white/25 hover:bg-white/5"
               }`}
             >
-              <div className="font-semibold text-white">{s.nombre}</div>
+              <div className="flex items-center gap-3">
+                {s.fotoUrl != null && s.fotoUrl.length > 0 ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.fotoUrl} alt={s.nombre} className="size-12 rounded-full object-cover" />
+                ) : (
+                  <span className="flex size-12 items-center justify-center rounded-full bg-brand-500/20
+                    font-bold text-brand-200">{s.nombre.charAt(0)}</span>
+                )}
+                <span className="font-semibold text-white">{s.nombre}</span>
+              </div>
+              {s.descripcion != null && s.descripcion.length > 0 ? (
+                <p className="mt-2 text-xs text-slate-400">{s.descripcion}</p>
+              ) : null}
             </button>
           ))}
         </div>
@@ -276,8 +297,13 @@ export default function BookingFlow({ negocioNombre, pais, slug, staff, servicio
       {profesional !== null ? (
         <section className="space-y-3">
           <h2 className="font-semibold text-white">2. Elegí tu servicio</h2>
+          {serviciosDisponibles.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              {profesional.nombre} todavía no tiene servicios asignados. Probá con otro profesional.
+            </p>
+          ) : null}
           <div className="space-y-2">
-            {servicios.map((s) => (
+            {serviciosDisponibles.map((s) => (
               <button
                 key={s.id}
                 onClick={() => elegirServicio(s.id)}

@@ -105,6 +105,8 @@ interface ReservasTablas
   readonly clientes?: unknown;
   readonly turnosRows?: unknown;
   readonly serviciosRows?: unknown;
+  /** Filas de staff_servicios; por defecto permite el par (1 fila). */
+  readonly staffServiciosRows?: unknown;
 }
 
 /**
@@ -168,24 +170,38 @@ function stubAdmin(opts: ReservasAdminOpts = {}): void
 
     return { data: null };
   };
+  const listFor = (tabla: string): unknown[] =>
+  {
+    if (tabla === "turnos") return (tablas.turnosRows ?? []) as unknown[];
+
+    if (tabla === "servicios") return (tablas.serviciosRows ?? []) as unknown[];
+
+    // Por defecto el profesional sí ofrece el servicio (par permitido).
+    if (tabla === "staff_servicios") return (tablas.staffServiciosRows ?? [{ staff_id: "staff-1" }]) as unknown[];
+
+    return [];
+  };
+
+  /** Query builder genérico: encadenable (eq/gte/limit/…) y thenable. */
+  const buildQuery = (tabla: string): Record<string, unknown> =>
+  {
+    const q: Record<string, unknown> = {};
+
+    for (const metodo of ["eq", "gte", "lte", "gt", "lt", "in", "order", "limit", "select"])
+    {
+      q[metodo] = () => q;
+    }
+
+    q.single = async () => singleFor(tabla);
+    q.maybeSingle = async () => singleFor(tabla);
+    q.then = (resolve: (value: unknown) => unknown) => resolve({ data: listFor(tabla), error: null });
+
+    return q;
+  };
 
   mockAdmin.mockReturnValue({
     from: (tabla: string) => ({
-      select: () =>
-      {
-        const single = async (): Promise<{ data: unknown }> => singleFor(tabla);
-        const listData = tabla === "turnos"
-          ? (tablas.turnosRows ?? [])
-          : (tabla === "servicios" ? (tablas.serviciosRows ?? []) : []);
-        const second = {
-          eq: () => ({ single, gte: async () => ({ data: listData }) }),
-          gte: async () => ({ data: listData }),
-          single,
-        };
-        const eqSecond = Object.assign(Promise.resolve({ data: listData }), second);
-
-        return { eq: () => eqSecond, single };
-      },
+      select: () => buildQuery(tabla),
       insert: (values: unknown) =>
       {
         opts.inserts?.push(values);
@@ -196,8 +212,12 @@ function stubAdmin(opts: ReservasAdminOpts = {}): void
       update: (values: unknown) =>
       {
         opts.updates?.push(values);
+        const updateQuery: Record<string, unknown> = {};
+        updateQuery.eq = () => updateQuery;
+        updateQuery.then = (resolve: (value: unknown) => unknown) =>
+          resolve({ error: opts.updateError ?? null });
 
-        return { eq: async () => ({ error: opts.updateError ?? null }) };
+        return updateQuery;
       },
     }),
   } as never);
@@ -344,6 +364,27 @@ describe("POST /api/reservas",
 
     expect(response.status).toBe(404);
     expect(body.error).toBe("Ese profesional o servicio ya no está disponible.");
+  });
+
+  it("debería devolver 404 cuando el profesional no ofrece el servicio",
+  async () =>
+  {
+    stubPortal({ portalNegocios: NEGOCIO_PORTAL, portalStaff: STAFF, portalServicios: servicioFixture() });
+    stubAdmin({
+      tablas: {
+        negocios: negocioFullFixture(),
+        clientes: null,
+        turnosRows: [],
+        serviciosRows: [{ id: "serv-1", duracion_min: 30 }],
+        staffServiciosRows: [],
+      },
+    });
+
+    const response = await POST(requestWith(BASE));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(404);
+    expect(body.error).toBe("Ese profesional no ofrece ese servicio.");
   });
 
   it("debería rechazar 403 al cliente bloqueado por lista negra",
@@ -602,36 +643,6 @@ describe("POST /api/reservas",
         serviciosRows: [{ id: "serv-1", duracion_min: 30 }],
       },
     });
-    mockAdmin.mockReturnValue({
-      from: (tabla: string) => ({
-        select: () =>
-        {
-          const single = async (): Promise<{ data: unknown }> =>
-          {
-            if (tabla === "negocios") return { data: negocioFullFixture() };
-
-            return { data: null };
-          };
-          const listData = tabla === "turnos"
-            ? []
-            : (tabla === "servicios" ? [{ id: "serv-1", duracion_min: 30 }] : []);
-          const second = {
-            eq: () => ({ single, gte: async () => ({ data: listData }) }),
-            gte: async () => ({ data: listData }),
-            single,
-          };
-
-          return {
-            eq: () => Object.assign(Promise.resolve({ data: listData }), second),
-            single,
-          };
-        },
-        insert: () => ({
-          select: () => ({ single: async () => ({ data: { id: "t-1" }, error: null }) }),
-        }),
-        update: () => ({ eq: async () => ({ error: null }) }),
-      }),
-    } as never);
     vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 

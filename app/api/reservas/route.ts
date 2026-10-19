@@ -335,6 +335,28 @@ async function resolverOferta(
 }
 
 /**
+ * Indica si el profesional brinda el servicio solicitado.
+ *
+ * @param admin Cliente admin de Supabase.
+ * @param negocioId ID del negocio.
+ * @param staffId ID del profesional.
+ * @param servicioId ID del servicio.
+ * @return Verdadero cuando existe la asociación en `staff_servicios`.
+ */
+async function profesionalOfreceServicio(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+  staffId: string,
+  servicioId: string,
+): Promise<boolean>
+{
+  const { data } = await admin.from("staff_servicios").select("staff_id")
+    .eq("negocio_id", negocioId).eq("staff_id", staffId).eq("servicio_id", servicioId).limit(1);
+
+  return Array.isArray(data) && data.length > 0;
+}
+
+/**
  * Carga el contexto del negocio para evaluar riesgo.
  *
  * @param admin Cliente admin de Supabase.
@@ -571,6 +593,13 @@ export async function POST(request: Request)
 
     const { negocio, negocioId, staff, servicio } = oferta;
     const admin = getSupabaseAdmin();
+
+    // El profesional debe brindar el servicio elegido (vínculo del equipo).
+    if (!(await profesionalOfreceServicio(admin, negocioId, staffId, servicioId)))
+    {
+      return NextResponse.json({ error: "Ese profesional no ofrece ese servicio." }, { status: 404 });
+    }
+
     const { negocioFull, timeZone, ausencias } = await cargarContextoNegocio(
       admin,
       negocioId,

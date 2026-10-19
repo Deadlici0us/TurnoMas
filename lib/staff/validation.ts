@@ -6,11 +6,13 @@
  */
 
 import { limpiarControl } from "@/lib/validation/texto";
+import { sanitizeUrlExterna } from "@/lib/validation/url";
 
 import { DAY_ORDER, formatDayRange, parseDayRanges, type DayKey } from "./schedule";
 
 const NOMBRE_MINIMO = 2;
 const NOMBRE_MAXIMO = 80;
+const DESCRIPCION_MAXIMA = 280;
 
 /** Valida y recorta el nombre de un profesional (2 a 80 caracteres). */
 export function validarNombreStaff(nombre: unknown): string
@@ -28,6 +30,68 @@ export function validarNombreStaff(nombre: unknown): string
   }
 
   return value;
+}
+
+/**
+ * Valida y recorta la descripción opcional de un profesional (máx 280).
+ *
+ * @param descripcion Texto crudo, vacío o null.
+ * @return Descripción limpia, o null si viene vacía.
+ */
+export function validarDescripcionStaff(descripcion: unknown): string | null
+{
+  if (descripcion === undefined || descripcion === null)
+  {
+    return null;
+  }
+
+  if (typeof descripcion !== "string")
+  {
+    throw new RangeError("La descripción del profesional tiene que ser texto.");
+  }
+
+  const value = limpiarControl(descripcion).trim();
+
+  if (value.length === 0)
+  {
+    return null;
+  }
+
+  if (value.length > DESCRIPCION_MAXIMA)
+  {
+    throw new RangeError(
+      `La descripción del profesional no puede superar los ${DESCRIPCION_MAXIMA} caracteres.`);
+  }
+
+  return value;
+}
+
+/**
+ * Valida la foto opcional de un profesional (solo http(s)).
+ *
+ * @param fotoUrl URL cruda, vacía o null.
+ * @return URL saneada, o null si viene vacía o inválida.
+ */
+export function validarFotoUrl(fotoUrl: unknown): string | null
+{
+  if (fotoUrl === undefined || fotoUrl === null)
+  {
+    return null;
+  }
+
+  if (typeof fotoUrl !== "string" || fotoUrl.trim().length === 0)
+  {
+    return null;
+  }
+
+  const saneada = sanitizeUrlExterna(fotoUrl);
+
+  if (saneada === null)
+  {
+    throw new RangeError("La foto del profesional no es un enlace válido.");
+  }
+
+  return saneada;
 }
 
 /** Horarios por defecto al crear un profesional (lun a vie corrido). */

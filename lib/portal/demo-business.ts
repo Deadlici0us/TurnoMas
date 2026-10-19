@@ -13,6 +13,15 @@ export interface PortalStaff
   readonly nombre: string;
   readonly horarios: Record<string, string>;
   readonly activo: boolean;
+  readonly fotoUrl?: string | null;
+  readonly descripcion?: string | null;
+}
+
+/** Par profesional ↔ servicio que brinda. */
+export interface PortalAsociacion
+{
+  readonly staffId: string;
+  readonly servicioId: string;
 }
 
 export interface PortalServicio
@@ -49,6 +58,7 @@ export interface PortalBusiness
   readonly horarios: Record<string, string>;
   readonly staff: readonly PortalStaff[];
   readonly servicios: readonly PortalServicio[];
+  readonly asociaciones: readonly PortalAsociacion[];
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
   /** El negocio exige email al reservar (tiene reseñas o recordatorios activos). */
@@ -75,7 +85,18 @@ export function getDemoBusiness(pais: string, slug: string): PortalBusiness | nu
     horarios: Object.fromEntries(
       Object.entries(seed.negocio.horarios).map(([day, ranges]) => [day, ranges.join(", ")]),
     ),
-    staff: seed.staff.map((s) => ({ id: s.id, nombre: s.nombre, horarios: s.horarios, activo: true })),
+    staff: seed.staff.map((s) => ({
+      id: s.id,
+      nombre: s.nombre,
+      horarios: s.horarios,
+      activo: true,
+      fotoUrl: s.foto_url,
+      descripcion: s.descripcion,
+    })),
+    asociaciones: seed.staffServicios.map((par) => ({
+      staffId: par.staff_id,
+      servicioId: par.servicio_id,
+    })),
     servicios: seed.servicios.map((s) => ({
       id: s.id,
       nombre: s.nombre,

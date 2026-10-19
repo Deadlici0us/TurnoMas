@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { validarHorariosStaff, validarNombreStaff } from "./validation";
+import
+{
+  validarDescripcionStaff,
+  validarFotoUrl,
+  validarHorariosStaff,
+  validarNombreStaff,
+} from "./validation";
 
 describe("validarNombreStaff",
 () =>
@@ -62,5 +68,60 @@ describe("validarHorariosStaff",
     expect(() => validarHorariosStaff({ lun: "09:00-13:00, 12:00-20:00" })).toThrow(RangeError);
     expect(() => validarHorariosStaff({ lun: "9:00-13:00" })).toThrow(RangeError);
     expect(() => validarHorariosStaff(null)).toThrow(RangeError);
+  });
+});
+
+describe("validarDescripcionStaff",
+() =>
+{
+  it("debería aceptar vacíos como null",
+  () =>
+  {
+    expect(validarDescripcionStaff(null)).toBeNull();
+    expect(validarDescripcionStaff(undefined)).toBeNull();
+    expect(validarDescripcionStaff("   ")).toBeNull();
+  });
+
+  it("debería recortar la descripción y permitir hasta 280",
+  () =>
+  {
+    expect(validarDescripcionStaff("  Especialista en color  ")).toBe("Especialista en color");
+    expect(validarDescripcionStaff("a".repeat(280))).toHaveLength(280);
+  });
+
+  it("debería rechazar descripciones de más de 280 caracteres",
+  () =>
+  {
+    expect(() => validarDescripcionStaff("a".repeat(281))).toThrow(RangeError);
+  });
+
+  it("debería rechazar valores no texto",
+  () =>
+  {
+    expect(() => validarDescripcionStaff(42)).toThrow(RangeError);
+  });
+});
+
+describe("validarFotoUrl",
+() =>
+{
+  it("debería aceptar vacíos como null",
+  () =>
+  {
+    expect(validarFotoUrl(null)).toBeNull();
+    expect(validarFotoUrl(undefined)).toBeNull();
+    expect(validarFotoUrl("   ")).toBeNull();
+  });
+
+  it("debería aceptar URLs http(s)",
+  () =>
+  {
+    expect(validarFotoUrl("https://cdn.test/foto.jpg")).toBe("https://cdn.test/foto.jpg");
+  });
+
+  it("debería rechazar esquemas peligrosos",
+  () =>
+  {
+    expect(() => validarFotoUrl("javascript:alert(1)")).toThrow(RangeError);
   });
 });
