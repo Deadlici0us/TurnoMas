@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scissors } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 
 import ProfileMenu from "@/components/profile-menu";
 
@@ -48,7 +48,7 @@ export default function SiteHeaderNav(props: SiteHeaderNavProps)
             className="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-br
               from-brand-500 to-cyan-400 text-slate-950 shadow-[0_0_20px_-4px_var(--brand-500)]"
           >
-            <Scissors className="size-4" aria-hidden="true" />
+            <CalendarClock className="size-4" aria-hidden="true" />
           </span>
           <span>{props.appName}</span>
         </Link>
