@@ -213,7 +213,7 @@ describe("AgendaCalendar",
       /^\d{2}:00$/.test((s.textContent ?? "").trim())) as HTMLElement[];
   }
 
-  it("debería pintar las etiquetas de hora del día sobre los bloques",
+  it("debería ubicar las etiquetas de hora fuera de la grilla de turnos",
   () =>
   {
     const { container } = render(<AgendaCalendar {...propsBase()} />);
@@ -223,7 +223,8 @@ describe("AgendaCalendar",
 
     for (const e of etiquetas)
     {
-      expect(e.className).toContain("z-10");
+      expect(e.closest('[data-testid="agenda-horas-dia"]')).not.toBeNull();
+      expect(e.closest('[data-testid="agenda-grilla-dia"]')).toBeNull();
     }
   });
 
@@ -235,5 +236,43 @@ describe("AgendaCalendar",
     const primera = etiquetas[0] as HTMLElement;
 
     expect(primera.className).not.toContain("-top-2");
+  });
+
+  it("debería mostrar en columnas separadas dos turnos al mismo horario",
+  () =>
+  {
+    render(<AgendaCalendar {...propsBase({
+      turnos: [
+        turnoBase({ id: "t-gisela", staffId: "staff-1", titulo: "Gisela · Corte" }),
+        turnoBase({ id: "t-diego", staffId: "staff-2", titulo: "Diego · Corte" }),
+      ],
+    })} />);
+
+    const gisela = screen.getByTitle("Gisela · Corte");
+    const diego = screen.getByTitle("Diego · Corte");
+
+    expect(gisela.style.left).not.toBe(diego.style.left);
+    expect(gisela.style.width).toBe(diego.style.width);
+    expect(gisela.style.width).toContain("50%");
+  });
+
+  it("debería mostrar en columnas separadas dos turnos solapados en la semana",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<AgendaCalendar {...propsBase({
+      turnos: [
+        turnoBase({ id: "t-gisela", staffId: "staff-1", titulo: "Gisela · Corte" }),
+        turnoBase({ id: "t-diego", staffId: "staff-2", titulo: "Diego · Corte" }),
+      ],
+    })} />);
+    await user.click(screen.getByRole("button", { name: "Semana" }));
+
+    const gisela = screen.getByTitle("Gisela · Corte");
+    const diego = screen.getByTitle("Diego · Corte");
+
+    expect(gisela.style.left).not.toBe(diego.style.left);
+    expect(gisela.style.width).toContain("50%");
   });
 });

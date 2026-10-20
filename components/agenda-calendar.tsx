@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import LeyendaEstados from "@/components/leyenda-estados";
 import AgendaCitasDia, { type CitaDia } from "@/components/agenda-citas-dia";
@@ -18,6 +18,7 @@ import
   normalizarVista,
   resolverVistaAgenda,
 } from "@/lib/agenda/navegacion";
+import { asignarCarriles } from "@/lib/agenda/solapamientos";
 import { resolverBaseHorarioNegocio } from "@/lib/agenda/horario-rango";
 import
 {
@@ -54,6 +55,12 @@ interface BloqueDia
   readonly titulo: string;
 }
 
+interface BloqueDiaConCarril extends BloqueDia
+{
+  readonly carril: number;
+  readonly carriles: number;
+}
+
 interface RangoHoras
 {
   readonly horaDesde: number;
@@ -78,6 +85,7 @@ interface AgendaCalendarProps
 const HORA_DESDE_DEFECTO = 8;
 const HORA_HASTA_DEFECTO = 20;
 const PX_POR_HORA_DIA = 60;
+const HUECO_BLOQUES_PX = 2;
 const NOMBRES_DIA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const NOMBRES_MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const ETIQUETA_VISTA: Record<VistaAgenda, string> = { dia: "Día", semana: "Semana", mes: "Mes" };
@@ -109,18 +117,36 @@ function claseEncabezadoSemana(esHoy: boolean): string
 }
 
 /**
- * Clase de la etiqueta de hora en la vista día: se pinta sobre los
- * bloques y, para la primera hora, debajo de su línea para que el
- * recorte redondeado no la corte por arriba.
+ * Clase de la etiqueta de hora en la vista día: vive en la columna
+ * horaria y, para la primera hora, queda debajo de su línea para que
+ * el recorte redondeado no la corte por arriba.
  *
  * @param esPrimera Primera hora del rango visible.
  * @return Clases de la etiqueta.
  */
 function claseEtiquetaHora(esPrimera: boolean): string
 {
-  const base = "absolute left-1 z-10 bg-white px-1 font-mono text-muted-foreground tabular-nums";
+  const base = "absolute left-1 font-mono text-muted-foreground tabular-nums";
 
   return esPrimera ? `${base} top-0 text-[11px]` : `${base} -top-2 text-[11px]`;
+}
+
+/**
+ * Posición horizontal de un bloque según su carril.
+ *
+ * @param bloque Bloque con carril y total de carriles.
+ * @return Estilo absoluto con separación entre bloques vecinos.
+ */
+function estiloBloque(bloque: BloqueDiaConCarril): CSSProperties
+{
+  const ancho = 100 / bloque.carriles;
+
+  return {
+    top: bloque.top,
+    height: bloque.height,
+    left: `calc(${bloque.carril * ancho}% + ${HUECO_BLOQUES_PX}px)`,
+    width: `calc(${ancho}% - ${HUECO_BLOQUES_PX * 2}px)`,
+  };
 }
 
 function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaCivil): string
@@ -158,13 +184,14 @@ function renderVistaDia(props: {
   readonly horas: readonly number[];
   readonly rango: RangoHoras;
   readonly altoDia: number;
-  readonly bloques: readonly BloqueDia[];
+  readonly bloques: readonly BloqueDiaConCarril[];
 })
 {
   const esHoy = claveDeBase(props.base) === props.claveHoy;
 
   return (
     <div className="grid grid-cols-[56px_1fr] gap-px overflow-hidden rounded-lg border border-line bg-line">
+      <div className="bg-surface" />
       <div className="bg-surface px-2 py-2 text-center">
         <div className="text-[11px] font-semibold text-muted-foreground uppercase">
           {etiquetaDiaCorta(props.base).semana}
@@ -177,11 +204,15 @@ function renderVistaDia(props: {
           {esHoy ? "Hoy" : etiquetaDiaCorta(props.base).fecha}
         </div>
       </div>
-      <div className="relative bg-white" style={{ height: props.altoDia }}>
+      <div
+        className="relative bg-surface"
+        style={{ height: props.altoDia }}
+        data-testid="agenda-horas-dia"
+      >
         {props.horas.map((h, indice) => (
           <div
             key={h}
-            className="absolute inset-x-0 border-t border-line"
+            className="absolute inset-x-0"
             style={{ top: (h - props.rango.horaDesde) * PX_POR_HORA_DIA }}
           >
             <span className={claseEtiquetaHora(indice === 0)}>
@@ -189,14 +220,27 @@ function renderVistaDia(props: {
             </span>
           </div>
         ))}
+      </div>
+      <div
+        className="relative bg-white"
+        style={{ height: props.altoDia }}
+        data-testid="agenda-grilla-dia"
+      >
+        {props.horas.map((h) => (
+          <div
+            key={h}
+            className="absolute inset-x-0 border-t border-line"
+            style={{ top: (h - props.rango.horaDesde) * PX_POR_HORA_DIA }}
+          />
+        ))}
         {props.bloques.map((b) => (
           <div
             key={b.key}
             title={b.titulo}
-            className={`absolute inset-x-1 overflow-hidden rounded-md border p-2 text-xs leading-[18px]
+            className={`absolute overflow-hidden rounded-md border p-2 text-xs leading-[18px]
               font-semibold shadow-sm transition-all duration-200 hover:-translate-y-px
               hover:shadow-md ${b.clase}`}
-            style={{ top: b.top, height: b.height }}
+            style={estiloBloque(b)}
           >
             {b.titulo}
           </div>
@@ -400,7 +444,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
     }
   }
 
-  function bloquesDelDia(diaKey: string): BloqueDia[]
+  function bloquesDelDia(diaKey: string): BloqueDiaConCarril[]
   {
     const salida: BloqueDia[] = [];
     const pxPorHora = vista === "dia" ? PX_POR_HORA_DIA : 44;
@@ -453,7 +497,11 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       empujar(`e-${e.id}`, e.inicio, e.fin, EXTERNO_LEYENDA.clase, `Google · ${e.titulo}`);
     }
 
-    return salida;
+    return asignarCarriles(salida.map((bloque) => ({
+      ...bloque,
+      inicio: bloque.top,
+      fin: bloque.top + bloque.height,
+    })));
   }
 
   function puntosDelDia(diaKey: string): Array<{ key: string; clase: string; titulo: string }>
@@ -632,10 +680,10 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
                         <div
                           key={b.key}
                           title={b.titulo}
-                          className={`absolute inset-x-1 overflow-hidden rounded border px-1 py-0.5
+                          className={`absolute overflow-hidden rounded border px-1 py-0.5
                             text-[11px] leading-tight font-semibold shadow-sm transition-all
                             duration-200 hover:-translate-y-px hover:shadow-md ${b.clase}`}
-                          style={{ top: b.top, height: b.height }}
+                          style={estiloBloque(b)}
                         >
                           {b.titulo}
                         </div>
