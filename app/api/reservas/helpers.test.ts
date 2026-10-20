@@ -45,6 +45,24 @@ describe("parseReservaBody", () =>
     expect(result.nombre).toBe("Juan Pérez");
   });
 
+  it("conserva un email válido largo sin truncarlo", () =>
+  {
+    const futuro = new Date(Date.now() + 60 * 60_000).toISOString();
+    const email = `${"a".repeat(64)}@${"b".repeat(60)}.com`;
+    const result = parseReservaBody({
+      pais: "AR",
+      slug: "demo",
+      staffId: "s",
+      servicioId: "v",
+      inicio: futuro,
+      nombre: "Juan Pérez",
+      whatsapp: "+5491112345678",
+      email,
+    });
+
+    expect(result.email).toBe(email);
+  });
+
   it("rechaza nombre corto", () =>
   {
     const futuro = new Date(Date.now() + 60 * 60_000).toISOString();

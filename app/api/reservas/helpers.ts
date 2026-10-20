@@ -115,7 +115,7 @@ function exigirEmailOpcional(valor: unknown): string | null
     return null;
   }
 
-  const email = valor.trim().toLowerCase().slice(0, 120);
+  const email = valor.trim().toLowerCase();
 
   if (!esEmailValido(email))
   {
