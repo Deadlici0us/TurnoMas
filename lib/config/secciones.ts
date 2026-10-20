@@ -46,7 +46,7 @@ export const SECCIONES_CONFIG: readonly SeccionConfigDef[] =
   {
     id: "mensajes",
     etiqueta: "Mensajes",
-    descripcion: "Personalizá los mensajes que enviamos por email y WhatsApp.",
+    descripcion: "Personalizá los mensajes que enviamos por email.",
   },
   {
     id: "cuenta",

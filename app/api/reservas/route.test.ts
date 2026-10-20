@@ -313,6 +313,16 @@ describe("POST /api/reservas",
     expect(body.error).toBe("Revisá tu email para que te lleguen las confirmaciones.");
   });
 
+  it("debería rechazar un email con llave antes de reservar",
+  async () =>
+  {
+    const response = await POST(requestWith({ ...BASE, email: "flores.anibal.e@gmail.com}" }));
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Revisá tu email para que te lleguen las confirmaciones.");
+  });
+
   it("debería exigir email cuando el negocio tiene reseñas o recordatorios activos",
   async () =>
   {
@@ -509,6 +519,7 @@ describe("POST /api/reservas",
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
     const body = await response.json() as {
       success: boolean; turnoId: string; montoTotal: number; checkoutUrl?: string;
+      emailEnviado: boolean;
     };
 
     expect(response.status).toBe(200);
@@ -516,6 +527,7 @@ describe("POST /api/reservas",
     expect(body.turnoId).toBe("t-1");
     expect(body.montoTotal).toBe(10000);
     expect(body.checkoutUrl).toBeUndefined();
+    expect(body.emailEnviado).toBe(true);
     expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "cli@ejemplo.com" }));
   });
 
@@ -557,10 +569,11 @@ describe("POST /api/reservas",
     vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
     const response = await POST(requestWith({ ...BASE, email: "   " }));
-    const body = await response.json() as { success: boolean };
+    const body = await response.json() as { success: boolean; emailEnviado: boolean };
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.emailEnviado).toBe(false);
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
@@ -572,10 +585,11 @@ describe("POST /api/reservas",
     vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
     const response = await POST(requestWith(BASE));
-    const body = await response.json() as { success: boolean };
+    const body = await response.json() as { success: boolean; emailEnviado: boolean };
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.emailEnviado).toBe(false);
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
@@ -603,10 +617,11 @@ describe("POST /api/reservas",
     mockEmailSend.mockRejectedValueOnce(new Error("resend caído"));
 
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
-    const body = await response.json() as { success: boolean };
+    const body = await response.json() as { success: boolean; emailEnviado: boolean };
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.emailEnviado).toBe(false);
   });
 
   it("debería loguear advertencias del portal sin bloquear",
@@ -708,10 +723,11 @@ describe("POST /api/reservas",
     mockEmailSend.mockResolvedValue("email-1");
 
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
-    const body = await response.json() as { success: boolean };
+    const body = await response.json() as { success: boolean; emailEnviado: boolean };
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.emailEnviado).toBe(true);
     expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "cli@ejemplo.com" }));
     const html = mockEmailSend.mock.calls[0]?.[0]?.html as string;
 
@@ -732,10 +748,11 @@ describe("POST /api/reservas",
     mockEmailSend.mockRejectedValueOnce(new Error("resend caído"));
 
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
-    const body = await response.json() as { success: boolean };
+    const body = await response.json() as { success: boolean; emailEnviado: boolean };
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.emailEnviado).toBe(false);
   });
 
   it("debería responder checkoutError cuando MercadoPago falla",

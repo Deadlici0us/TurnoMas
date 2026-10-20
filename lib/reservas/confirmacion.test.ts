@@ -84,14 +84,16 @@ describe("formatearFechaEnZona",
 describe("sincronizarTurnoConfirmado",
 () =>
 {
-  it("debería crear el evento y enviar el email",
+  it("debería crear el evento y reportar el email enviado",
   async () =>
   {
     vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue("evt-1");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     vi.stubEnv("CANCELACION_SECRET", "secreto-suficientemente-largo");
+    mockEmailSend.mockResolvedValueOnce("email-1");
 
-    await sincronizarTurnoConfirmado(PARAMS_BASE);
+    await expect(sincronizarTurnoConfirmado(PARAMS_BASE))
+      .resolves.toEqual({ enviado: true, motivo: "enviado" });
 
     expect(calendarService.createEventForNegocio).toHaveBeenCalled();
     expect(mockEmailSend).toHaveBeenCalledTimes(1);
@@ -102,17 +104,22 @@ describe("sincronizarTurnoConfirmado",
   {
     vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
-    await sincronizarTurnoConfirmado({ ...PARAMS_BASE, email: null });
+    await expect(sincronizarTurnoConfirmado({ ...PARAMS_BASE, email: null }))
+      .resolves.toEqual({ enviado: false, motivo: "sin_email" });
 
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
-  it("debería tolerar fallas de Google y del email",
+  it("debería reportar el fallo del email y loguearlo sin romper",
   async () =>
   {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(calendarService, "createEventForNegocio").mockRejectedValueOnce(new Error("gcal caído"));
     mockEmailSend.mockRejectedValueOnce(new Error("email caído"));
 
-    await expect(sincronizarTurnoConfirmado(PARAMS_BASE)).resolves.toBeUndefined();
+    await expect(sincronizarTurnoConfirmado(PARAMS_BASE))
+      .resolves.toEqual({ enviado: false, motivo: "error" });
+
+    expect(errorSpy).toHaveBeenCalled();
   });
 });

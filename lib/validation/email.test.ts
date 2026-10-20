@@ -5,42 +5,74 @@ import { esEmailValido } from "./email";
 describe("esEmailValido",
 () =>
 {
-  it("debería aceptar un email válido simple",
+  it("debería aceptar emails habituales",
   () =>
   {
-    expect(esEmailValido("cliente@mail.com")).toBe(true);
+    expect(esEmailValido("flores.anibal.e@gmail.com")).toBe(true);
+    expect(esEmailValido("juan.perez+turno@example.com")).toBe(true);
+    expect(esEmailValido("a_b-c%d@sub.ejemplo.com.ar")).toBe(true);
+    expect(esEmailValido("USUARIO@EJEMPLO.COM")).toBe(true);
   });
 
-  it("debería aceptar subdominios y etiquetas con guion",
+  it("debería rechazar el email con llave que rompió la reserva",
   () =>
   {
-    expect(esEmailValido("nombre-apellido@sub.mail.com")).toBe(true);
+    expect(esEmailValido("flores.anibal.e@gmail.com}")).toBe(false);
+    expect(esEmailValido("{flores.anibal.e@gmail.com")).toBe(false);
   });
 
   it("debería rechazar espacios y saltos de línea",
   () =>
   {
-    expect(esEmailValido("cli ente@mail.com")).toBe(false);
-    expect(esEmailValido("cliente@mail.com ")).toBe(false);
-    expect(esEmailValido("cliente@mail\n.com")).toBe(false);
-    expect(esEmailValido("cliente@mail\t.com")).toBe(false);
+    expect(esEmailValido(" juan@ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.com ")).toBe(false);
+    expect(esEmailValido("juan perez@ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.com\n")).toBe(false);
+    expect(esEmailValido("juan\t@ejemplo.com")).toBe(false);
   });
 
-  it("debería exigir exactamente un @ con local y dominio no vacíos",
+  it("debería rechazar estructuras inválidas",
   () =>
   {
-    expect(esEmailValido("sin-arroba.com")).toBe(false);
-    expect(esEmailValido("dos@arro@bas.com")).toBe(false);
-    expect(esEmailValido("@mail.com")).toBe(false);
-    expect(esEmailValido("cliente@")).toBe(false);
     expect(esEmailValido("")).toBe(false);
+    expect(esEmailValido("no-es-email")).toBe(false);
+    expect(esEmailValido("juan@@ejemplo.com")).toBe(false);
+    expect(esEmailValido("@ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan@")).toBe(false);
+    expect(esEmailValido("juan@ejemplo")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.c")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.com.")).toBe(false);
+    expect(esEmailValido("juan@.ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo..com")).toBe(false);
   });
 
-  it("debería exigir punto interno en el dominio",
+  it("debería rechazar puntos mal ubicados en la parte local",
   () =>
   {
-    expect(esEmailValido("cliente@mail")).toBe(false);
-    expect(esEmailValido("cliente@.com")).toBe(false);
-    expect(esEmailValido("cliente@mail.")).toBe(false);
+    expect(esEmailValido(".juan@ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan.@ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan..perez@ejemplo.com")).toBe(false);
+  });
+
+  it("debería rechazar etiquetas de dominio inválidas",
+  () =>
+  {
+    expect(esEmailValido("juan@-ejemplo.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo-.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo_com.com")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.123")).toBe(false);
+    expect(esEmailValido("juan@ejemplo.c0m")).toBe(false);
+  });
+
+  it("debería rechazar largos fuera de rango",
+  () =>
+  {
+    const localLargo = `${"a".repeat(65)}@ejemplo.com`;
+    const dominioLargo = `juan@${"a".repeat(64)}.com`;
+    const totalLargo = `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(63)}.com`;
+
+    expect(esEmailValido(localLargo)).toBe(false);
+    expect(esEmailValido(dominioLargo)).toBe(false);
+    expect(esEmailValido(totalLargo)).toBe(false);
   });
 });

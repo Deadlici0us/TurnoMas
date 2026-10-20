@@ -13,7 +13,7 @@ import VerificarPago from "@/components/verificar-pago";
 const BENEFICIOS = [
   "Reservas ilimitadas",
   "Cobro de señas vía MercadoPago",
-  "Recordatorios por WhatsApp y email",
+  "Recordatorios automáticos por email",
   "Lista negra automática",
   "Agenda sincronizada con Google Calendar",
   "Soporte prioritario",

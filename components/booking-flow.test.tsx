@@ -228,6 +228,89 @@ describe("BookingFlow",
     vi.unstubAllGlobals();
   });
 
+  it("debería confirmar por email y no afirmar un envío por WhatsApp",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ emailEnviado: true }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Diego",
+          horarios: { lun: "09:00-12:00", mar: "09:00-12:00" }, activo: true }]}
+        servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+          precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
+        turnos={[]}
+        bloqueos={[]}
+        horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
+    await user.click(screen.getAllByRole("button", { name: "09:00" })[0]!);
+
+    await user.type(screen.getByPlaceholderText("Ej: Juan Pérez"), "Juan");
+    await user.type(screen.getByPlaceholderText("Ej: +549110000001"), "+549110000001");
+    await user.type(screen.getByPlaceholderText("Ej: juan@ejemplo.com"), "juan@ejemplo.com");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+
+    expect(await screen.findByTestId("reserva-confirmada")).toBeDefined();
+    expect(screen.getByText(/Te enviamos la confirmación a juan@ejemplo.com/)).toBeDefined();
+    expect(screen.queryByText(/Te escribimos al/)).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("debería avisar cuando el email de confirmación no se pudo enviar",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ emailEnviado: false }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Diego",
+          horarios: { lun: "09:00-12:00", mar: "09:00-12:00" }, activo: true }]}
+        servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+          precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
+        turnos={[]}
+        bloqueos={[]}
+        horariosNegocio={{ lun: "08:00-22:00", mar: "08:00-22:00", mié: "08:00-22:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Diego" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
+    await user.click(screen.getAllByRole("button", { name: "09:00" })[0]!);
+
+    await user.type(screen.getByPlaceholderText("Ej: Juan Pérez"), "Juan");
+    await user.type(screen.getByPlaceholderText("Ej: +549110000001"), "+549110000001");
+    await user.type(screen.getByPlaceholderText("Ej: juan@ejemplo.com"), "juan@ejemplo.com");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+
+    expect(await screen.findByTestId("reserva-confirmada")).toBeDefined();
+    expect(screen.getByText(/no pudimos enviar el email/i)).toBeDefined();
+    vi.unstubAllGlobals();
+  });
+
   it("debería simular la reserva demo sin llamar al backend",
   async () =>
   {

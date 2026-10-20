@@ -13,10 +13,8 @@ import { NextResponse } from "next/server";
 import { requierePagoSena } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { NegocioSinMpError } from "@/lib/payments/mp-token";
-import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
-import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
-import { formatearFechaEnZona, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
+import { enviarEmailReservaPendiente, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
 import { esNegocioDemo } from "@/lib/portal/demo-business";
 import { paymentService } from "@/lib/services/payment";
@@ -68,85 +66,6 @@ async function resolverCliente(
   }
 
   return (nuevo as { id: string }).id;
-}
-
-/**
- * Envía el email de la reserva con seña: link de pago + link de cancelación.
- *
- * La reserva con seña nace `pendiente` y puede tardar en pagarse (o no
- * pagarse nunca): el cliente recibe desde el inicio el link mágico para
- * cancelar y liberar el lugar. Best-effort, nunca rompe la reserva.
- *
- * @param params Datos de la reserva con seña.
- */
-async function enviarEmailReservaConSena(params: {
-  readonly negocioNombre: string;
-  readonly servicioNombre: string;
-  readonly staffNombre: string;
-  readonly clienteId: string;
-  readonly clienteNombre: string;
-  readonly email: string;
-  readonly inicio: Date;
-  readonly timeZone: string;
-  readonly turnoId: string;
-  readonly checkoutUrl: string | null;
-  readonly plantillaSubject: unknown;
-  readonly plantillaCuerpo: unknown;
-}): Promise<void>
-{
-  try
-  {
-    const base = readEnv("NEXT_PUBLIC_APP_URL") ?? (readEnv("VERCEL_URL") !== null
-      ? `https://${readEnv("VERCEL_URL") as string}` : null);
-    const secreto = readEnv("CANCELACION_SECRET");
-    const { construirLinkCancelacion, firmarTokenCancelacion } = await import("@/lib/cancelacion/token");
-    let cancelacionUrl = "";
-
-    if (base !== null && secreto !== null && secreto.trim().length >= 16)
-    {
-      const token = firmarTokenCancelacion({
-        turnoId: params.turnoId,
-        clienteId: params.clienteId,
-        inicio: params.inicio,
-      }, secreto);
-
-      cancelacionUrl = construirLinkCancelacion(stripTrailingSlashes(base), params.turnoId, token);
-    }
-
-    const cuerpoBase = typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
-      ? params.plantillaCuerpo
-      : null;
-    const pagoLinea = params.checkoutUrl !== null ? `\nPagá tu seña acá: ${params.checkoutUrl}` : "";
-    const cancelaLinea = cancelacionUrl.length > 0
-      && (cuerpoBase === null || !incluyeComodinLink(cuerpoBase, "link_cancelacion"))
-      ? "\nSi no podés venir, cancelá acá: {link_cancelacion}"
-      : "";
-    const datos = {
-      cliente: params.clienteNombre,
-      negocio: params.negocioNombre,
-      servicio: params.servicioNombre,
-      profesional: params.staffNombre,
-      fecha: formatearFechaEnZona(params.inicio, params.timeZone),
-    };
-    const plantilla = resolverPlantilla("confirmacion", {
-      subject: params.plantillaSubject,
-      cuerpo: cuerpoBase === null
-        ? `Hola {cliente}, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-          `en {negocio} está casi lista.${pagoLinea}${cancelaLinea}`
-        : `${cuerpoBase}${pagoLinea}${cancelaLinea}`,
-    }, datos, { cancelacion: cancelacionUrl });
-
-    await new ResendAdapter().send({
-      to: params.email,
-      subject: plantilla.subject,
-      fromName: params.negocioNombre,
-      html: plantilla.html,
-    });
-  }
-  catch
-  {
-    // Best-effort: la reserva ya existe aunque falle el email.
-  }
 }
 
 /**
@@ -573,7 +492,7 @@ export async function POST(request: Request)
     // acreditarse el pago (webhook o marca manual cash).
     if (!conSena)
     {
-      await sincronizarTurnoConfirmado({
+      const resultadoEmail = await sincronizarTurnoConfirmado({
         negocioId,
         negocioNombre: negocio.nombre as string,
         servicioNombre,
@@ -590,7 +509,13 @@ export async function POST(request: Request)
         plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
       });
 
-      return NextResponse.json({ success: true, turnoId, outcome, montoTotal: montos.montoTotal });
+      return NextResponse.json({
+        success: true,
+        turnoId,
+        outcome,
+        montoTotal: montos.montoTotal,
+        emailEnviado: resultadoEmail.enviado,
+      });
     }
 
     const { checkoutUrl, checkoutError, sinMp } = await crearCheckoutConSena(
@@ -601,9 +526,9 @@ export async function POST(request: Request)
       negocio.nombre as string,
     );
 
-    if (email !== null)
-    {
-      await enviarEmailReservaConSena({
+    const resultadoEmail = email !== null
+      ? await enviarEmailReservaPendiente({
+        negocioId,
         negocioNombre: negocio.nombre as string,
         servicioNombre,
         staffNombre,
@@ -616,8 +541,8 @@ export async function POST(request: Request)
         checkoutUrl,
         plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,
         plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
-      });
-    }
+      })
+      : null;
 
     return NextResponse.json({
       success: true,
@@ -628,6 +553,7 @@ export async function POST(request: Request)
       checkoutUrl,
       checkoutError,
       sinMp,
+      emailEnviado: resultadoEmail?.enviado ?? false,
     });
   }
   catch (error)

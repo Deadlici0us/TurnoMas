@@ -123,7 +123,13 @@ create table if not exists clientes (
   email text null,
   unique (negocio_id, whatsapp),
   constraint clientes_email_check
-    check (email is null or email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    check (
+      email is null
+      or (
+        char_length(email) <= 254
+        and email ~ '^[A-Za-z0-9_%+-]+(\.[A-Za-z0-9_%+-]+)*@([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$'
+      )
+    )
 );
 
 create table if not exists turnos (

@@ -27,7 +27,7 @@
     },
     "recordatorios": {
       "title": "Recordatorios automáticos",
-      "description": "Envíá recordatorios por WhatsApp o email 24hs antes del turno para que ningún cliente se olvide."
+      "description": "Enviá recordatorios automáticos por email 24hs antes del turno para que ningún cliente se olvide."
     },
     "listaNegra": {
       "title": "Lista negra automática",
@@ -46,7 +46,7 @@
     "features": [
       "Reservas ilimitadas",
       "Cobro de señas vía MercadoPago",
-      "Recordatorios por WhatsApp y email",
+      "Recordatorios automáticos por email",
       "Lista negra automática",
       "Agenda sincronizada con Google Calendar",
       "Soporte prioritario"

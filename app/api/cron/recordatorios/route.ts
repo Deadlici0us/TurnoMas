@@ -176,9 +176,13 @@ export async function POST(request: Request)
       await admin.from("turnos").update({ notificacion_enviada: true }).eq("id", turno.id);
       enviados += 1;
     }
-    catch
+    catch (error)
     {
       // Best-effort por turno: se reintenta en el próximo barrido.
+      console.error("[cron/recordatorios] no se pudo enviar el recordatorio", {
+        turnoId: turno.id,
+        detalle: error instanceof Error ? error.message : "error desconocido",
+      });
     }
   }
 

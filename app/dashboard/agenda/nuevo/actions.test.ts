@@ -170,7 +170,7 @@ function sesionDueno(): void
   } as never);
   mockNegocioId.mockResolvedValue("neg-1");
   mockOcupado.mockResolvedValue(false);
-  mockSincronizar.mockResolvedValue(undefined);
+  mockSincronizar.mockResolvedValue({ enviado: true, motivo: "enviado" });
 }
 
 beforeEach(() =>

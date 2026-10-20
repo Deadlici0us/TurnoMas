@@ -14,6 +14,7 @@ interface ClienteRow
   readonly id: string;
   readonly nombre: string;
   readonly whatsapp: string;
+  readonly email?: string | null;
   readonly ausencias: number;
   readonly bloqueado: boolean;
 }
@@ -119,6 +120,9 @@ export default async function ClienteDetallePage({
             <span className={`ui-badge ${estado.clase}`}>{estado.etiqueta}</span>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{cliente.whatsapp}</p>
+          {typeof cliente.email === "string" && cliente.email.length > 0 ? (
+            <p className="text-muted-foreground text-sm">{cliente.email}</p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link

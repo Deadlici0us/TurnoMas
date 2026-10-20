@@ -245,7 +245,7 @@ export default function DashboardSidebar({
         <div className="mx-2 mt-4 rounded-lg border border-sidebar-border bg-white/[0.06] p-3">
           <p className="text-[11px] font-semibold text-white">¿Necesitás ayuda?</p>
           <p className="mt-1 text-[11px] leading-relaxed text-white/60">
-            Visitá la configuración para conectar pagos, WhatsApp y tu calendario.
+            Visitá la configuración para conectar pagos y tu calendario.
           </p>
           <Link
             href="/dashboard/config"

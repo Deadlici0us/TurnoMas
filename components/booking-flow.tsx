@@ -69,7 +69,7 @@ function validarReserva(datos: ValidacionReserva): string | null
 
   if (!WHATSAPP_PATTERN.test(datos.whatsapp))
   {
-    return "Revisá tu WhatsApp para que te lleguen los recordatorios.";
+    return "Revisá tu WhatsApp para que podamos contactarte.";
   }
 
   if (datos.requiereEmail && datos.email.length === 0)
@@ -122,14 +122,15 @@ interface ConfirmadoBookingProps
   readonly profesionalNombre: string;
   readonly servicio: PortalServicio;
   readonly slot: Date;
-  readonly whatsapp: string;
+  readonly email: string;
+  readonly emailEnviado: boolean;
   readonly demo: boolean;
 }
 
 /**
  * Renderiza la pantalla de confirmación de la reserva.
  *
- * @param props Profesional, servicio, horario y WhatsApp confirmados.
+ * @param props Profesional, servicio, horario y estado del email confirmados.
  * @return Panel de éxito con el detalle de la reserva.
  */
 function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
@@ -153,7 +154,15 @@ function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
       <p className="text-sm text-muted-foreground">
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
-      <p className="text-sm text-muted-foreground">Te escribimos al {props.whatsapp} con los detalles.</p>
+      <p className="text-sm text-muted-foreground">Guardá este comprobante de tu reserva.</p>
+      {!props.demo && props.email.length > 0 && props.emailEnviado ? (
+        <p className="text-sm text-muted-foreground">Te enviamos la confirmación a {props.email}.</p>
+      ) : null}
+      {!props.demo && props.email.length > 0 && !props.emailEnviado ? (
+        <p className="ui-alert ui-alert-warning text-xs">
+          No pudimos enviar el email de confirmación. Guardá este comprobante.
+        </p>
+      ) : null}
       {props.demo ? (
         <p className="ui-alert ui-alert-info text-xs">
           Estás viendo la demo: esta reserva es simulada y no se guardó en la base de datos.
@@ -377,6 +386,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmado, setConfirmado] = useState(false);
+  const [emailEnviado, setEmailEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   const profesional = staff.find((s) => s.id === staffId) ?? null;
@@ -514,7 +524,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
         }),
       });
       const data = await response.json() as { error?: string; checkoutUrl?: string;
-        checkoutError?: string | null };
+        checkoutError?: string | null; emailEnviado?: boolean };
 
       if (!response.ok)
       {
@@ -534,6 +544,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
         return;
       }
 
+      setEmailEnviado(data.emailEnviado === true);
       setConfirmado(true);
     }
     catch
@@ -552,7 +563,8 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       profesionalNombre: profesional.nombre,
       servicio,
       slot: new Date(slotISO),
-      whatsapp: whatsapp.trim(),
+      email: email.trim(),
+      emailEnviado,
       demo,
     });
   }
