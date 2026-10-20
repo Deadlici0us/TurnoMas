@@ -14,6 +14,8 @@ export interface ProfileMenuProps
   readonly menuLabel: string;
   readonly billingLabel: string;
   readonly logoutLabel: string;
+  /** La demo no muestra el acceso a facturación. */
+  readonly mostrarFacturacion?: boolean;
 }
 
 const ITEMS = [
@@ -52,7 +54,7 @@ export default function ProfileMenu(props: ProfileMenuProps)
             className="animate-fade-in min-w-52 origin-top-right rounded-lg border border-line bg-white p-1
               shadow-[var(--shadow-modal)]"
           >
-            {ITEMS.map(({ href, key, Icon }) => (
+            {props.mostrarFacturacion === false ? null : ITEMS.map(({ href, key, Icon }) => (
               <Menu.LinkItem
                 key={href}
                 render={<Link href={href} />}

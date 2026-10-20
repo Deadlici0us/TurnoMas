@@ -105,7 +105,7 @@ describe("getDashboardData",
     expect(result.error).toBeNull();
     expect(result.isDemo).toBe(true);
     expect(result.userEmail).toBeNull();
-    expect(result.data.negocio).toMatchObject({ nombre: "Barbería Diego" });
+    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 
@@ -131,7 +131,7 @@ describe("getDashboardData",
     expect(result.data.staff.length).toBeGreaterThan(0);
   });
 
-  it("debería marcar demo para el dueño demo con datos reales",
+  it("debería servir el seed para el dueño demo sin leer la DB",
   async () =>
   {
     vi.stubEnv("DEMO_DUENIO_ID", "user-demo");
@@ -141,8 +141,9 @@ describe("getDashboardData",
     const result = await getDashboardData();
 
     expect(result.isDemo).toBe(true);
-    expect(result.data.negocio).toEqual(NEGOCIO);
-    expect(result.data.staff).toEqual([{ id: "s-1" }]);
+    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
+    expect(result.data.staff).not.toEqual([{ id: "s-1" }]);
+    expect(mockAdmin).not.toHaveBeenCalled();
   });
 
   it("debería devolver seed sin negocio del dueño",
@@ -155,7 +156,7 @@ describe("getDashboardData",
 
     expect(result.error).toBeNull();
     expect(result.isDemo).toBe(false);
-    expect(result.data.negocio).toMatchObject({ nombre: "Barbería Diego" });
+    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
   });
 
   it("debería devolver seed ante error del negocio",

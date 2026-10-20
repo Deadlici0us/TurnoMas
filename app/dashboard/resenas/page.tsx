@@ -7,7 +7,7 @@ import { listarResenas } from "@/lib/resenas/queries";
 
 export default async function ResenasPage()
 {
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, isDemo } = await getDashboardData();
   const negocio = dashboard.negocio as {
     readonly id?: unknown;
     readonly nombre?: unknown;
@@ -43,7 +43,7 @@ export default async function ResenasPage()
   }
 
   const negocioId = typeof negocio.id === "string" && negocio.id.length > 0 ? negocio.id : null;
-  const items = negocioId === null ? [] : await listarResenas(negocioId);
+  const items = isDemo || negocioId === null ? [] : await listarResenas(negocioId);
   const negocioNombre = typeof negocio.nombre === "string" ? negocio.nombre : "tu negocio";
 
   return (

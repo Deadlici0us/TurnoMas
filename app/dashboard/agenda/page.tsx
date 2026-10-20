@@ -51,7 +51,7 @@ export default async function AgendaPage(props?: {
 })
 {
   const params = props?.searchParams === undefined ? undefined : await props.searchParams;
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, isDemo } = await getDashboardData();
   const staff = dashboard.staff as StaffRow[];
   const negocioRow = dashboard.negocio as {
     id?: unknown; nombre?: unknown; timezone?: unknown; pais?: unknown; horarios?: unknown;
@@ -136,16 +136,18 @@ export default async function AgendaPage(props?: {
   const hoy = new Date();
   const negocioIdCrudo = (dashboard.negocio as { id?: unknown }).id;
   const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
-  const externos = await calendarService.getExternalEventsForNegocio(
-    negocioIdTexto,
-    new Date(hoy.getTime() - 30 * 86_400_000), new Date(hoy.getTime() + 60 * 86_400_000))
-    .then((eventos) => eventos.map((e) => ({
-      id: e.id,
-      titulo: e.titulo,
-      inicio: e.inicio.toISOString(),
-      fin: e.fin.toISOString(),
-    })))
-    .catch(() => []);
+  const externos = isDemo
+    ? []
+    : await calendarService.getExternalEventsForNegocio(
+      negocioIdTexto,
+      new Date(hoy.getTime() - 30 * 86_400_000), new Date(hoy.getTime() + 60 * 86_400_000))
+      .then((eventos) => eventos.map((e) => ({
+        id: e.id,
+        titulo: e.titulo,
+        inicio: e.inicio.toISOString(),
+        fin: e.fin.toISOString(),
+      })))
+      .catch(() => []);
 
   // Solo confirmado/pagado impactan el calendario semanal.
   // El pendiente con seña no va a grilla ni a GCal hasta acreditarse.

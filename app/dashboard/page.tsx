@@ -9,6 +9,7 @@ import StatCard from "@/components/ui/stat-card";
 import StatusBadge from "@/components/ui/status-badge";
 import { formatearARS } from "@/lib/dashboard/moneda";
 import { getDashboardData, getDashboardStats } from "@/lib/dashboard/queries";
+import { calcularStatsDesdeTurnos } from "@/lib/dashboard/stats";
 import { buscarProximoTurnoDeHoy, calcularMetricasDelDia } from "@/lib/dashboard/metricas-dia";
 import { debeAvisarConexionMp } from "@/lib/dashboard/conexion-mp";
 import { candidatosDesdeDashboard } from "@/lib/remarketing/dashboard";
@@ -34,7 +35,7 @@ interface TurnoDashboard
 export default async function DashboardPage()
 {
   const t = await getTranslations("common");
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, isDemo } = await getDashboardData();
 
   const negocioRow = dashboard.negocio as {
     id?: unknown;
@@ -55,7 +56,7 @@ export default async function DashboardPage()
       typeof negocioRow.suscripcion_mora_desde === "string" ? negocioRow.suscripcion_mora_desde : null,
   });
 
-  const aviso = avisoSuscripcion(subscription,
+  const aviso = isDemo ? null : avisoSuscripcion(subscription,
     typeof negocioRow.created_at === "string" ? negocioRow.created_at : null);
 
   let mpToken: string | null = null;
@@ -64,7 +65,7 @@ export default async function DashboardPage()
   {
     const negocioId = dashboard.negocio.id;
 
-    if (typeof negocioId === "string")
+    if (!isDemo && typeof negocioId === "string")
     {
       const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
         .select("mercadopago_access_token").eq("negocio_id", negocioId).single();
@@ -89,7 +90,9 @@ export default async function DashboardPage()
   const turnos = dashboard.turnos as TurnoDashboard[];
   const metricasDia = calcularMetricasDelDia(turnos, timeZone, ahora);
   const proximoTurno = buscarProximoTurnoDeHoy(turnos, timeZone, ahora);
-  const stats = await getDashboardStats(String(dashboard.negocio.id ?? ""));
+  const stats = isDemo
+    ? calcularStatsDesdeTurnos(turnos)
+    : await getDashboardStats(String(dashboard.negocio.id ?? ""));
 
   const nombrePorServicio = new Map<string, string>(
     dashboard.servicios.map((s: { id: string; nombre: string }) => [s.id, s.nombre]),

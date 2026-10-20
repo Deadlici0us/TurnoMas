@@ -778,6 +778,18 @@ describe("POST /api/reservas",
     expect(body.checkoutError).toBe("Este negocio aún no activó el cobro online. Tu reserva quedó pendiente.");
   });
 
+  it("debería simular la reserva del negocio demo sin tocar Supabase",
+  async () =>
+  {
+    const response = await POST(requestWith({ ...BASE, slug: "negocio-demo" }));
+    const body = await response.json() as { success: boolean; demo: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, demo: true });
+    expect(mockServer).not.toHaveBeenCalled();
+    expect(mockAdmin).not.toHaveBeenCalled();
+  });
+
   it("debería devolver 503 en modo demo sin Supabase",
   async () =>
   {

@@ -16,7 +16,6 @@ import { actualizarDescripcionNegocio, actualizarGoogleMapsUrl, actualizarGoogle
   actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
   desconectarMercadoPago } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
-import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { normalizarSeccionConfig, SECCIONES_CONFIG } from "@/lib/config/secciones";
@@ -35,7 +34,6 @@ import
 import { maskMpToken } from "@/lib/payments/mp-token";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio, TIMEZONES_SOPORTADAS } from "@/lib/timezone/timezone";
 
 async function guardarPolitica(formData: FormData): Promise<void>
@@ -286,22 +284,6 @@ async function cargarConexiones(negocioId: unknown): Promise<{
   }
 }
 
-/** Indica si el lector es el dueño demo (sin cuentas reales). */
-async function esDuenoDemo(): Promise<boolean>
-{
-  try
-  {
-    const supabase = await getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    return user !== null && isDemoOwner({ userId: user.id, email: user.email ?? null });
-  }
-  catch
-  {
-    return false;
-  }
-}
-
 /** Mensaje del resultado OAuth de MercadoPago (?mp=...). */
 function mensajeMp(mp: string | undefined): { readonly texto: string; readonly clase: string } | null
 {
@@ -367,17 +349,21 @@ interface ContextoConfig
  * @param negocioIdCrudo ID crudo del negocio del dashboard.
  * @param negocio Fila del negocio con sus datos públicos.
  * @param searchParams Params de la URL con el aviso de MercadoPago.
+ * @param demo Indica si la request es la demo temporal.
  * @return Contexto normalizado para el render de la página.
  */
 async function cargarContextoConfig(
   negocioIdCrudo: unknown,
   negocio: { readonly pais?: unknown; readonly slug?: unknown; readonly nombre?: unknown },
   searchParams: { readonly mp?: string } | undefined,
+  demo: boolean,
 ): Promise<ContextoConfig>
 {
   const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
-  const { mpToken, mpConectadoAt, gcalConectado } = await cargarConexiones(negocioIdCrudo);
-  const demo = await esDuenoDemo();
+  const conexiones = demo
+    ? { mpToken: null, mpConectadoAt: null, gcalConectado: false }
+    : await cargarConexiones(negocioIdCrudo);
+  const { mpToken, mpConectadoAt, gcalConectado } = conexiones;
   const avisoMp = mensajeMp(searchParams?.mp);
   const mpConectado = mpToken !== null;
 
@@ -467,7 +453,7 @@ export default async function ConfigPage(
   const esCobros = seccionActiva === "cobros";
   const esMensajes = seccionActiva === "mensajes";
   const esCuenta = seccionActiva === "cuenta";
-  const { data: dashboard } = await getDashboardData();
+  const { data: dashboard, isDemo } = await getDashboardData();
   const negocio = dashboard.negocio as NegocioConfigRow & {
     nombre?: string; pais?: string; slug?: string; horarios?: unknown;
     msg_confirmacion_subject?: string | null; msg_confirmacion_cuerpo?: string | null;
@@ -503,7 +489,7 @@ export default async function ConfigPage(
     avisoMp,
     mpConectado,
     whatsappGuia,
-  } = await cargarContextoConfig(negocioId, negocio, searchParams);
+  } = await cargarContextoConfig(negocioId, negocio, searchParams, isDemo);
 
   return (
     <div className="space-y-4">

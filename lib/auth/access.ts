@@ -10,15 +10,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
+import { DEMO_COOKIE, esCookieDemo } from "@/lib/auth/demo-cookie";
+import { isDemoOwner } from "@/lib/auth/demo-guard";
 import type { AccessSnapshot } from "@/lib/auth/route-guard";
 import type { SubscriptionStatus } from "@/lib/onboarding/trial";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseProxyClient } from "@/lib/supabase/proxy-client";
-
-const DEMO_COOKIE = "session";
-const DEMO_VALUE = "demo";
 
 /** Ventana de caché del rescate en línea (no reverificar en cada request). */
 const RESCATE_CACHE_MS = 5 * 60_000;
@@ -27,6 +26,13 @@ const SNAPSHOT_GUEST: AccessSnapshot = {
   session: "guest",
   subscription: "trial",
   hasBusiness: false,
+};
+
+/** Snapshot de la demo temporal: autenticada, sin suscripción ni bloqueo. */
+const SNAPSHOT_DEMO: AccessSnapshot = {
+  session: "authenticated",
+  subscription: "demo",
+  hasBusiness: true,
 };
 
 /** Resultado de resolver el acceso de una request. */
@@ -65,14 +71,9 @@ function verificacionReciente(valor: string | null): boolean
 /** Snapshot demo: la cookie `session=demo` actúa como sesión sin secrets. */
 function resolveDemoSnapshot(request: NextRequest): AccessSnapshot
 {
-  const authenticated = request.cookies.get(DEMO_COOKIE)?.value === DEMO_VALUE;
-
-  if (!authenticated)
-  {
-    return SNAPSHOT_GUEST;
-  }
-
-  return { session: "authenticated", subscription: "trial", hasBusiness: true };
+  return esCookieDemo(request.cookies.get(DEMO_COOKIE)?.value)
+    ? SNAPSHOT_DEMO
+    : SNAPSHOT_GUEST;
 }
 
 /** Busca la fila del negocio del dueño sin exponer datos de suscripción. */
@@ -105,20 +106,29 @@ async function resolveSupabaseAccess(
   const proxy = createSupabaseProxyClient(request, requestHeaders);
 
   let userId: string | null = null;
+  let email: string | null = null;
 
   try
   {
     const { data } = await proxy.supabase.auth.getUser();
     userId = data.user?.id ?? null;
+    email = data.user?.email ?? null;
   }
   catch
   {
     userId = null;
+    email = null;
   }
 
   if (userId === null)
   {
     return { snapshot: SNAPSHOT_GUEST, response: proxy.response() };
+  }
+
+  // Sesión Supabase heredada del dueño demo: no consultar suscripción ni DB.
+  if (isDemoOwner({ userId, email }))
+  {
+    return { snapshot: SNAPSHOT_DEMO, response: proxy.response() };
   }
 
   const negocio = await consultarNegocio(userId);
@@ -186,7 +196,9 @@ export async function resolveAccess(
   requestHeaders: Headers,
 ): Promise<AccessResult>
 {
-  if (resolveAuthMode() === "demo")
+  const cookieDemo = esCookieDemo(request.cookies.get(DEMO_COOKIE)?.value);
+
+  if (resolveAuthMode() === "demo" || cookieDemo)
   {
     return {
       snapshot: resolveDemoSnapshot(request),

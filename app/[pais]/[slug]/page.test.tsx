@@ -113,9 +113,9 @@ describe("PortalPage demo",
   it("debería mostrar el negocio demo",
   async () =>
   {
-    render(await PortalPage({ params: params("ar", "barberia-diego") }));
+    render(await PortalPage({ params: params("ar", "negocio-demo") }));
 
-    expect(screen.getByText("Barbería Diego")).toBeDefined();
+    expect(screen.getByText("Negocio Demo")).toBeDefined();
     expect(screen.getByText("Reservas por TurnoMas")).toBeDefined();
   });
 

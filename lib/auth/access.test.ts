@@ -22,12 +22,14 @@ const mockVerificar = vi.mocked(subscriptionService.verificarPreapproval);
 const HEADERS = new Headers();
 
 /** Stub del cliente de proxy con (o sin) usuario autenticado. */
-function stubProxy(userId: string | null): void
+function stubProxy(userId: string | null, email: string | null = null): void
 {
   mockProxy.mockReturnValue({
     supabase: {
       auth: {
-        getUser: async () => ({ data: { user: userId === null ? null : { id: userId } } }),
+        getUser: async () => ({
+          data: { user: userId === null ? null : { id: userId, email } },
+        }),
       },
     },
     response: () => NextResponse.next(),
@@ -74,7 +76,7 @@ describe("resolveAccess (demo)",
     const request = new NextRequest("http://localhost/", { headers: { cookie: "session=demo" } });
     const { snapshot } = await resolveAccess(request, HEADERS);
 
-    expect(snapshot).toEqual({ session: "authenticated", subscription: "trial", hasBusiness: true });
+    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
   });
 });
 
@@ -82,6 +84,28 @@ describe("resolveAccess (supabase)",
 () =>
 {
   beforeEach(() => mockMode.mockReturnValue("supabase"));
+
+  it("debería servir la demo con la cookie aunque Supabase esté configurado",
+  async () =>
+  {
+    const request = new NextRequest("http://localhost/", { headers: { cookie: "session=demo" } });
+    const { snapshot } = await resolveAccess(request, HEADERS);
+
+    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
+    expect(mockProxy).not.toHaveBeenCalled();
+    expect(mockAdmin).not.toHaveBeenCalled();
+  });
+
+  it("debería reconocer al dueño demo de Supabase sin consultar suscripción",
+  async () =>
+  {
+    stubProxy("user-demo", "demo@turnomas.com");
+
+    const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
+
+    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
+    expect(mockAdmin).not.toHaveBeenCalled();
+  });
 
   it("debería ser invitado sin usuario",
   async () =>

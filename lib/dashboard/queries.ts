@@ -1,8 +1,7 @@
 "use server";
 
-import { isDemoOwner } from "@/lib/auth/demo-guard";
+import { leerSesionDemo } from "@/lib/auth/demo-session";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getSupabaseServer } from "@/lib/supabase/server";
 import { buildDemoSeed } from "@/lib/seed/demo-rows";
 
 const DEMO_DUENIO_ID = "demo-duenio";
@@ -24,43 +23,33 @@ function asociacionesDeFilas(
     .map((fila) => ({ staffId: fila.staff_id as string, servicioId: fila.servicio_id as string }));
 }
 
+/** Datos del seed demo en memoria (sin tocar la base). */
+function datosDemo()
+{
+  const seed = buildDemoSeed(DEMO_DUENIO_ID);
+
+  return {
+    negocio: seed.negocio,
+    staff: seed.staff,
+    servicios: seed.servicios,
+    asociaciones: asociacionesDeFilas(seed.staffServicios),
+    clientes: seed.clientes,
+    turnos: seed.turnos,
+  };
+}
+
 /** Datos del dashboard: negocio + staff + servicios + clientes + turnos + `isDemo`. */
 export async function getDashboardData()
 {
-  let userId: string | null = null;
-  let userEmail: string | null = null;
+  const { esDemo, userId, email: userEmail } = await leerSesionDemo();
 
-  try
+  // Demo temporal o build sin sesión: seed en memoria, nunca DB.
+  if (esDemo || userId === null)
   {
-    const supabase = await getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    userId = user?.id ?? null;
-    userEmail = user?.email ?? null;
-  }
-  catch
-  {
-    userId = null;
-    userEmail = null;
-  }
-
-  // Sin sesión (build, demo local): seed en memoria, siempre solo lectura.
-  const isDemo = userId === null || isDemoOwner({ userId, email: userEmail });
-
-  if (userId === null)
-  {
-    const seed = buildDemoSeed(DEMO_DUENIO_ID);
-
     return {
-      data: {
-        negocio: seed.negocio,
-        staff: seed.staff,
-        servicios: seed.servicios,
-        asociaciones: asociacionesDeFilas(seed.staffServicios),
-        clientes: seed.clientes,
-        turnos: seed.turnos,
-      },
+      data: datosDemo(),
       error: null as string | null,
-      isDemo,
+      isDemo: true,
       userEmail,
     };
   }
@@ -76,19 +65,10 @@ export async function getDashboardData()
   if (negocioError !== null || negocio === null)
   {
     // Dueño sin negocio aún (post-register): seed en memoria para no romper UI.
-    const seed = buildDemoSeed(DEMO_DUENIO_ID);
-
     return {
-      data: {
-        negocio: seed.negocio,
-        staff: seed.staff,
-        servicios: seed.servicios,
-        asociaciones: asociacionesDeFilas(seed.staffServicios),
-        clientes: seed.clientes,
-        turnos: seed.turnos,
-      },
+      data: datosDemo(),
       error: null as string | null,
-      isDemo,
+      isDemo: false,
       userEmail,
     };
   }
@@ -117,7 +97,7 @@ export async function getDashboardData()
       turnos: turnos ?? [],
     },
     error: null as string | null,
-    isDemo,
+    isDemo: false,
     userEmail,
   };
 }

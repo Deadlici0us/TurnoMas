@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         destination: "/login",
         permanent: false,
       },
+      {
+        source: "/ar/barberia-diego",
+        destination: "/ar/negocio-demo",
+        permanent: false,
+      },
     ];
   },
   async headers()

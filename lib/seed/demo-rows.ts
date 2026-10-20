@@ -1,5 +1,5 @@
 /**
- * Filas del seed demo (cuenta permanente "Barbería Diego").
+ * Filas del seed demo (cuenta temporal "Negocio Demo").
  *
  * Datos puros en memoria: `POST /api/init` los inserta con service role
  * solo cuando `negocios` está vacío. Espeja `supabase/seed-demo.sql`.
@@ -93,7 +93,8 @@ export interface DemoSeed
   readonly turnos: readonly DemoTurnoRow[];
 }
 
-const NEGOCIO_ID = "d0e6b000-0000-4000-8000-000000000001";
+/** ID fijo del negocio demo en el seed y la DB. */
+export const DEMO_NEGOCIO_ID = "d0e6b000-0000-4000-8000-000000000001";
 const STAFF_DIEGO = "d0e6b000-0000-4000-8000-000000000011";
 const STAFF_CAMILA = "d0e6b000-0000-4000-8000-000000000012";
 const SERV_CORTE = "d0e6b000-0000-4000-8000-000000000021";
@@ -117,12 +118,12 @@ export function buildDemoSeed(duenioId: string): DemoSeed
 
   return {
     negocio: {
-      id: NEGOCIO_ID,
+      id: DEMO_NEGOCIO_ID,
       duenio_id: owner,
-      nombre: "Barbería Diego",
+      nombre: "Negocio Demo",
       pais: "ar",
-      slug: "barberia-diego",
-      suscripcion_estado: "active",
+      slug: "negocio-demo",
+      suscripcion_estado: "trial",
       timezone: "America/Argentina/Buenos_Aires",
       sena_retencion_hs: 72,
       recordatorio_activo: true,
@@ -146,7 +147,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
     staff: [
       {
         id: STAFF_DIEGO,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Diego",
         horarios: { "lun-vie": "09:00-19:00", sab: "09:00-14:00" },
         descripcion: "Barbero con 10 años de experiencia. Especialista en corte clásico y perfilado.",
@@ -154,7 +155,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: STAFF_CAMILA,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Camila",
         horarios: { "lun-vie": "10:00-20:00" },
         descripcion: "Colorista y estilista. Te asesora para encontrar tu mejor versión.",
@@ -164,7 +165,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
     servicios: [
       {
         id: SERV_CORTE,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Corte clásico",
         duracion_min: 30,
         precio_base: 1500000,
@@ -176,7 +177,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: SERV_BARBA_CORTE,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Barba + corte",
         duracion_min: 45,
         precio_base: 2000000,
@@ -188,7 +189,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: SERV_BARBA,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Perfilado de barba",
         duracion_min: 20,
         precio_base: 800000,
@@ -200,30 +201,30 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
     ],
     staffServicios: [
-      { staff_id: STAFF_DIEGO, servicio_id: SERV_CORTE, negocio_id: NEGOCIO_ID },
-      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA_CORTE, negocio_id: NEGOCIO_ID },
-      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA, negocio_id: NEGOCIO_ID },
-      { staff_id: STAFF_CAMILA, servicio_id: SERV_CORTE, negocio_id: NEGOCIO_ID },
-      { staff_id: STAFF_CAMILA, servicio_id: SERV_BARBA, negocio_id: NEGOCIO_ID },
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_CORTE, negocio_id: DEMO_NEGOCIO_ID },
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA_CORTE, negocio_id: DEMO_NEGOCIO_ID },
+      { staff_id: STAFF_DIEGO, servicio_id: SERV_BARBA, negocio_id: DEMO_NEGOCIO_ID },
+      { staff_id: STAFF_CAMILA, servicio_id: SERV_CORTE, negocio_id: DEMO_NEGOCIO_ID },
+      { staff_id: STAFF_CAMILA, servicio_id: SERV_BARBA, negocio_id: DEMO_NEGOCIO_ID },
     ],
     clientes: [
       {
         id: CLI_JUAN,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Juan Pérez",
         whatsapp: "+549110000001",
         ausencias: 0,
       },
       {
         id: CLI_MARIA,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "María Gómez",
         whatsapp: "+549110000002",
         ausencias: 1,
       },
       {
         id: CLI_FALTA,
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Falta Siempre",
         whatsapp: "+549110000003",
         ausencias: 2,
@@ -232,7 +233,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
     turnos: [
       {
         id: "d0e6b000-0000-4000-8000-000000000041",
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         staff_id: STAFF_DIEGO,
         servicio_id: SERV_CORTE,
         cliente_id: CLI_JUAN,
@@ -244,7 +245,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: "d0e6b000-0000-4000-8000-000000000042",
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         staff_id: STAFF_DIEGO,
         servicio_id: SERV_BARBA_CORTE,
         cliente_id: CLI_MARIA,
@@ -256,7 +257,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: "d0e6b000-0000-4000-8000-000000000043",
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         staff_id: STAFF_CAMILA,
         servicio_id: SERV_BARBA,
         cliente_id: CLI_JUAN,
@@ -268,7 +269,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
       },
       {
         id: "d0e6b000-0000-4000-8000-000000000044",
-        negocio_id: NEGOCIO_ID,
+        negocio_id: DEMO_NEGOCIO_ID,
         staff_id: STAFF_CAMILA,
         servicio_id: SERV_CORTE,
         cliente_id: CLI_FALTA,

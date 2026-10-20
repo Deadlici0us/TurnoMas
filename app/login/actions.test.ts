@@ -73,6 +73,19 @@ describe("login",
     expect(set).toHaveBeenCalledWith("session", "demo", expect.objectContaining({ path: "/" }));
   });
 
+  it("debería iniciar la demo temporal sin llamar a Supabase",
+  async () =>
+  {
+    modoSupabase();
+    const set = vi.fn();
+    mockCookies.mockResolvedValue({ set } as never);
+
+    await expect(login(formulario({ email: "demo@turnomas.com", password: "demo123" })))
+      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
+    expect(set).toHaveBeenCalledWith("session", "demo", expect.objectContaining({ path: "/" }));
+    expect(mockServer).not.toHaveBeenCalled();
+  });
+
   it("debería pedir credenciales cuando Supabase rechaza",
   async () =>
   {
@@ -146,14 +159,17 @@ describe("logout",
     expect(del).toHaveBeenCalledWith("session");
   });
 
-  it("debería cerrar sesión Supabase",
+  it("debería borrar la cookie demo y cerrar sesión Supabase",
   async () =>
   {
     modoSupabase();
+    const del = vi.fn();
+    mockCookies.mockResolvedValue({ delete: del } as never);
     const signOut = vi.fn(async () => ({}));
     mockServer.mockResolvedValue({ auth: { signOut } } as never);
 
     await expect(logout()).rejects.toThrow("NEXT_REDIRECT:/login");
+    expect(del).toHaveBeenCalledWith("session");
     expect(signOut).toHaveBeenCalledOnce();
   });
 });

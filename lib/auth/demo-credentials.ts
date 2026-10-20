@@ -25,3 +25,26 @@ export function getDemoCredentials(env: EnvRecord = process.env): DemoCredential
     password: readEnv("DEMO_PASSWORD", env) ?? DEFAULT_PASSWORD,
   };
 }
+
+/**
+ * Indica si las credenciales ingresadas son las de la cuenta demo.
+ *
+ * El email se compara sin distinguir mayúsculas ni espacios; la contraseña
+ * debe coincidir exactamente con la configurada.
+ *
+ * @param email Email ingresado en el login.
+ * @param password Contraseña ingresada.
+ * @param env Registro de entorno opcional.
+ * @return `true` cuando corresponden a la demo.
+ */
+export function esCredencialDemo(
+  email: string,
+  password: string,
+  env: EnvRecord = process.env,
+): boolean
+{
+  const demo = getDemoCredentials(env);
+
+  return email.trim().toLowerCase() === demo.email.trim().toLowerCase()
+    && password === demo.password;
+}

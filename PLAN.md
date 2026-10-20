@@ -65,14 +65,14 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - `servicios`: Duración, precio_base, precio_promocional (precio tachado), seña requerida.
 - `clientes`: CRM local, acumulación de ausencias, lista negra.
 - `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
-- **Seed Data (Población de datos):** Script SQL automatizado para inyectar datos ficticios (turnos, ingresos, clientes, staff) asignados a una cuenta "Demo" permanente.
+- **Seed Data (Población de datos):** Script SQL automatizado para inyectar datos ficticios (turnos, ingresos, clientes, staff). El usuario demo usa una copia en memoria del seed y no escribe en la base.
 
 ## 4. Módulos del Sistema
 
 ### Módulo 1: Landing y Onboarding B2B (es-AR default; abierto a es-MX / en-US / en-UK)
 - **Locale:** Todo contenido en `es-AR` (voseo, formato `$ 15.000`, `DD/MM/YYYY`). Base i18n con `es-AR.json`; archivos de contenido vacíos/stubs para `es-MX`, `en-US`, `en-UK` reservados en el repositorio para facilitar expansión sin refactorizar UI.
 - **Landing Page (`/`):** Presentación del software, planes y calculadora de pérdidas por inasistencias. Copy completo en `es-AR`. Metadata SEO `lang="es-AR"`.
-- **Demo Interactivo (Sandbox):** Botón en la landing ("Probar Demo") que loguea automáticamente al usuario en una cuenta B2B pre-poblada con datos ficticios. Permite navegar el dashboard, ver la agenda llena y simular configuraciones. Todo en `es-AR`.
+- **Demo Interactivo (Sandbox):** Botón en la landing ("Probar Demo") que loguea automáticamente al usuario en una cuenta B2B temporal, servida desde el seed en memoria. Permite navegar el dashboard y ver la agenda llena en modo solo lectura, sin suscripción, sin tocar Supabase y con reservas simuladas. Todo en `es-AR`.
 - **Onboarding Progresivo:** 
   1. Registro de usuario (Supabase Auth).
   2. Creación del perfil del negocio (Generación de URL dinámica `/:pais/:slug`).
@@ -83,7 +83,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
   - **Config MP:** en "Tus integraciones" → Webhooks, cargar `https://<host>/api/webhooks` con los topics `subscription_preapproval`, `subscription_authorized_payment` y `payment`, usando como secret el valor de `MP_WEBHOOK_SECRET`.
 
 ### Módulo 2: Portal Público de Reservas (Client-Facing)
-- **URL Dinámica:** `/:pais/:slug` (Ej: `/ar/barberia-diego`). Diseño mobile-first estilo Link-in-bio.
+- **URL Dinámica:** `/:pais/:slug` (Ej: `/ar/negocio-demo`). Diseño mobile-first estilo Link-in-bio.
 - **Flujo de Reserva:** 
   1. Selección de Staff.
   2. Selección de Servicio. (UI Activa: Muestra nombre, duración estimada del servicio para el cliente, y si tiene `precio_promocional`, muestra el `precio_base` tachado).

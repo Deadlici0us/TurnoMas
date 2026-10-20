@@ -33,6 +33,8 @@ interface BookingFlowProps
   readonly bloqueos: readonly PortalBloqueo[];
   readonly horariosNegocio?: Record<string, string> | null;
   readonly requiereEmail?: boolean;
+  /** Demo de solo lectura: simula la reserva sin llamar al backend. */
+  readonly demo?: boolean;
 }
 
 function formatSlot(date: Date): string
@@ -121,6 +123,7 @@ interface ConfirmadoBookingProps
   readonly servicio: PortalServicio;
   readonly slot: Date;
   readonly whatsapp: string;
+  readonly demo: boolean;
 }
 
 /**
@@ -151,7 +154,12 @@ function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
       <p className="text-sm text-muted-foreground">Te escribimos al {props.whatsapp} con los detalles.</p>
-      {tieneSenaEfectiva(props.servicio.senaRequerida, props.servicio.senaPorcentaje) ? (
+      {props.demo ? (
+        <p className="ui-alert ui-alert-info text-xs">
+          Estás viendo la demo: esta reserva es simulada y no se guardó en la base de datos.
+        </p>
+      ) : null}
+      {!props.demo && tieneSenaEfectiva(props.servicio.senaRequerida, props.servicio.senaPorcentaje) ? (
         <p className="ui-alert ui-alert-warning text-xs">
           En esta demo no se realiza el cobro. En producción serías redirigido a MercadoPago
           para pagar la seña del {props.servicio.senaPorcentaje}% ({formatearARS(props.servicio.precioBase)}).
@@ -358,7 +366,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
 
 export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, negocioDescripcion = null,
   pais, slug, staff, servicios, asociaciones, turnos,
-  bloqueos, horariosNegocio = null, requiereEmail = false }: BookingFlowProps)
+  bloqueos, horariosNegocio = null, requiereEmail = false, demo = false }: BookingFlowProps)
 {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [servicioId, setServicioId] = useState<string | null>(null);
@@ -479,6 +487,13 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       return;
     }
 
+    if (demo)
+    {
+      setError(null);
+      setConfirmado(true);
+      return;
+    }
+
     setEnviando(true);
     setError(null);
 
@@ -538,6 +553,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       servicio,
       slot: new Date(slotISO),
       whatsapp: whatsapp.trim(),
+      demo,
     });
   }
 

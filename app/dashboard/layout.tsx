@@ -1,6 +1,6 @@
 import { getDashboardData } from "@/lib/dashboard/queries";
 import DashboardSidebar from "@/components/dashboard-sidebar";
-import DemoEditableBanner from "@/components/demo-editable-banner";
+import DemoReadonlyBanner from "@/components/demo-readonly-banner";
 import PaywallPlanVencido from "@/components/paywall-plan-vencido";
 import { logout } from "@/app/login/actions";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -34,7 +34,7 @@ export default async function DashboardLayout({
     suscripcion_cancelada_en?: unknown;
     suscripcion_mp_status?: unknown;
   };
-  const bloqueado = getNegocioSubscriptionStatus({
+  const bloqueado = !isDemo && getNegocioSubscriptionStatus({
     created_at: typeof negocio.created_at === "string" ? negocio.created_at : null,
     suscripcion_estado:
       typeof negocio.suscripcion_estado === "string" ? negocio.suscripcion_estado : null,
@@ -63,7 +63,7 @@ export default async function DashboardLayout({
         />
         <div className="min-w-0 flex-1">
           <div className="mx-auto max-w-[1230px] px-4 pt-16 pb-6 sm:px-6 lg:px-8 lg:py-8">
-            {isDemo ? <DemoEditableBanner /> : null}
+            {isDemo ? <DemoReadonlyBanner accionBloqueada={false} /> : null}
             <main className="animate-fade-in">{children}</main>
           </div>
         </div>

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 
 import { buildGoogleCallbackUrl, exchangeCodeForTokens } from "@/lib/calendar/google-oauth";
+import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -63,6 +64,11 @@ export async function GET(request: Request)
     if (user === null)
     {
       return NextResponse.redirect(new URL("/login?next=/dashboard/config", request.url));
+    }
+
+    if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
+    {
+      return redirectConfig(request.url, { gcal: "demo" });
     }
 
     const admin = getSupabaseAdmin();

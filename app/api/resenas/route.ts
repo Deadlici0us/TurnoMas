@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 
 import { esEstrellasValidas } from "@/lib/automations/resenas";
+import { DEMO_NEGOCIO_ID } from "@/lib/portal/demo-business";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: Request)
@@ -56,6 +57,13 @@ export async function POST(request: Request)
   }
 
   const turnoRow = turno as unknown as { negocio_id: string; cliente_id: string };
+
+  // La demo no persiste reseñas ni marcas sobre turnos.
+  if (turnoRow.negocio_id === DEMO_NEGOCIO_ID)
+  {
+    return NextResponse.json({ success: true, demo: true });
+  }
+
   const comentario = typeof body.comentario === "string"
     ? body.comentario.trim().slice(0, 500)
     : "";

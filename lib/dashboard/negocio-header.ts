@@ -5,6 +5,7 @@
  * Supabase) devuelve el negocio del seed; en producción, la fila del dueño.
  */
 
+import { tieneCookieDemo } from "@/lib/auth/demo-cookie";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { buildDemoSeed } from "@/lib/seed/demo-rows";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -77,6 +78,11 @@ async function consultarNegocio(userId: string): Promise<NegocioHeader | null>
  */
 export async function getNegocioHeader(): Promise<NegocioHeader | null>
 {
+  if (await tieneCookieDemo())
+  {
+    return negocioDemo();
+  }
+
   const { userId, email } = await leerSesion();
 
   if (userId === null || isDemoOwner({ userId, email }))

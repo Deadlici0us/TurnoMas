@@ -4,6 +4,7 @@ import SiteHeaderNav from "@/components/site-header-nav";
 import { logout } from "@/app/login/actions";
 import { getNegocioHeader } from "@/lib/dashboard/negocio-header";
 import { getSessionState } from "@/lib/auth/session";
+import { esSesionDemo } from "@/lib/auth/demo-session";
 
 /**
  * Header global del sitio (Server Component).
@@ -18,6 +19,7 @@ export default async function SiteHeader()
   const t = await getTranslations("common");
   const state = await getSessionState();
   const isAuthenticated = state === "authenticated";
+  const demo = isAuthenticated && await esSesionDemo();
   const negocio = isAuthenticated ? await getNegocioHeader() : null;
 
   return (
@@ -33,6 +35,7 @@ export default async function SiteHeader()
       menuLabel={t("nav.menu")}
       billingLabel={t("nav.billing")}
       accountLabel={t("nav.account")}
+      mostrarFacturacion={!demo}
       logoutAction={logout}
     />
   );

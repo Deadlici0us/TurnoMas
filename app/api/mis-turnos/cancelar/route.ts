@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 
 import { verificarTokenCancelacion } from "@/lib/cancelacion/token";
 import { readEnv } from "@/lib/env/env";
+import { DEMO_NEGOCIO_ID } from "@/lib/portal/demo-business";
 import { cancelarTurno, CancelacionError, hashIp } from "@/lib/services/cancelacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -99,6 +100,22 @@ export async function POST(request: Request)
       { error: error instanceof Error ? error.message : "El link de cancelación no es válido." },
       { status: 401 },
     );
+  }
+
+  try
+  {
+    const admin = getSupabaseAdmin();
+    const { data: turno } = await admin.from("turnos").select("negocio_id")
+      .eq("id", turnoId).maybeSingle();
+
+    if ((turno as { negocio_id?: unknown } | null)?.negocio_id === DEMO_NEGOCIO_ID)
+    {
+      return NextResponse.json({ success: true, demo: true });
+    }
+  }
+  catch
+  {
+    // Si no se puede verificar el negocio, sigue el flujo normal.
   }
 
   if (await superaLimite(turnoId))

@@ -18,6 +18,7 @@ import { ResendAdapter } from "@/lib/ports/email";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { formatearFechaEnZona, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
+import { esNegocioDemo } from "@/lib/portal/demo-business";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -466,6 +467,12 @@ export async function POST(request: Request)
   }
 
   const { pais, slug, staffId, servicioId, nombre, whatsapp, email, inicio } = lectura.validada;
+
+  // La demo es solo para visualizar: se simula el éxito sin tocar la base.
+  if (esNegocioDemo(pais, slug))
+  {
+    return NextResponse.json({ success: true, demo: true, turnoId: null });
+  }
 
   try
   {

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-test("portal demo reserva sin seña hasta confirmación",
+test("portal demo simula la reserva sin persistirla",
 async ({ page }) =>
 {
-  await page.goto("/ar/barberia-diego");
+  await page.goto("/ar/negocio-demo");
 
-  await expect(page.getByRole("heading", { name: "Barbería Diego" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Negocio Demo" })).toBeVisible();
 
   await page.getByRole("button", { name: "Diego", exact: true }).click();
   await expect(page.getByRole("heading", { name: "2. Elegí tu servicio" })).toBeVisible();
@@ -28,4 +28,5 @@ async ({ page }) =>
 
   await expect(page.getByRole("heading", { name: "¡Reserva confirmada!" })).toBeVisible();
   await expect(page.getByText("Te escribimos al +549110000001")).toBeVisible();
+  await expect(page.getByText(/no se guardó en la base de datos/)).toBeVisible();
 });

@@ -50,7 +50,7 @@ describe("getNegocioHeader",
     mockServer.mockRejectedValueOnce(new Error("sin configurar"));
 
     await expect(getNegocioHeader()).resolves.toEqual({
-      nombre: "Barbería Diego",
+      nombre: "Negocio Demo",
       logoUrl: null,
     });
   });
@@ -62,7 +62,7 @@ describe("getNegocioHeader",
 
     const result = await getNegocioHeader();
 
-    expect(result?.nombre).toBe("Barbería Diego");
+    expect(result?.nombre).toBe("Negocio Demo");
     expect(result?.logoUrl).toBeNull();
   });
 

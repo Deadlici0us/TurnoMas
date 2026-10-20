@@ -1,4 +1,4 @@
--- TurnoMas · Seed de la cuenta Demo permanente (PLAN.md §3).
+-- TurnoMas · Seed de la cuenta Demo (PLAN.md §3).
 -- Vía preferida (automática): setear DEMO_DUENIO_ID en Vercel y llamar
 -- `curl -X POST https://<app>/api/init` una vez tras el deploy.
 -- Vía manual alternativa:
@@ -13,10 +13,10 @@ insert into negocios (id, duenio_id, nombre, pais, slug, suscripcion_estado, des
 values (
   'd0e6b000-0000-4000-8000-000000000001',
   'DEMO_DUENIO_ID', -- << pegar UID de demo@turnomas.com
-  'Barbería Diego',
+  'Negocio Demo',
   'ar',
-  'barberia-diego',
-  'active',
+  'negocio-demo',
+  'trial',
   'Barbería de barrio con turnos sin esperas. Cortes clásicos, barba y color.',
   'https://www.google.com/maps/@-34.6037389,-58.3815704,17z',
   '{"lun": ["08:00-22:00"], "mar": ["08:00-22:00"], "mié": ["08:00-22:00"], "jue": ["08:00-22:00"],

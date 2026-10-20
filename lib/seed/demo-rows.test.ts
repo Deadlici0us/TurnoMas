@@ -10,7 +10,8 @@ describe("buildDemoSeed",
   {
     const seed = buildDemoSeed("11111111-1111-4111-8111-111111111111");
 
-    expect(seed.negocio.slug).toBe("barberia-diego");
+    expect(seed.negocio.slug).toBe("negocio-demo");
+    expect(seed.negocio.nombre).toBe("Negocio Demo");
     expect(seed.negocio.pais).toBe("ar");
     expect(seed.negocio.duenio_id).toBe("11111111-1111-4111-8111-111111111111");
     expect(seed.staff).toHaveLength(2);

@@ -4,9 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
+import { DEMO_COOKIE, DEMO_COOKIE_VALUE } from "@/lib/auth/demo-cookie";
+import { esCredencialDemo } from "@/lib/auth/demo-credentials";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-/** Inicia sesión: Supabase Auth en Vercel, sesión demo local sin secrets. */
+/** Inicia sesión: Supabase Auth en Vercel, sesión demo temporal sin DB. */
 export async function login(formData: FormData): Promise<void>
 {
   const emailCrudo = formData.get("email");
@@ -19,9 +21,9 @@ export async function login(formData: FormData): Promise<void>
     redirect("/login?error=credenciales");
   }
 
-  if (resolveAuthMode() === "demo")
+  if (resolveAuthMode() === "demo" || esCredencialDemo(email, password))
   {
-    (await cookies()).set("session", "demo", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    (await cookies()).set(DEMO_COOKIE, DEMO_COOKIE_VALUE, { path: "/", maxAge: 60 * 60 * 24 * 7 });
 
     redirect("/dashboard");
   }
@@ -50,13 +52,13 @@ export async function login(formData: FormData): Promise<void>
   redirect("/dashboard");
 }
 
-/** Cierra sesión: Supabase Auth en Vercel, cookie demo local sin secrets. */
+/** Cierra sesión: limpia siempre la cookie demo y luego Supabase si aplica. */
 export async function logout(): Promise<void>
 {
+  (await cookies()).delete(DEMO_COOKIE);
+
   if (resolveAuthMode() === "demo")
   {
-    (await cookies()).delete("session");
-
     redirect("/login");
   }
 

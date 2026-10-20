@@ -5,7 +5,7 @@
  * apta para pasar de Server Components a Client Components.
  */
 
-import { buildDemoSeed } from "@/lib/seed/demo-rows";
+import { buildDemoSeed, DEMO_NEGOCIO_ID as SEED_NEGOCIO_ID } from "@/lib/seed/demo-rows";
 
 export interface PortalStaff
 {
@@ -68,12 +68,27 @@ export interface PortalBusiness
   readonly requiereEmail?: boolean;
 }
 
+/** ID fijo del negocio demo en el seed y la DB. */
+export const DEMO_NEGOCIO_ID = SEED_NEGOCIO_ID;
+
+/** País del portal demo. */
+export const DEMO_PAIS = "ar";
+
+/** Slug del portal demo. */
+export const DEMO_SLUG = "negocio-demo";
+
 const DEMO_DUENIO_ID = "demo-duenio";
 
-/** Devuelve el negocio demo (Barbería Diego) o null si no coincide país/slug. */
+/** Indica si la ruta pública corresponde al negocio demo. */
+export function esNegocioDemo(pais: string, slug: string): boolean
+{
+  return pais.toLowerCase() === DEMO_PAIS && slug.toLowerCase() === DEMO_SLUG;
+}
+
+/** Devuelve el negocio demo (Negocio Demo) o null si no coincide país/slug. */
 export function getDemoBusiness(pais: string, slug: string): PortalBusiness | null
 {
-  if (pais.toLowerCase() !== "ar" || slug.toLowerCase() !== "barberia-diego")
+  if (!esNegocioDemo(pais, slug))
   {
     return null;
   }

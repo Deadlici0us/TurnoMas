@@ -22,11 +22,6 @@ vi.mock("@/app/login/actions", () =>
   return { logout: vi.fn() };
 });
 
-vi.mock("@/app/dashboard/demo/actions", () =>
-{
-  return { resetDemoData: vi.fn() };
-});
-
 const mockData = vi.mocked(getDashboardData);
 
 /** Dashboard con el negocio dado. */
@@ -74,7 +69,7 @@ describe("DashboardLayout",
       expect(screen.getByText("contenido")).toBeDefined();
     });
 
-    it("debería mostrar el paywall también en la demo bloqueada",
+    it("no debería mostrar paywall ni acciones editables en la demo",
     async () =>
     {
       stubDashboard({
@@ -86,7 +81,8 @@ describe("DashboardLayout",
 
       render(await DashboardLayout({ children: <div>contenido</div> }));
 
-      expect(screen.getByRole("dialog")).toBeDefined();
-      expect(screen.getByRole("heading", { name: "Tu plan venció" })).toBeDefined();
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByText(/cuenta demo: es de solo lectura/)).toBeDefined();
+      expect(screen.queryByText(/podés crear, editar y eliminar datos/)).toBeNull();
     });
   });

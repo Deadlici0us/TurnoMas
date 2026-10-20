@@ -5,7 +5,6 @@ import { cancelarPlan } from "./actions";
 import CopiarComprobante from "@/components/copiar-comprobante";
 import SuscripcionForm from "@/components/suscripcion-form";
 import VerificarPago from "@/components/verificar-pago";
-import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { diasSuscripcionRestantes, diasTrialRestantes } from "@/lib/onboarding/trial";
@@ -14,7 +13,6 @@ import { calcularPrecioConPromo } from "@/lib/payments/promocion";
 import { resolverPlanPais } from "@/lib/payments/subscription";
 import { promocionService, type Promocion } from "@/lib/services/promociones";
 import { subscriptionService, type PagoSuscripcion } from "@/lib/services/subscription";
-import { getSupabaseServer } from "@/lib/supabase/server";
 import { formatearEnZonaConFecha, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 /** Formatea un monto en centavos según su moneda (ARS/USD). */
@@ -111,22 +109,6 @@ function clasePago(estado: string): string
   }
 
   return "ui-badge-warning";
-}
-
-/** Indica si el lector es el dueño demo (sin suscripciones reales). */
-async function esDuenoDemo(): Promise<boolean>
-{
-  try
-  {
-    const supabase = await getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    return user !== null && isDemoOwner({ userId: user.id, email: user.email ?? null });
-  }
-  catch
-  {
-    return false;
-  }
 }
 
 /**
@@ -308,24 +290,14 @@ function descripcionEstado(
 
 interface PanelAccionProps
 {
-  readonly demo: boolean;
   readonly estado: string;
   readonly planCancelado: boolean;
   readonly userEmail: string | null;
 }
 
-/** Acción principal del plan (demo, cancelar, reactivar o suscribir). */
+/** Acción principal del plan (cancelar, reactivar o suscribir). */
 function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
 {
-  if (props.demo)
-  {
-    return (
-      <p className="text-xs text-muted-foreground bg-surface border border-line rounded-lg p-3">
-        La demo no suscribe planes reales. Creá tu cuenta gratis para activar el tuyo.
-      </p>
-    );
-  }
-
   if (props.estado === "active" && !props.planCancelado)
   {
     return (
@@ -361,22 +333,55 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   );
 }
 
+/** Vista de suscripción para la demo: sin plan, pagos ni checkout. */
+function DemoSuscripcion(): ReactNode
+{
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="ui-page-title">Suscripción</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Cuenta demo de solo lectura.</p>
+        </div>
+        <Link href="/dashboard" className="ui-btn ui-btn-outline ui-btn-sm">
+          Volver
+        </Link>
+      </div>
+      <div className="ui-card p-4 sm:p-6">
+        <h2 className="ui-section-title mb-2">La demo no tiene suscripción</h2>
+        <p className="text-sm text-muted-foreground">
+          Esta cuenta es solo para explorar el producto: no tiene plan, pagos ni débito automático.
+          Creá tu cuenta gratis para activar tu propia suscripción.
+        </p>
+        <Link href="/register" className="ui-btn ui-btn-primary ui-btn-sm mt-4">
+          Creá tu cuenta gratis
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default async function SuscripcionPage(
   props?: { readonly searchParams?: Promise<{ suscripcion?: string; preapproval_id?: string; error?: string }> },
 )
 {
+  const inicial = await getDashboardData();
+
+  if (inicial.isDemo)
+  {
+    return <DemoSuscripcion />;
+  }
+
   const params = props?.searchParams === undefined ? undefined : await props.searchParams;
-  const demo = await esDuenoDemo();
   const retorno = esRetornoCheckout({
     suscripcion: params?.suscripcion,
     preapproval_id: params?.preapproval_id,
   });
 
-  const inicial = await getDashboardData();
   let dashboard = inicial.data;
   let userEmail = inicial.userEmail;
 
-  if (retorno && !demo)
+  if (retorno)
   {
     await reconciliarRetorno(dashboard.negocio as { id?: unknown });
     const refrescado = await getDashboardData();
@@ -388,7 +393,7 @@ export default async function SuscripcionPage(
   const ctx = contextoPlan(dashboard.negocio as NegocioSuscripcion);
   const promo = ctx.negocioId === null ? null : await cargarPromo(ctx.negocioId);
   const precioPlan = calcularPrecioConPromo(ctx.plan.monto, promo);
-  const pagos = demo ? [] : await cargarPagos(ctx.negocioId);
+  const pagos = await cargarPagos(ctx.negocioId);
 
   return (
     <div>
@@ -458,7 +463,6 @@ export default async function SuscripcionPage(
             </p>
           )}
           {panelAccionSuscripcion({
-            demo,
             estado: ctx.estado,
             planCancelado: ctx.planCancelado,
             userEmail,
@@ -505,7 +509,7 @@ export default async function SuscripcionPage(
         )}
       </div>
 
-      {retorno && !demo && ctx.estado !== "active" && ctx.estado !== "blocked" ? (
+      {retorno && ctx.estado !== "active" && ctx.estado !== "blocked" ? (
         <Suspense fallback={null}>
           <VerificarPago />
         </Suspense>

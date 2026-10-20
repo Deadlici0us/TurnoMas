@@ -184,7 +184,7 @@ describe("esquema Supabase",
   it("el seed debería poblar la cuenta demo con agenda llena",
   () =>
   {
-    expect(SEED).toContain("barberia-diego");
+    expect(SEED).toContain("negocio-demo");
     expect(SEED).toContain("demo@turnomas.com");
     expect(SEED).toContain("DEMO_DUENIO_ID");
   });

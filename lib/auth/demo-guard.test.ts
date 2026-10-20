@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/auth/demo-cookie", () =>
+{
+  return { tieneCookieDemo: vi.fn(async () => false) };
+});
+
+import { tieneCookieDemo } from "@/lib/auth/demo-cookie";
 import { assertDuenoEditable, assertModoEditable, DEMO_READONLY_MESSAGE, isDemoOwner } from "./demo-guard";
+
+const mockCookieDemo = vi.mocked(tieneCookieDemo);
+
+beforeEach(() =>
+{
+  mockCookieDemo.mockResolvedValue(false);
+});
 
 describe("isDemoOwner",
 () =>
@@ -81,5 +94,18 @@ describe("assertModoEditable",
     };
 
     await expect(assertModoEditable(env)).resolves.toBeUndefined();
+  });
+
+  it("debería bloquear la cookie demo aunque Supabase esté configurado",
+  async () =>
+  {
+    mockCookieDemo.mockResolvedValueOnce(true);
+
+    const env = {
+      NEXT_PUBLIC_SUPABASE_URL: "https://xyzcompany.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_x",
+    };
+
+    await expect(assertModoEditable(env)).rejects.toThrow(DEMO_READONLY_MESSAGE);
   });
 });

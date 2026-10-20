@@ -36,4 +36,24 @@ describe("ProfileMenu",
     expect(screen.queryByRole("menuitem", { name: "Panel" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Configuración" })).toBeNull();
   });
+
+  it("debería ocultar Suscripción cuando la demo no factura",
+  async () =>
+  {
+    const user = userEvent.setup();
+    render(
+      <ProfileMenu
+        businessName="Negocio Demo"
+        logoUrl={null}
+        logoutAction={vi.fn()}
+        mostrarFacturacion={false}
+        {...LABELS}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú de cuenta" }));
+
+    expect(screen.queryByRole("menuitem", { name: "Suscripción" })).toBeNull();
+    expect(await screen.findByRole("menuitem", { name: "Cerrar sesión" })).toBeDefined();
+  });
 });
