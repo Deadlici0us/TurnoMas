@@ -847,9 +847,11 @@ export default async function ConfigPage(
         avanzada={true}
       >
         <p className="text-xs text-muted-foreground">
-          Si lo dejás vacío, enviamos el texto de ejemplo tal cual.
+          Si lo dejás vacío, cada canal envía su ejemplo tal cual. Los links se completan solos.
+          Si escribís tu propio texto, se usa en todos los canales de ese mensaje.
         </p>
-        {PLANTILLAS_AMIGABLES.map(({ tipo, titulo, ayuda, variables, ejemploSubject, ejemploCuerpo }) =>
+        {PLANTILLAS_AMIGABLES.map(({ tipo, titulo, ayuda, variables, usaSubject,
+          ejemploSubject, ejemploCuerpo, ejemplos }) =>
         {
           const key = `msg_${tipo}` as const;
           const subject = negocio[`${key}_subject` as keyof typeof negocio] as string | null | undefined;
@@ -867,17 +869,19 @@ export default async function ConfigPage(
                 {"Comodines: "}
                 {variables.map((variable) => `{${variable}}`).join(" ")}
               </p>
-              <label className="block text-sm font-semibold text-ink">
-                {"Título del mensaje"}
-                <input
-                  type="text"
-                  name="subject"
-                  maxLength={120}
-                  defaultValue={subject ?? ""}
-                  placeholder={ejemploSubject}
-                  className="ui-input"
-                />
-              </label>
+              {usaSubject ? (
+                <label className="block text-sm font-semibold text-ink">
+                  {"Título del mensaje"}
+                  <input
+                    type="text"
+                    name="subject"
+                    maxLength={120}
+                    defaultValue={subject ?? ""}
+                    placeholder={ejemploSubject}
+                    className="ui-input"
+                  />
+                </label>
+              ) : null}
               <label className="block text-sm font-semibold text-ink">
                 {"Texto del mensaje"}
                 <textarea
@@ -889,6 +893,26 @@ export default async function ConfigPage(
                   className="ui-textarea"
                 />
               </label>
+              {ejemplos.length > 1 ? (
+                <div className="space-y-2 rounded-lg border border-dashed border-line p-3">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {"Así se envía si lo dejás vacío:"}
+                  </p>
+                  {ejemplos.map((ejemplo) => (
+                    <div key={`${ejemplo.canal}-${ejemplo.variante ?? "unica"}`} className="space-y-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {ejemplo.etiqueta}
+                      </p>
+                      {ejemplo.subject !== null ? (
+                        <p className="text-xs text-muted-foreground">{`Asunto: ${ejemplo.subject}`}</p>
+                      ) : null}
+                      <pre className="whitespace-pre-wrap break-words font-sans text-xs text-muted-foreground">
+                        {ejemplo.cuerpo}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <button
                 type="submit"
                 className="ui-btn ui-btn-primary"

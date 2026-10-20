@@ -154,13 +154,21 @@ function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
       <p className="text-sm text-muted-foreground">
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
-      <p className="text-sm text-muted-foreground">Guardá este comprobante de tu reserva.</p>
       {!props.demo && props.email.length > 0 && props.emailEnviado ? (
-        <p className="text-sm text-muted-foreground">Te enviamos la confirmación a {props.email}.</p>
+        <p className="text-sm text-muted-foreground">
+          Te enviamos la confirmación a {props.email}. Guardá ese mail: es tu comprobante y tiene
+          el link para cancelar.
+        </p>
       ) : null}
       {!props.demo && props.email.length > 0 && !props.emailEnviado ? (
         <p className="ui-alert ui-alert-warning text-xs">
-          No pudimos enviar el email de confirmación. Guardá este comprobante.
+          No pudimos enviar el email de confirmación. Guardá una captura de esta pantalla para
+          tener los datos.
+        </p>
+      ) : null}
+      {!props.demo && props.email.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No dejaste email. Guardá una captura de esta pantalla para tener los datos.
         </p>
       ) : null}
       {props.demo ? (

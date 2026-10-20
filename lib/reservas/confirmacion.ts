@@ -7,7 +7,13 @@
  */
 
 import { readEnv } from "@/lib/env/env";
-import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
+import
+{
+  incluyeComodinLink,
+  MAX_CUERPO_PLANTILLA,
+  normalizarTextoPlantilla,
+  resolverPlantilla,
+} from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
 import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -115,15 +121,14 @@ export async function enviarEmailConfirmacion(
   try
   {
     const cancelacionUrl = await linkCancelacion(params);
-    const cuerpoBase = typeof params.plantillaCuerpo === "string" && params.plantillaCuerpo.trim().length > 0
-      ? params.plantillaCuerpo
-      : null;
+    const cuerpoBase = normalizarTextoPlantilla(params.plantillaCuerpo, MAX_CUERPO_PLANTILLA);
     const pagoLinea = params.estado === "pendiente" && typeof params.checkoutUrl === "string"
       && params.checkoutUrl.length > 0
-      ? `\nPagá tu seña acá: ${params.checkoutUrl}`
+      && (cuerpoBase === null || !incluyeComodinLink(cuerpoBase, "link_pago"))
+      ? "\nPagá tu seña acá: {link_pago}"
       : "";
-    const cancelaLinea = cancelacionUrl.length > 0
-      && (cuerpoBase === null || !incluyeComodinLink(cuerpoBase, "link_cancelacion"))
+    const cancelaLinea = cuerpoBase !== null && cancelacionUrl.length > 0
+      && !incluyeComodinLink(cuerpoBase, "link_cancelacion")
       ? "\nSi no podés venir, cancelá acá: {link_cancelacion}"
       : "";
     const datos = {
@@ -133,15 +138,12 @@ export async function enviarEmailConfirmacion(
       profesional: params.staffNombre,
       fecha: formatearFechaEnZona(params.inicio, params.timeZone),
     };
-    const cuerpoDefault = params.estado === "pendiente"
-      ? `Hola {cliente}, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-        `en {negocio} está casi lista.${pagoLinea}${cancelaLinea}`
-      : `Hola {cliente}, tu reserva de {servicio} con {profesional} para el {fecha} ` +
-        `en {negocio} está confirmada.${cancelaLinea}`;
     const plantilla = resolverPlantilla("confirmacion", {
       subject: params.plantillaSubject,
-      cuerpo: cuerpoBase === null ? cuerpoDefault : `${cuerpoBase}${pagoLinea}${cancelaLinea}`,
-    }, datos, { cancelacion: cancelacionUrl });
+      cuerpo: cuerpoBase === null ? null : `${cuerpoBase}${pagoLinea}${cancelaLinea}`,
+    }, datos, { cancelacion: cancelacionUrl, pago: params.checkoutUrl ?? "" }, {
+      varianteConfirmacion: params.estado === "pendiente" ? "con_sena" : "sin_sena",
+    });
 
     await new ResendAdapter().send({
       to: params.email,

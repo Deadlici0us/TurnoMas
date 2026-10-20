@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { formatearFechaEnZona, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
+import
+{
+  enviarEmailConfirmacion,
+  formatearFechaEnZona,
+  sincronizarTurnoConfirmado,
+} from "@/lib/reservas/confirmacion";
 import { calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -97,6 +102,38 @@ describe("sincronizarTurnoConfirmado",
 
     expect(calendarService.createEventForNegocio).toHaveBeenCalled();
     expect(mockEmailSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("debería usar el asunto default cuando no hay plantilla propia",
+  async () =>
+  {
+    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
+    mockEmailSend.mockResolvedValueOnce("email-1");
+
+    await sincronizarTurnoConfirmado(PARAMS_BASE);
+
+    expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({
+      subject: "Reserva confirmada en Barbería",
+    }));
+  });
+
+  it("debería usar la variante con seña y link de pago cuando el turno está pendiente",
+  async () =>
+  {
+    mockEmailSend.mockResolvedValueOnce("email-1");
+
+    await enviarEmailConfirmacion({
+      ...PARAMS_BASE,
+      email: "juan@ejemplo.com",
+      estado: "pendiente",
+      checkoutUrl: "https://mp.turnomas.com/pagar/t-1",
+    });
+
+    const payload = mockEmailSend.mock.calls[0]?.[0] as { subject: string; html: string };
+
+    expect(payload.subject).toBe("Tu reserva en Barbería está casi lista");
+    expect(payload.html).toContain("Pagá tu seña acá:");
+    expect(payload.html).toContain("https://mp.turnomas.com/pagar/t-1");
   });
 
   it("debería no enviar email cuando el cliente no tiene",

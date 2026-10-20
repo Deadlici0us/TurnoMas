@@ -76,9 +76,36 @@ describe("etiquetas amigables de configuración",
       expect(plantilla.titulo.length).toBeGreaterThan(0);
       expect(plantilla.ayuda.length).toBeGreaterThan(0);
       expect(plantilla.variables).toContain("cliente");
-      expect(plantilla.ejemploSubject.length).toBeGreaterThan(0);
       expect(plantilla.ejemploCuerpo).toContain("{cliente}");
+      expect(plantilla.ejemplos.length).toBeGreaterThan(0);
+
+      if (plantilla.usaSubject)
+      {
+        expect(plantilla.ejemploSubject.length).toBeGreaterThan(0);
+      }
+      else
+      {
+        expect(plantilla.ejemploSubject).toBe("");
+      }
     }
+  });
+
+  it("debería mostrar las variantes y canales que realmente se envían",
+  () =>
+  {
+    const confirmacion = PLANTILLAS_AMIGABLES.find((p) => p.tipo === "confirmacion");
+    const recordatorio = PLANTILLAS_AMIGABLES.find((p) => p.tipo === "recordatorio");
+    const resena = PLANTILLAS_AMIGABLES.find((p) => p.tipo === "resena");
+    const remarketing = PLANTILLAS_AMIGABLES.find((p) => p.tipo === "remarketing");
+
+    expect(confirmacion?.ejemplos.map((e) => e.variante)).toEqual(["sin_sena", "con_sena"]);
+    expect(confirmacion?.ejemplos.every((e) => e.canal === "email")).toBe(true);
+    expect(confirmacion?.ejemplos[1]?.subject).toContain("casi lista");
+
+    expect(recordatorio?.ejemplos.map((e) => e.canal)).toEqual(["email", "whatsapp"]);
+    expect(resena?.ejemplos.map((e) => e.canal)).toEqual(["email", "whatsapp"]);
+    expect(remarketing?.usaSubject).toBe(false);
+    expect(remarketing?.ejemplos.map((e) => e.canal)).toEqual(["whatsapp"]);
   });
 
   it("debería usar el texto default como ejemplo grisado",
