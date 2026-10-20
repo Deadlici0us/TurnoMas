@@ -7,6 +7,8 @@
 
 const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/;
 const MAX_SLUG_LENGTH = 60;
+/** Slugs que no puede tomar un negocio real (rutas servidas en memoria). */
+const RESERVED_SLUGS = new Set(["negocio-demo"]);
 
 /**
  * Recorta guiones de ambos bordes.
@@ -63,6 +65,11 @@ export function slugifyBusinessName(nombre: string): string
   if (slug.length === 0)
   {
     throw new RangeError("El nombre del negocio debe contener caracteres válidos para la URL.");
+  }
+
+  if (RESERVED_SLUGS.has(slug))
+  {
+    throw new RangeError("Ese nombre está reservado para la demo. Elegí otro.");
   }
 
   return slug;

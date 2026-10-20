@@ -65,7 +65,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - `servicios`: Duración, precio_base, precio_promocional (precio tachado), seña requerida.
 - `clientes`: CRM local, acumulación de ausencias, lista negra.
 - `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
-- **Seed Data (Población de datos):** Script SQL automatizado para inyectar datos ficticios (turnos, ingresos, clientes, staff). El usuario demo usa una copia en memoria del seed y no escribe en la base.
+- **Seed Data (Población de datos):** Datos ficticios en memoria (`lib/seed/demo-rows.ts`) para la demo de solo lectura. No se persisten en Supabase; una base nueva solo necesita `supabase/migrations/0000_init.sql`.
 
 ## 4. Módulos del Sistema
 
@@ -137,4 +137,4 @@ Para revisar y documentar cambios de código sin exponer archivos grandes ni per
 ### Regla de flujo
 - No modificar `repomix-output.xml` a mano (es read-only por diseño).
 - Al hacer PR o revisión: regenerar el archivo para el módulo afectado y incluir referencia al archivo generado en el comentario del PR.
-- No exponer credenciales (`.env*`, `supabase/seed-demo.sql`) en el output: excluir con `repomix.config.json`.
+- No exponer credenciales (`.env*`) en el output: excluir con `repomix.config.json`.

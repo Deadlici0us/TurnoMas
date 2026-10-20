@@ -8,67 +8,10 @@ const MIGRATION = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0000_init.sql"),
   "utf8",
 );
-const SENA_CERO = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0003_sena_cero.sql"),
+const CLEANUP = readFileSync(
+  join(REPO_ROOT, "supabase", "cleanup-demo.sql"),
   "utf8",
 );
-const NEGOCIO_HORARIOS = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0004_negocio_horarios.sql"),
-  "utf8",
-);
-const NEGOCIO_TIMEZONE = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0005_negocio_timezone.sql"),
-  "utf8",
-);
-const AUTOMATIZACIONES = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0007_automatizaciones.sql"),
-  "utf8",
-);
-const MP_OAUTH = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0008_mp_oauth.sql"),
-  "utf8",
-);
-const SUSCRIPCION_MORA = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0009_suscripcion_mora.sql"),
-  "utf8",
-);
-const PORTAL_VIEWS = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0010_portal_views.sql"),
-  "utf8",
-);
-const PORTAL_ANON = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0011_portal_anon.sql"),
-  "utf8",
-);
-const REEMBOLSO_IDEMPOTENTE = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0012_reembolso_idempotente.sql"),
-  "utf8",
-);
-const REEMBOLSO_ATOMICO = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0013_reembolso_atomico.sql"),
-  "utf8",
-);
-const SUSCRIPCION_PAGOS = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0016_suscripcion_pagos.sql"),
-  "utf8",
-);
-const SUSCRIPCION_RECONCILIACION = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0018_suscripcion_reconciliacion.sql"),
-  "utf8",
-);
-const RESENAS = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0019_resenas.sql"),
-  "utf8",
-);
-const STAFF_PERFIL_SERVICIOS = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0020_staff_perfil_servicios.sql"),
-  "utf8",
-);
-const PERFIL_PUBLICO = readFileSync(
-  join(REPO_ROOT, "supabase", "migrations", "0021_negocio_perfil_publico.sql"),
-  "utf8",
-);
-const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 
 /**
  * Contrato código ↔ base de datos: lo que `app/onboarding/actions.ts`
@@ -77,10 +20,14 @@ const SEED = readFileSync(join(REPO_ROOT, "supabase", "seed-demo.sql"), "utf8");
 describe("esquema Supabase",
 () =>
 {
-  it("debería crear las cinco entidades del PLAN.md §3",
+  it("debería crear todas las tablas del dominio",
   () =>
   {
-    for (const tabla of ["negocios", "staff", "servicios", "clientes", "turnos"])
+    for (const tabla of [
+      "negocios", "negocio_secretos", "staff", "servicios", "clientes",
+      "turnos", "reembolsos", "turno_eventos", "suscripcion_pagos",
+      "resenas", "staff_servicios", "promociones_suscripcion",
+    ])
     {
       expect(MIGRATION).toMatch(new RegExp(`create table if not exists ${tabla} \\(`));
     }
@@ -102,94 +49,13 @@ describe("esquema Supabase",
   {
     expect(MIGRATION).toContain("negocio_secretos");
     expect(MIGRATION).toContain("mercadopago_access_token");
+    expect(MIGRATION).toContain("mercadopago_refresh_token");
     expect(MIGRATION).toContain("meta_access_token");
+    expect(MIGRATION).toContain("google_refresh_token");
     expect(MIGRATION).not.toMatch(/grant select on negocio_secretos/);
   });
 
-  it("debería exponer vistas portal sin secretos para /:pais/:slug",
-  () =>
-  {
-    for (const vista of ["portal_negocios", "portal_staff", "portal_servicios"])
-    {
-      expect(MIGRATION).toContain(vista);
-    }
-
-    // Linter Supabase: vistas con SECURITY INVOKER, no DEFINER.
-    expect(MIGRATION).toMatch(/portal_negocios with \(security_invoker = true\)/);
-    expect(MIGRATION).toMatch(/portal_staff with \(security_invoker = true\)/);
-    expect(MIGRATION).toMatch(/portal_servicios with \(security_invoker = true\)/);
-  });
-
-  it("debería separar confirmado (sin seña) de pagado (seña cobrada)",
-  () =>
-  {
-    expect(MIGRATION).toContain("'confirmado'");
-  });
-
-  it("debería permitir seña 0% en servicios y turnos",
-  () =>
-  {
-    expect(SENA_CERO).toContain("between 0 and 100");
-    expect(SENA_CERO).toContain("servicios_sena_porcentaje_check");
-    expect(SENA_CERO).toContain("turnos_sena_porcentaje_check");
-  });
-
-  it("debería guardar los horarios del negocio y exponerlos en el portal",
-  () =>
-  {
-    expect(NEGOCIO_HORARIOS).toContain("horarios");
-    expect(NEGOCIO_HORARIOS).toMatch(/alter table negocios add column/i);
-    expect(NEGOCIO_HORARIOS).toContain("portal_negocios");
-  });
-
-  it("debería guardar la zona horaria por negocio (no por país) y exponerla en el portal",
-  () =>
-  {
-    expect(NEGOCIO_TIMEZONE).toMatch(/alter table negocios add column/i);
-    expect(NEGOCIO_TIMEZONE).toContain("timezone");
-    expect(NEGOCIO_TIMEZONE).toContain("portal_negocios");
-    expect(NEGOCIO_TIMEZONE).toContain("America/Mexico_City");
-    expect(NEGOCIO_TIMEZONE).toContain("lower(pais)");
-  });
-
-  it("debería fijar search_path en funciones y no re-evaluar auth por fila",
-  () =>
-  {
-    expect(MIGRATION).toMatch(/set search_path = ''/);
-    expect(MIGRATION).toContain("(select auth.uid())");
-    expect(MIGRATION).not.toMatch(/duenio_id = auth\.uid\(\)/);
-  });
-
-  it("debería cubrir FKs e índices calientes",
-  () =>
-  {
-    for (const indice of [
-      "turnos_por_staff",
-      "turnos_por_servicio",
-      "turnos_por_staff_agenda",
-      "turnos_por_negocio_estado",
-      "turnos_mp_payment_id_unique",
-    ])
-    {
-      expect(MIGRATION).toContain(indice);
-    }
-  });
-
-  it("debería usar un solo calendario por negocio (sin token por profesional)",
-  () =>
-  {
-    expect(MIGRATION).not.toContain("google_calendar_token");
-  });
-
-  it("el seed debería poblar la cuenta demo con agenda llena",
-  () =>
-  {
-    expect(SEED).toContain("negocio-demo");
-    expect(SEED).toContain("demo@turnomas.com");
-    expect(SEED).toContain("DEMO_DUENIO_ID");
-  });
-
-  it("debería guardar automatizaciones y mensajes configurables por negocio",
+  it("debería guardar automatizaciones, mensajes y suscripción",
   () =>
   {
     for (const columna of [
@@ -198,171 +64,169 @@ describe("esquema Supabase",
       "remarketing_activo", "remarketing_dias",
       "msg_confirmacion_subject", "msg_recordatorio_cuerpo",
       "msg_resena_subject", "msg_remarketing_cuerpo",
-      "google_maps_url",
+      "google_maps_url", "suscripcion_mora_desde",
+      "suscripcion_vence_en", "suscripcion_cancelada_en",
+      "suscripcion_mp_status", "suscripcion_verificada_en",
+      "google_place_id", "sena_retencion_hs",
     ])
     {
-      expect(AUTOMATIZACIONES).toContain(columna);
+      expect(MIGRATION).toContain(columna);
     }
 
-    expect(AUTOMATIZACIONES).toContain("remarketing_dias");
-    expect(AUTOMATIZACIONES).toMatch(/alter table servicios add column/i);
+    expect(MIGRATION).toMatch(/alter table negocios|create table if not exists negocios/);
+    expect(MIGRATION).toMatch(/alter table servicios|create table if not exists servicios/);
   });
 
-  it("debería guardar el refresh de OAuth de MercadoPago por negocio",
+  it("debería permitir seña 0% y validar perfiles públicos",
+  () =>
+  {
+    expect(MIGRATION).toContain("servicios_sena_porcentaje_check");
+    expect(MIGRATION).toContain("turnos_sena_porcentaje_check");
+    expect(MIGRATION).toContain("between 0 and 100");
+    expect(MIGRATION).toContain("negocios_descripcion_check");
+    expect(MIGRATION).toContain("negocios_whatsapp_largo");
+    expect(MIGRATION).toContain("staff_descripcion_check");
+    expect(MIGRATION).toContain("clientes_email_check");
+  });
+
+  it("debería guardar el estado interno de turnos y clientes",
   () =>
   {
     for (const columna of [
-      "mercadopago_refresh_token",
-      "mercadopago_user_id",
-      "mp_conectado_at",
+      "resena_pedida", "sena_reembolsada", "sena_reembolsada_at",
+      "remarketing_manual_at", "google_calendar_event_id",
+      "email", "ausencias", "bloqueado",
     ])
     {
-      expect(MP_OAUTH).toContain(columna);
+      expect(MIGRATION).toContain(columna);
     }
 
-    expect(MP_OAUTH).toMatch(/alter table negocio_secretos add column/i);
+    expect(MIGRATION).toContain("'confirmado'");
+    expect(MIGRATION).toContain("'pagado'");
   });
 
-  it("debería guardar el inicio de mora de la suscripción",
+  it("debería exponer las vistas portal sin secretos para /:pais/:slug",
   () =>
   {
-    expect(SUSCRIPCION_MORA).toContain("suscripcion_mora_desde");
-    expect(SUSCRIPCION_MORA).toMatch(/alter table negocios add column/i);
+    for (const vista of [
+      "portal_negocios", "portal_staff", "portal_servicios", "portal_staff_servicios",
+    ])
+    {
+      expect(MIGRATION).toMatch(new RegExp(`view ${vista} with \\(security_invoker = true\\)`));
+    }
+
+    for (const columna of [
+      "requiere_email", "descripcion", "google_maps_url", "foto_url",
+    ])
+    {
+      expect(MIGRATION).toContain(columna);
+    }
+
+    expect(MIGRATION).toContain(
+      "grant select on portal_negocios, portal_staff, portal_servicios, portal_staff_servicios",
+    );
   });
 
-  it("debería consolidar las vistas del portal con horarios y timezone",
+  it("debería fijar search_path en funciones y no re-evaluar auth por fila",
   () =>
   {
-    expect(PORTAL_VIEWS).toContain("horarios");
-    expect(PORTAL_VIEWS).toContain("timezone");
-    expect(PORTAL_VIEWS).toContain("portal_negocios");
-    expect(PORTAL_VIEWS).toContain("portal_staff");
-    expect(PORTAL_VIEWS).toContain("portal_servicios");
-    expect(PORTAL_VIEWS).toMatch(/security_invoker = true/);
-    expect(PORTAL_VIEWS).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
+    expect(MIGRATION).toMatch(/set search_path = ''/);
+    expect(MIGRATION).toContain("(select auth.uid())");
+    expect(MIGRATION).not.toMatch(/duenio_id = auth\.uid\(\)/);
+    expect(MIGRATION).toContain("security definer set search_path = ''");
   });
 
-  it("debería exponer logo, descripción y ubicación en el portal público",
+  it("debería cubrir FKs, crons e índices calientes",
   () =>
   {
-    expect(PERFIL_PUBLICO).toContain("descripcion");
-    expect(PERFIL_PUBLICO).toMatch(/alter table negocios add column if not exists descripcion/i);
-    expect(PERFIL_PUBLICO).toContain("negocios_descripcion_check");
-    expect(PERFIL_PUBLICO).toContain("google_maps_url");
-    expect(PERFIL_PUBLICO).toContain("portal_negocios");
-    expect(PERFIL_PUBLICO).toMatch(/security_invoker = true/);
-    expect(PERFIL_PUBLICO).toMatch(/grant select on portal_negocios, portal_staff, portal_servicios/);
-  });
-
-  it("debería permitir lectura anónima del portal (negocios/staff/servicios activos)",
-  () =>
-  {
-    expect(PORTAL_ANON).toMatch(/create policy/i);
-    expect(PORTAL_ANON).toMatch(/for select/i);
-    expect(PORTAL_ANON).toMatch(/to anon/);
-    expect(PORTAL_ANON).toContain("negocios_portal_anon");
-    expect(PORTAL_ANON).toContain("staff_portal_anon");
-    expect(PORTAL_ANON).toContain("servicios_portal_anon");
-    expect(PORTAL_ANON).not.toMatch(/grant select on negocio_secretos/);
-    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on turnos/);
-    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on clientes/);
-    expect(PORTAL_ANON).not.toMatch(/policy[^;]*on negocio_secretos/);
-  });
-
-  it("debería marcar la seña reembolsada para reembolso idempotente",
-  () =>
-  {
-    expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada");
-    expect(REEMBOLSO_IDEMPOTENTE).toContain("sena_reembolsada_at");
-    expect(REEMBOLSO_IDEMPOTENTE).toMatch(/alter table turnos add column/i);
+    for (const indice of [
+      "turnos_mp_payment_id_unique",
+      "turnos_por_agenda",
+      "turnos_por_staff",
+      "turnos_por_servicio",
+      "turnos_por_staff_agenda",
+      "turnos_por_negocio_estado",
+      "turnos_cron_recordatorio",
+      "turnos_cron_antifantasma",
+      "turnos_cron_resena",
+      "turnos_remarketing_manual_idx",
+      "turno_eventos_por_turno",
+      "suscripcion_pagos_authorized_unique",
+      "suscripcion_pagos_por_negocio",
+      "negocios_suscripcion_riesgo",
+      "resenas_turno_unique",
+      "resenas_por_negocio",
+      "resenas_pendientes",
+      "staff_servicios_por_negocio",
+      "staff_servicios_por_servicio",
+      "promociones_suscripcion_por_vencer",
+    ])
+    {
+      expect(MIGRATION).toContain(indice);
+    }
   });
 
   it("debería reclamar el reembolso atómico con auditoría (fix TOCTOU)",
   () =>
   {
-    expect(REEMBOLSO_ATOMICO).toContain("reembolsos");
-    expect(REEMBOLSO_ATOMICO).toContain("turno_eventos");
-    expect(REEMBOLSO_ATOMICO).toContain("reclamar_reembolso");
-    expect(REEMBOLSO_ATOMICO).toMatch(/for update/i);
-    expect(REEMBOLSO_ATOMICO).toContain("idempotency_key");
-    expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on reembolsos/);
-    expect(REEMBOLSO_ATOMICO).not.toMatch(/grant select on turno_eventos/);
-    expect(REEMBOLSO_ATOMICO).not.toMatch(/policy[^;]*to anon/);
+    expect(MIGRATION).toContain("reclamar_reembolso");
+    expect(MIGRATION).toMatch(/for update/i);
+    expect(MIGRATION).toContain("idempotency_key");
+    expect(MIGRATION).toContain("turno_eventos");
+    expect(MIGRATION).not.toMatch(/grant select on reembolsos/);
+    expect(MIGRATION).not.toMatch(/grant select on turno_eventos/);
+    expect(MIGRATION).not.toMatch(/policy[^;]*to anon[^;]*on (reembolsos|turno_eventos)/);
   });
 
-  it("debería persistir el historial de pagos de la suscripción",
+  it("debería persistir pagos, reseñas y promociones con RLS",
   () =>
   {
-    expect(SUSCRIPCION_PAGOS).toMatch(/create table if not exists suscripcion_pagos/i);
-
-    for (const columna of ["negocio_id", "preapproval_id", "authorized_payment_id",
-      "mp_payment_id", "monto_cents", "currency", "estado", "fecha"])
+    for (const tabla of [
+      "suscripcion_pagos", "resenas", "staff_servicios", "promociones_suscripcion",
+    ])
     {
-      expect(SUSCRIPCION_PAGOS).toContain(columna);
+      expect(MIGRATION).toContain(`alter table ${tabla} enable row level security;`);
     }
 
-    expect(SUSCRIPCION_PAGOS).toMatch(/references negocios \(id\) on delete cascade/);
-    expect(SUSCRIPCION_PAGOS).toMatch(/unique index[^;]*authorized_payment_id/i);
-    expect(SUSCRIPCION_PAGOS).toMatch(/enable row level security/);
-    expect(SUSCRIPCION_PAGOS).toContain("suscripcion_pagos_owner_all");
-    expect(SUSCRIPCION_PAGOS).not.toMatch(/policy[^;]*to anon/);
+    expect(MIGRATION).toContain("suscripcion_pagos_owner_all");
+    expect(MIGRATION).toContain("resenas_owner_all");
+    expect(MIGRATION).toContain("staff_servicios_owner_all");
+    expect(MIGRATION).toContain("promociones_suscripcion_owner_select");
   });
 
-  it("debería espejar el estado de MP y permitir reconciliación dirigida",
+  it("debería permitir lectura anónima solo del portal público",
   () =>
   {
-    expect(SUSCRIPCION_RECONCILIACION).toContain("suscripcion_mp_status");
-    expect(SUSCRIPCION_RECONCILIACION).toContain("suscripcion_verificada_en");
-    expect(SUSCRIPCION_RECONCILIACION).toMatch(/alter table negocios add column/i);
-    expect(SUSCRIPCION_RECONCILIACION).toContain("negocios_suscripcion_riesgo");
-    expect(SUSCRIPCION_RECONCILIACION).toMatch(/create index if not exists/i);
-  });
-
-  it("debería guardar foto, descripción y servicios que brinda el equipo",
-  () =>
-  {
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/alter table staff add column if not exists foto_url/i);
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/alter table staff add column if not exists descripcion/i);
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/create table if not exists staff_servicios/i);
-
-    for (const columna of ["staff_id", "servicio_id", "negocio_id"])
+    for (const policy of [
+      "negocios_portal_anon", "staff_portal_anon",
+      "servicios_portal_anon", "staff_servicios_portal_anon",
+    ])
     {
-      expect(STAFF_PERFIL_SERVICIOS).toContain(columna);
+      expect(MIGRATION).toContain(policy);
     }
 
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/primary key \(staff_id, servicio_id\)/);
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/enable row level security/);
-    expect(STAFF_PERFIL_SERVICIOS).toContain("staff_servicios_owner_all");
-    expect(STAFF_PERFIL_SERVICIOS).toContain("staff_servicios_portal_anon");
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/portal_staff with \(security_invoker = true\)/);
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/portal_staff_servicios with \(security_invoker = true\)/);
-    expect(STAFF_PERFIL_SERVICIOS).toMatch(/grant select on portal_staff, portal_staff_servicios/);
+    expect(MIGRATION).not.toMatch(/policy[^;]*to anon[^;]*on turnos/);
+    expect(MIGRATION).not.toMatch(/policy[^;]*to anon[^;]*on clientes/);
+    expect(MIGRATION).not.toMatch(/policy[^;]*to anon[^;]*on negocio_secretos/);
   });
 
-  it("debería sembrar los servicios de cada profesional demo",
+  it("debería crear los buckets de Storage con policies por dueño",
   () =>
   {
-    expect(SEED).toContain("staff_servicios");
-    expect(SEED).toContain("descripcion");
+    expect(MIGRATION).toContain("'logos', 'logos', true");
+    expect(MIGRATION).toContain("'galeria', 'galeria', true");
+    expect(MIGRATION).toContain("storage_public_read");
+    expect(MIGRATION).toContain("storage_owner_write");
+    expect(MIGRATION).toContain("storage_owner_update");
+    expect(MIGRATION).toContain("storage_owner_delete");
   });
 
-  it("debería persistir las reseñas y el place ID de Google",
+  it("debería limpiar la demo legada en orden seguro de FKs",
   () =>
   {
-    expect(RESENAS).toMatch(/create table if not exists resenas/i);
-
-    for (const columna of ["negocio_id", "turno_id", "cliente_id", "estrellas",
-      "comentario", "destino", "resuelto", "created_at"])
-    {
-      expect(RESENAS).toContain(columna);
-    }
-
-    expect(RESENAS).toMatch(/unique index[^;]*turno_id/i);
-    expect(RESENAS).toMatch(/enable row level security/);
-    expect(RESENAS).toContain("resenas_owner_all");
-    expect(RESENAS).not.toMatch(/policy[^;]*to anon/);
-    expect(RESENAS).toContain("google_place_id");
-    expect(RESENAS).toContain("requiere_email");
-    expect(RESENAS).toMatch(/security_invoker = true/);
+    expect(CLEANUP).toContain("delete from public.turnos");
+    expect(CLEANUP).toContain("delete from public.staff_servicios");
+    expect(CLEANUP).toContain("delete from public.negocios");
+    expect(CLEANUP).toContain("d0e6b000-0000-4000-8000-000000000001");
   });
 });

@@ -1,7 +1,8 @@
 /**
  * Cliente Supabase con service role (SOLO servidor, bypass RLS).
  *
- * Uso reservado a tareas privilegiadas como el seed inicial `/api/init`.
+ * Uso reservado a tareas privilegiadas del servidor (webhooks, crons,
+ * panel admin y operaciones que requieren bypass de RLS).
  * Nunca importar desde componentes cliente ni exponer la clave.
  */
 

@@ -20,6 +20,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Crear la base de datos desde cero (Supabase)
+
+1. Crear un proyecto en Supabase.
+2. Abrir **SQL Editor** y ejecutar `supabase/migrations/0000_init.sql`.
+   Ese único archivo crea tablas, vistas, RLS, funciones, triggers, índices y buckets.
+3. Configurar las variables de `.env.example` (o los secrets de Vercel).
+4. Registrarse en `/register` y completar el onboarding.
+
+La cuenta demo **no usa la base de datos**: se sirve en memoria desde
+`lib/seed/demo-rows.ts` con la cookie `session=demo` y el portal
+`/ar/negocio-demo`.
+
+Si la base ya existía con la demo legada, ejecutar una sola vez
+`supabase/cleanup-demo.sql` antes de descartar las migraciones viejas.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

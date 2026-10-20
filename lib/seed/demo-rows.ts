@@ -1,8 +1,8 @@
 /**
  * Filas del seed demo (cuenta temporal "Negocio Demo").
  *
- * Datos puros en memoria: `POST /api/init` los inserta con service role
- * solo cuando `negocios` está vacío. Espeja `supabase/seed-demo.sql`.
+ * Datos puros en memoria para la demo de solo lectura. Nunca se insertan en
+ * Supabase: el dashboard y el portal demo se sirven desde estas filas.
  */
 
 const HOUR_MS = 3_600_000;
@@ -93,7 +93,7 @@ export interface DemoSeed
   readonly turnos: readonly DemoTurnoRow[];
 }
 
-/** ID fijo del negocio demo en el seed y la DB. */
+/** ID fijo del negocio demo en el seed en memoria. */
 export const DEMO_NEGOCIO_ID = "d0e6b000-0000-4000-8000-000000000001";
 const STAFF_DIEGO = "d0e6b000-0000-4000-8000-000000000011";
 const STAFF_CAMILA = "d0e6b000-0000-4000-8000-000000000012";
