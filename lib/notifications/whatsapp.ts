@@ -5,10 +5,31 @@
  * el dueño lo abre y envía en 1 clic. Función pura para TDD.
  */
 
-/** Normaliza un WhatsApp guardado a dígitos con código país para wa.me. */
+import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
+
+/**
+ * Normaliza un WhatsApp guardado a dígitos con código país para wa.me.
+ *
+ * Usa el formato canónico del CRM y cae a la limpieza histórica solo para
+ * valores legacy que no tengan letras ni caracteres raros.
+ */
 export function normalizarWhatsappParaLink(whatsapp: unknown): string | null
 {
   if (typeof whatsapp !== "string")
+  {
+    return null;
+  }
+
+  try
+  {
+    return normalizarWhatsappCliente(whatsapp).replace(/^\+/, "");
+  }
+  catch
+  {
+    // Compatibilidad con números viejos que no pasan el formato canónico.
+  }
+
+  if (!/^[+\d\s().-]+$/.test(whatsapp.trim()))
   {
     return null;
   }

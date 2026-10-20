@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { actualizarCliente } from "../actions";
+import FormularioCliente from "@/components/formulario-cliente";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { construirHistorialCliente, resumirHistorial } from "@/lib/dashboard/historial-cliente";
@@ -72,7 +74,7 @@ function resolverEstadoFicha(
   return { etiqueta: "Activo", clase: "ui-badge-success" };
 }
 
-/** Ficha del cliente con su historial completo de servicios (solo lectura). */
+/** Ficha del cliente con sus datos editables y el historial de servicios. */
 export default async function ClienteDetallePage({
   params,
 }: {
@@ -121,7 +123,9 @@ export default async function ClienteDetallePage({
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{cliente.whatsapp}</p>
           {typeof cliente.email === "string" && cliente.email.length > 0 ? (
-            <p className="text-muted-foreground text-sm">{cliente.email}</p>
+            <p className="text-sm">
+              <a href={`mailto:${cliente.email}`} className="ui-link">{cliente.email}</a>
+            </p>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -164,6 +168,18 @@ export default async function ClienteDetallePage({
           <p className="text-2xl font-bold text-ink">{formatearARS(resumen.totalSenas)}</p>
         </div>
       </div>
+      <FormularioCliente
+        action={actualizarCliente.bind(null, cliente.id)}
+        titulo="Editar datos del cliente"
+        cta="Guardar cambios"
+        successMessage="Cliente actualizado."
+        cliente={{
+          nombre: cliente.nombre,
+          whatsapp: cliente.whatsapp,
+          email: cliente.email ?? null,
+        }}
+        className="ui-card mb-6 p-5 sm:p-6"
+      />
       <div className="ui-card overflow-hidden">
         <h2 className="ui-section-title px-6 pt-5">Historial de servicios</h2>
         {historial.length === 0 ? (

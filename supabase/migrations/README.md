@@ -211,6 +211,14 @@ El script agrega el constraint como `NOT VALID`: las filas nuevas y editadas
 se validan desde el primer momento, pero la migración no falla si quedan
 datos viejos inválidos.
 
+`supabase/hardening-whatsapp.sql` normaliza los WhatsApp de clientes y los
+emails existentes. Unifica `+54 9 11 15 ...`, `+54 11 ...`, `11 ...` y los
+números legacy de 9 dígitos en el formato canónico `+549...`; los números
+internacionales con `+` se guardan como E.164. Si detecta clientes duplicados
+por número, aborta la transacción para fusionarlos manualmente. Después de
+ejecutarlo, las filas nuevas y editadas quedan validadas por
+`clientes_whatsapp_canonico`.
+
 ## 10. Troubleshooting
 
 ### Error de clave foránea al crear el negocio

@@ -11,13 +11,13 @@ import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import type { BlacklistPenalty } from "@/lib/blacklist/blacklist";
 import { BUFFER_MINUTOS } from "@/lib/booking/slots";
 import { resolveCheckout } from "@/lib/checkout/checkout";
+import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { calcularMontosReserva } from "@/lib/reservas/montos";
-import { esEmailValido } from "@/lib/validation/email";
+import { normalizarEmailCliente } from "@/lib/validation/email";
 import { limpiarControl } from "@/lib/validation/texto";
 
 export { filtrarBloqueos, retieneSlot } from "@/lib/reservas/disponibilidad";
 
-const WHATSAPP_PATTERN = /^\+?[\d\s-]{7,}$/;
 const NOMBRE_MINIMO = 2;
 
 export interface ReservaBody
@@ -68,14 +68,14 @@ function exigirNombre(valor: unknown): string
 
 function exigirWhatsapp(valor: unknown): string
 {
-  const whatsapp = exigirTexto(valor, "Revisá tu WhatsApp para que te lleguen los recordatorios.");
-
-  if (!WHATSAPP_PATTERN.test(whatsapp))
+  try
+  {
+    return normalizarWhatsappCliente(valor);
+  }
+  catch
   {
     throw new RangeError("Revisá tu WhatsApp para que te lleguen los recordatorios.");
   }
-
-  return whatsapp;
 }
 
 function exigirInicio(valor: unknown): Date
@@ -105,24 +105,14 @@ function exigirInicio(valor: unknown): Date
 /** Email opcional del cliente (para confirmación y recordatorios). */
 function exigirEmailOpcional(valor: unknown): string | null
 {
-  if (valor === undefined || valor === null)
+  try
   {
-    return null;
+    return normalizarEmailCliente(valor);
   }
-
-  if (typeof valor !== "string" || valor.trim().length === 0)
-  {
-    return null;
-  }
-
-  const email = valor.trim().toLowerCase();
-
-  if (!esEmailValido(email))
+  catch
   {
     throw new RangeError("Revisá tu email para que te lleguen las confirmaciones.");
   }
-
-  return email;
 }
 
 /**

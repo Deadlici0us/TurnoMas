@@ -82,6 +82,19 @@ describe("FormularioTurnoManual",
     expect((screen.getByLabelText("WhatsApp") as HTMLInputElement).value).toBe("+549110000001");
   });
 
+  it("debería mostrar el WhatsApp canónico mientras se escribe",
+  () =>
+  {
+    render(<FormularioTurnoManual {...propsBase()} />);
+
+    fireEvent.change(screen.getByLabelText("WhatsApp"), {
+      target: { value: "+54 9 11 15 64534124" },
+    });
+
+    expect(screen.getByText("+5491164534124")).toBeDefined();
+    expect(screen.getByText(/Se guardará como/)).toBeDefined();
+  });
+
   it("debería filtrar los servicios por profesional",
   () =>
   {

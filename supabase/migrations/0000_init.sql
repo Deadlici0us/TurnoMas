@@ -114,7 +114,7 @@ create table if not exists clientes (
   id uuid primary key default gen_random_uuid(),
   negocio_id uuid not null references negocios (id) on delete cascade,
   nombre text not null,
-  whatsapp text not null check (char_length(whatsapp) >= 7),
+  whatsapp text not null,
   notas text null,
   ausencias int not null default 0 check (ausencias >= 0),
   bloqueado boolean not null default false,
@@ -122,6 +122,8 @@ create table if not exists clientes (
   updated_at timestamptz not null default now(),
   email text null,
   unique (negocio_id, whatsapp),
+  constraint clientes_whatsapp_canonico
+    check (whatsapp ~ '^\+[1-9][0-9]{6,14}$'),
   constraint clientes_email_check
     check (
       email is null

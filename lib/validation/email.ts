@@ -12,6 +12,9 @@ const MAX_DOMINIO = 253;
 const MAX_ETIQUETA = 63;
 const MIN_TLD = 2;
 const MAX_TLD = 63;
+const CARACTERES_DE_CONTROL = /[\u0000-\u001F\u007F-\u009F]/;
+const MENSAJE_EMAIL_INVALIDO =
+  "El email no puede tener espacios ni caracteres inválidos (ej: nombre@dominio.com).";
 
 /**
  * Indica si un carácter pertenece a la parte local admitida.
@@ -173,4 +176,54 @@ export function esEmailValido(email: string): boolean
   }
 
   return esLocalValido(email.slice(0, arroba)) && esDominioValido(email.slice(arroba + 1));
+}
+
+/**
+ * Normaliza y valida el email de un cliente.
+ *
+ * Recorta espacios externos, pasa a minúsculas y rechaza caracteres de
+ * control, espacios internos y cualquier carácter fuera del formato admitido.
+ * No trunca emails largos: si supera el máximo, lo informa.
+ *
+ * @param valor Valor crudo del formulario o de la base.
+ * @return Email normalizado o null cuando el campo queda vacío.
+ * @throws RangeError cuando el email no es válido.
+ */
+export function normalizarEmailCliente(valor: unknown): string | null
+{
+  if (valor === null || valor === undefined)
+  {
+    return null;
+  }
+
+  if (typeof valor !== "string")
+  {
+    throw new RangeError(MENSAJE_EMAIL_INVALIDO);
+  }
+
+  const texto = valor.trim();
+
+  if (texto.length === 0)
+  {
+    return null;
+  }
+
+  if (texto.length > MAX_TOTAL)
+  {
+    throw new RangeError("El email no puede superar los 254 caracteres.");
+  }
+
+  if (CARACTERES_DE_CONTROL.test(texto))
+  {
+    throw new RangeError(MENSAJE_EMAIL_INVALIDO);
+  }
+
+  const email = texto.toLowerCase();
+
+  if (!esEmailValido(email))
+  {
+    throw new RangeError(MENSAJE_EMAIL_INVALIDO);
+  }
+
+  return email;
 }

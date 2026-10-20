@@ -87,6 +87,7 @@ describe("esquema Supabase",
     expect(MIGRATION).toContain("negocios_whatsapp_largo");
     expect(MIGRATION).toContain("staff_descripcion_check");
     expect(MIGRATION).toContain("clientes_email_check");
+    expect(MIGRATION).toContain("clientes_whatsapp_canonico");
   });
 
   it("debería guardar el estado interno de turnos y clientes",

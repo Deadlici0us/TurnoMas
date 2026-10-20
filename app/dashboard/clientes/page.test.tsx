@@ -19,6 +19,11 @@ vi.mock("@/lib/dashboard/queries", () =>
   return { getDashboardData: vi.fn() };
 });
 
+vi.mock("next/navigation", () =>
+{
+  return { useRouter: () => ({ refresh: vi.fn() }) };
+});
+
 const mockData = vi.mocked(getDashboardData);
 
 function clienteBase(overrides: Record<string, unknown> = {})
@@ -197,6 +202,69 @@ describe("ClientesPage",
     const links = screen.getAllByRole("link", { name: "Juan Pérez" });
 
     expect(links.length).toBeGreaterThanOrEqual(1);
+    expect(links[0]?.getAttribute("href")).toBe("/dashboard/clientes/cli-1");
+  });
+
+  it("debería mostrar el email del cliente en desktop y mobile",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([clienteBase({ email: "juan@ejemplo.com" })]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await ClientesPage({ searchParams: params() }));
+
+    expect(screen.getAllByText("juan@ejemplo.com").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("debería buscar por email",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        clienteBase({ email: "juan@ejemplo.com" }),
+        clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+549110000002", email: "ana@ejemplo.com" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    const { unmount } = render(await ClientesPage({ searchParams: params("juan@ejemplo.com") }));
+
+    expect(screen.getAllByText("Juan Pérez").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Ana")).toBeNull();
+    unmount();
+  });
+
+  it("debería buscar por variantes del WhatsApp",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        clienteBase({ whatsapp: "+5491112345678" }),
+        clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+549110000002" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await ClientesPage({ searchParams: params("11 15 1234 5678") }));
+
+    expect(screen.getAllByText("Juan Pérez").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Ana")).toBeNull();
+  });
+
+  it("debería ofrecer un link explícito a la ficha", async () =>
+  {
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+
+    render(await ClientesPage({ searchParams: params() }));
+
+    const links = screen.getAllByRole("link", { name: /Ver ficha/ });
+
+    expect(links.length).toBeGreaterThanOrEqual(2);
     expect(links[0]?.getAttribute("href")).toBe("/dashboard/clientes/cli-1");
   });
 

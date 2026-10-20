@@ -7,12 +7,12 @@
  * `instanteDesdeZonaCivil` con la zona del negocio.
  */
 
-import { esEmailValido } from "@/lib/validation/email";
+import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
+import { normalizarEmailCliente } from "@/lib/validation/email";
 import { limpiarControl } from "@/lib/validation/texto";
 
 const NOMBRE_MINIMO = 2;
 const NOMBRE_MAXIMO = 80;
-const WHATSAPP_PATTERN = /^\+?\d{6,20}$/;
 const FECHA_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const HORA_PATTERN = /^\d{2}:\d{2}$/;
 
@@ -71,36 +71,26 @@ function normalizarNombre(valor: unknown): string
 
 function normalizarWhatsapp(valor: unknown): string
 {
-  const whatsapp = exigirTexto(valor, "Completá el WhatsApp del cliente.").replace(/[\s-]/g, "");
-
-  if (!WHATSAPP_PATTERN.test(whatsapp))
+  try
+  {
+    return normalizarWhatsappCliente(valor);
+  }
+  catch
   {
     throw new RangeError("Ese WhatsApp no parece válido.");
   }
-
-  return whatsapp;
 }
 
 function normalizarEmail(valor: unknown): string | null
 {
-  if (valor === undefined || valor === null)
+  try
   {
-    return null;
+    return normalizarEmailCliente(valor);
   }
-
-  if (typeof valor !== "string" || valor.trim().length === 0)
-  {
-    return null;
-  }
-
-  const email = valor.trim().toLowerCase().slice(0, 120);
-
-  if (!esEmailValido(email))
+  catch
   {
     throw new RangeError("Revisá el email del cliente.");
   }
-
-  return email;
 }
 
 function normalizarClienteId(valor: unknown): string | null

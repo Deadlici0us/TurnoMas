@@ -7,11 +7,17 @@ import { getDashboardData } from "@/lib/dashboard/queries";
 vi.mock("next/navigation", () =>
 {
   return {
+    useRouter: () => ({ refresh: vi.fn() }),
     notFound: vi.fn(() =>
     {
       throw new Error("NEXT_NOT_FOUND");
     }),
   };
+});
+
+vi.mock("../actions", () =>
+{
+  return { actualizarCliente: vi.fn() };
 });
 
 vi.mock("next/link", () =>
@@ -105,6 +111,26 @@ describe("ClienteDetallePage",
     expect(screen.getAllByText(/15[.,]?000/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: "Agregar turno" }).getAttribute("href"))
       .toBe("/dashboard/agenda/nuevo?clienteId=cli-1");
+  });
+
+  it("debería mostrar el email y permitir editar los datos",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([clienteBase({ email: "juan@ejemplo.com" })]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await ClienteDetallePage({ params: params() }));
+
+    expect(screen.getByRole("link", { name: "juan@ejemplo.com" }).getAttribute("href"))
+      .toBe("mailto:juan@ejemplo.com");
+    expect(screen.getByRole("heading", { name: "Editar datos del cliente" })).toBeDefined();
+    expect(screen.getByLabelText("Nombre")).toHaveValue("Juan Pérez");
+    expect(screen.getByLabelText("WhatsApp")).toHaveValue("+5491112345678");
+    expect(screen.getByLabelText("Email (opcional)")).toHaveValue("juan@ejemplo.com");
+    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeDefined();
   });
 
   it("debería mostrar el estado de lista negra del cliente",

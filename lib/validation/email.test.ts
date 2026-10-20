@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { esEmailValido } from "./email";
+import { esEmailValido, normalizarEmailCliente } from "./email";
 
 describe("esEmailValido",
 () =>
@@ -74,5 +74,54 @@ describe("esEmailValido",
     expect(esEmailValido(localLargo)).toBe(false);
     expect(esEmailValido(dominioLargo)).toBe(false);
     expect(esEmailValido(totalLargo)).toBe(false);
+  });
+});
+
+describe("normalizarEmailCliente",
+() =>
+{
+  it("debería recortar y pasar a minúsculas",
+  () =>
+  {
+    expect(normalizarEmailCliente("  Juan.Perez+Turno@Ejemplo.COM  "))
+      .toBe("juan.perez+turno@ejemplo.com");
+  });
+
+  it("debería devolver null cuando el campo está vacío",
+  () =>
+  {
+    expect(normalizarEmailCliente("")).toBeNull();
+    expect(normalizarEmailCliente("   ")).toBeNull();
+    expect(normalizarEmailCliente(null)).toBeNull();
+    expect(normalizarEmailCliente(undefined)).toBeNull();
+  });
+
+  it("debería rechazar caracteres inválidos y de control",
+  () =>
+  {
+    expect(() => normalizarEmailCliente("juan@ejemplo.com}"))
+      .toThrow("El email no puede tener espacios ni caracteres inválidos");
+    expect(() => normalizarEmailCliente("juan\n@ejemplo.com"))
+      .toThrow("El email no puede tener espacios ni caracteres inválidos");
+    expect(() => normalizarEmailCliente("juan@ejemplo.com\u0000"))
+      .toThrow("El email no puede tener espacios ni caracteres inválidos");
+    expect(() => normalizarEmailCliente("juan perez@ejemplo.com"))
+      .toThrow("El email no puede tener espacios ni caracteres inválidos");
+  });
+
+  it("debería rechazar emails que superan el máximo sin truncarlos",
+  () =>
+  {
+    const largo = `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(63)}.com`;
+
+    expect(() => normalizarEmailCliente(largo)).toThrow("254 caracteres");
+  });
+
+  it("debería aceptar emails válidos largos",
+  () =>
+  {
+    const largo = `${"a".repeat(64)}@${"b".repeat(63)}.com`;
+
+    expect(normalizarEmailCliente(largo)).toBe(largo);
   });
 });

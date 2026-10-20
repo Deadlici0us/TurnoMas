@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
+import FormularioCliente from "@/components/formulario-cliente";
 import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
+import { analizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
@@ -50,7 +53,15 @@ function coincideBusqueda(cliente: ClienteRow, query: string): boolean
     return true;
   }
 
-  return cliente.nombre.toLowerCase().includes(q) || cliente.whatsapp.toLowerCase().includes(q);
+  const digitos = q.replace(/\D/g, "");
+  const telefono = analizarWhatsappCliente(q);
+  const email = cliente.email?.toLowerCase() ?? "";
+
+  return cliente.nombre.toLowerCase().includes(q)
+    || cliente.whatsapp.toLowerCase().includes(q)
+    || email.includes(q)
+    || (digitos.length >= 3 && cliente.whatsapp.replace(/\D/g, "").includes(digitos))
+    || (telefono.ok && telefono.valor === cliente.whatsapp);
 }
 
 export default async function ClientesPage({
@@ -158,41 +169,20 @@ export default async function ClientesPage({
           <p className="mt-2 text-2xl font-bold text-danger tabular-nums">{totalListaNegra}</p>
         </div>
       </div>
-      <ActionForm
+      <FormularioCliente
         action={crearCliente}
+        titulo="Nuevo cliente"
+        cta="Agregar cliente"
         successMessage="Cliente agregado."
         className="ui-card mb-6 p-5 sm:p-6"
-      >
-        <h2 className="ui-section-title mb-4">Nuevo cliente</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input
-            type="text"
-            name="nombre"
-            required
-            minLength={2}
-            maxLength={80}
-            placeholder="Nombre y apellido"
-            className="ui-input"
-          />
-          <input
-            type="tel"
-            name="whatsapp"
-            required
-            minLength={6}
-            maxLength={20}
-            placeholder="WhatsApp (+549...)"
-            className="ui-input"
-          />
-          <SubmitButton pendingLabel="Agregando...">Agregar cliente</SubmitButton>
-        </div>
-      </ActionForm>
+      />
       <div className="ui-card mb-6 p-5 sm:p-6">
         <form method="get" className="flex flex-col gap-3 sm:flex-row">
           <input
             type="search"
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Buscar por nombre o WhatsApp"
+            placeholder="Buscar por nombre, WhatsApp o email"
             className="ui-input flex-1"
           />
           <div className="flex flex-wrap gap-1">
@@ -240,11 +230,15 @@ export default async function ClientesPage({
                     <td className="ui-td px-6">
                       <Link
                         href={"/dashboard/clientes/" + cliente.id}
-                        className="font-medium text-ink hover:text-[#0b6e93]"
+                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
                       >
                         {cliente.nombre}
+                        <ChevronRight className="size-4" aria-hidden="true" />
                       </Link>
                       <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
+                      {typeof cliente.email === "string" && cliente.email.length > 0 ? (
+                        <p className="text-muted-foreground text-xs">{cliente.email}</p>
+                      ) : null}
                       <p className="text-muted-foreground text-xs mt-1">
                         {ultimo
                           ? "Último: " + (nombrePorServicio.get(ultimo.servicio_id) ?? "Servicio")
@@ -271,6 +265,13 @@ export default async function ClientesPage({
                     </td>
                     <td className="ui-td px-6">
                       <div className="flex flex-wrap justify-end gap-2">
+                        <Link
+                          href={"/dashboard/clientes/" + cliente.id}
+                          className="ui-btn ui-btn-outline ui-btn-sm inline-flex items-center gap-1"
+                        >
+                          Ver ficha
+                          <ChevronRight className="size-3.5" aria-hidden="true" />
+                        </Link>
                         <Link
                           href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
                           className="ui-btn ui-btn-outline ui-btn-sm"
@@ -349,22 +350,35 @@ export default async function ClientesPage({
                   <div>
                     <Link
                       href={"/dashboard/clientes/" + cliente.id}
-                      className="font-medium text-ink hover:text-[#0b6e93]"
+                      className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
                     >
                       {cliente.nombre}
+                      <ChevronRight className="size-4" aria-hidden="true" />
                     </Link>
                     <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
+                    {typeof cliente.email === "string" && cliente.email.length > 0 ? (
+                      <p className="text-muted-foreground text-xs">{cliente.email}</p>
+                    ) : null}
                     <p className="text-muted-foreground text-xs mt-1">
                       {historial.length} turnos · {cliente.ausencias} faltas
                     </p>
                   </div>
-                  {enListaNegra ? (
-                    <span className="ui-badge ui-badge-danger shrink-0">
-                      {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
-                    </span>
-                  ) : (
-                    <span className="ui-badge ui-badge-success shrink-0">Activo</span>
-                  )}
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    {enListaNegra ? (
+                      <span className="ui-badge ui-badge-danger">
+                        {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
+                      </span>
+                    ) : (
+                      <span className="ui-badge ui-badge-success">Activo</span>
+                    )}
+                    <Link
+                      href={"/dashboard/clientes/" + cliente.id}
+                      className="ui-btn ui-btn-outline ui-btn-sm inline-flex items-center gap-1"
+                    >
+                      Ver ficha
+                      <ChevronRight className="size-3.5" aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
                 <details className="mt-3 border border-line rounded-lg">
                   <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">

@@ -68,3 +68,22 @@ describe("linkWhatsapp integración",
     expect(link).toBe("https://wa.me/5491112345678?text=Te%20esperamos%20ma%C3%B1ana");
   });
 });
+
+describe("normalizarWhatsappParaLink con números argentinos variantes",
+() =>
+{
+  it("debería unificar los formatos que ingresan los clientes",
+  () =>
+  {
+    for (const numero of ["+54 9 11 15 64534124", "+54 11 64534124", "1164534124"])
+    {
+      expect(normalizarWhatsappParaLink(numero)).toBe("5491164534124");
+    }
+  });
+
+  it("no debería rescatar números con letras en el fallback legacy",
+  () =>
+  {
+    expect(normalizarWhatsappParaLink("11abc64534124")).toBeNull();
+  });
+});

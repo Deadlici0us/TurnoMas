@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { marcarResenaResuelta } from "@/app/dashboard/resenas/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { formatearFechaCorta } from "@/lib/format/fecha";
+import { normalizarWhatsappParaLink } from "@/lib/notifications/whatsapp";
 
 export interface ResenaItem
 {
@@ -123,9 +124,9 @@ export default function ListaResenas({
 
   function linkWhatsapp(item: ResenaItem): string | null
   {
-    const telefono = item.whatsapp.replace(/\D/g, "");
+    const telefono = normalizarWhatsappParaLink(item.whatsapp);
 
-    if (telefono.length === 0)
+    if (telefono === null)
     {
       return null;
     }

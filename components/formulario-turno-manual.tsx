@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 
+import { analizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { formatearARS } from "@/lib/dashboard/moneda";
 import { serviciosDeStaff } from "@/lib/staff/servicios";
 import { useToast } from "@/components/ui/use-toast";
@@ -84,6 +85,14 @@ export default function FormularioTurnoManual({
   const [fecha, setFecha] = useState(fechaInicial);
   const [hora, setHora] = useState("09:00");
   const [estado, setEstado] = useState("confirmado");
+  const analisisWhatsapp = analizarWhatsappCliente(whatsapp);
+  const errorWhatsapp = whatsapp.trim().length > 0 && !analisisWhatsapp.ok
+    ? analisisWhatsapp.error
+    : null;
+  const whatsappCanonico = analisisWhatsapp.ok ? analisisWhatsapp.valor : null;
+  const previewWhatsapp = whatsappCanonico !== null
+    && whatsapp.trim().length > 0
+    && whatsappCanonico !== whatsapp.trim();
 
   const serviciosDisponibles = useMemo(
     () => staffId === "" ? [] : serviciosDeStaff(servicios, asociaciones, staffId),
@@ -179,17 +188,32 @@ export default function FormularioTurnoManual({
             type="tel"
             name="whatsapp"
             required
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={30}
             value={whatsapp}
             onChange={(event) => setWhatsapp(event.target.value)}
-            placeholder="Ej: +549110000001"
+            placeholder="Ej: +54 9 11 6453-4124"
             className={CLASE_INPUT}
+            aria-invalid={errorWhatsapp !== null}
           />
+          {errorWhatsapp !== null ? (
+            <span className="ui-error mt-1 block">{errorWhatsapp}</span>
+          ) : previewWhatsapp ? (
+            <span className="ui-hint mt-1 block">
+              Se guardará como <span className="font-semibold text-ink">{whatsappCanonico}</span>
+            </span>
+          ) : null}
         </label>
         <label className="block ui-label">
           {"Email (opcional)"}
           <input
             type="email"
             name="email"
+            inputMode="email"
+            autoComplete="email"
+            spellCheck={false}
+            maxLength={254}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Ej: juan@ejemplo.com"

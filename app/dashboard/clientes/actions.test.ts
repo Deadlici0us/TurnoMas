@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
+import {
+  actualizarCliente,
+  ajustarAusencia,
+  cambiarBloqueoCliente,
+  crearCliente,
+  eliminarCliente,
+} from "./actions";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -135,6 +141,7 @@ describe("crearCliente",
       negocio_id: "neg-1",
       nombre: "Juan Pérez",
       whatsapp: "+5491112345678",
+      email: null,
     }]);
     expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/clientes");
   });
@@ -156,7 +163,7 @@ describe("crearCliente",
     stubSingle(null);
 
     await expect(crearCliente(formulario({ nombre: "Juan", whatsapp: "abc" })))
-      .rejects.toThrow("Ese WhatsApp no parece válido.");
+      .rejects.toThrow("El WhatsApp solo puede tener números");
   });
 
   it("debería avisar duplicados por WhatsApp (23505)",
@@ -167,6 +174,40 @@ describe("crearCliente",
 
     await expect(crearCliente(formulario({ nombre: "Juan", whatsapp: "+5491112345678" })))
       .rejects.toThrow("Ya existe un cliente con ese WhatsApp.");
+  });
+
+  it("debería guardar el email normalizado",
+  async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubSingle(null, null, filas);
+
+    await crearCliente(formulario({
+      nombre: "Juan",
+      whatsapp: "11 15 6453-4124",
+      email: "  Juan@Ejemplo.COM ",
+    }));
+
+    expect(filas).toEqual([{
+      negocio_id: "neg-1",
+      nombre: "Juan",
+      whatsapp: "+5491164534124",
+      email: "juan@ejemplo.com",
+    }]);
+  });
+
+  it("debería rechazar emails con caracteres inválidos",
+  async () =>
+  {
+    sesionDueno();
+    stubSingle(null);
+
+    await expect(crearCliente(formulario({
+      nombre: "Juan",
+      whatsapp: "+5491112345678",
+      email: "juan@ejemplo.com}",
+    }))).rejects.toThrow("El email no puede tener espacios ni caracteres inválidos");
   });
 
   it("debería lanzar genérico ante otros errores",
@@ -310,7 +351,92 @@ describe("crearCliente integración",
 
     await crearCliente(formulario({ nombre: "Ana", whatsapp: "1155556666" }));
 
-    expect(filas).toEqual([{ negocio_id: "neg-1", nombre: "Ana", whatsapp: "1155556666" }]);
+    expect(filas).toEqual([{
+      negocio_id: "neg-1",
+      nombre: "Ana",
+      whatsapp: "+5491155556666",
+      email: null,
+    }]);
     expect(mockRevalidate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("actualizarCliente",
+() =>
+{
+  it("debería actualizar nombre, WhatsApp canónico y email",
+  async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubSingle(null, null, filas);
+
+    await actualizarCliente("cli-1", formulario({
+      nombre: "  Juan Pérez  ",
+      whatsapp: "+54 11 15 6453-4124",
+      email: "  Juan@Ejemplo.COM ",
+    }));
+
+    expect(filas).toEqual([{
+      nombre: "Juan Pérez",
+      whatsapp: "+5491164534124",
+      email: "juan@ejemplo.com",
+    }]);
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/clientes");
+    expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/clientes/cli-1");
+  });
+
+  it("debería aceptar email vacío como null", async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubSingle(null, null, filas);
+
+    await actualizarCliente("cli-1", formulario({
+      nombre: "Juan",
+      whatsapp: "1164534124",
+      email: "   ",
+    }));
+
+    expect(filas).toEqual([{ nombre: "Juan", whatsapp: "+5491164534124", email: null }]);
+  });
+
+  it("debería avisar cuando el WhatsApp ya pertenece a otro cliente", async () =>
+  {
+    sesionDueno();
+    stubSingle(null, { code: "23505" });
+
+    await expect(actualizarCliente("cli-1", formulario({
+      nombre: "Juan",
+      whatsapp: "1164534124",
+      email: "",
+    }))).rejects.toThrow("Ese WhatsApp ya pertenece a otro cliente.");
+  });
+
+  it("debería rechazar un email inválido antes de escribir", async () =>
+  {
+    sesionDueno();
+    const filas: unknown[] = [];
+    stubSingle(null, null, filas);
+
+    await expect(actualizarCliente("cli-1", formulario({
+      nombre: "Juan",
+      whatsapp: "1164534124",
+      email: "juan@ejemplo",
+    }))).rejects.toThrow("El email no puede tener espacios ni caracteres inválidos");
+
+    expect(filas).toHaveLength(0);
+  });
+
+  it("debería lanzar genérico ante otros errores", async () =>
+  {
+    sesionDueno();
+    stubSingle(null, { code: "500" });
+
+    await expect(actualizarCliente("cli-1", formulario({
+      nombre: "Juan",
+      whatsapp: "1164534124",
+      email: "",
+    }))).rejects.toThrow("No pudimos actualizar el cliente. Probá de nuevo.");
   });
 });

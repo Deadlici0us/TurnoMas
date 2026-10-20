@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { assertModoEditable } from "@/lib/auth/demo-guard";
+import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { normalizarEmailCliente } from "@/lib/validation/email";
 
 async function exigirDueno(): Promise<{ admin: ReturnType<typeof getSupabaseAdmin>; negocioId: string }>
 {
@@ -37,26 +39,15 @@ function exigirNombre(valor: FormDataEntryValue | null): string
   return nombre;
 }
 
-function exigirWhatsapp(valor: FormDataEntryValue | null): string
-{
-  const whatsapp = typeof valor === "string" ? valor.trim().replace(/[\s-]/g, "") : "";
-
-  if (!/^\+?\d{6,20}$/.test(whatsapp))
-  {
-    throw new RangeError("Ese WhatsApp no parece válido.");
-  }
-
-  return whatsapp;
-}
-
 /** Crea un cliente del negocio del dueño autenticado (demo incluida). */
 export async function crearCliente(formData: FormData): Promise<void>
 {
   const nombre = exigirNombre(formData.get("nombre"));
-  const whatsapp = exigirWhatsapp(formData.get("whatsapp"));
+  const whatsapp = normalizarWhatsappCliente(formData.get("whatsapp"));
+  const email = normalizarEmailCliente(formData.get("email"));
   const { admin, negocioId } = await exigirDueno();
 
-  const { error } = await admin.from("clientes").insert({ negocio_id: negocioId, nombre, whatsapp });
+  const { error } = await admin.from("clientes").insert({ negocio_id: negocioId, nombre, whatsapp, email });
 
   if (error !== null)
   {
@@ -69,6 +60,31 @@ export async function crearCliente(formData: FormData): Promise<void>
   }
 
   revalidatePath("/dashboard/clientes");
+}
+
+/** Actualiza nombre, WhatsApp y email de un cliente del negocio. */
+export async function actualizarCliente(clienteId: string, formData: FormData): Promise<void>
+{
+  const nombre = exigirNombre(formData.get("nombre"));
+  const whatsapp = normalizarWhatsappCliente(formData.get("whatsapp"));
+  const email = normalizarEmailCliente(formData.get("email"));
+  const { admin, negocioId } = await exigirDueno();
+
+  const { error } = await admin.from("clientes").update({ nombre, whatsapp, email })
+    .eq("id", clienteId).eq("negocio_id", negocioId);
+
+  if (error !== null)
+  {
+    if (error.code === "23505")
+    {
+      throw new Error("Ese WhatsApp ya pertenece a otro cliente.");
+    }
+
+    throw new Error("No pudimos actualizar el cliente. Probá de nuevo.");
+  }
+
+  revalidatePath("/dashboard/clientes");
+  revalidatePath(`/dashboard/clientes/${clienteId}`);
 }
 
 /** Suma o resta una ausencia al cliente. */
