@@ -7,12 +7,15 @@
  * del Google Calendar del negocio también ocupan (fail-open).
  */
 
-import { getBlockedInterval, isSlotAvailable } from "@/lib/availability/availability";
+import { getTurnoBlockedInterval, isSlotAvailable } from "@/lib/availability/availability";
 import { calendarService } from "@/lib/services/calendar";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Ventana de gracia en la que un pendiente retiene su slot. */
 const GRACIA_PAGO_MS = 15 * 60_000;
+
+/** Se traen turnos iniciados hasta 24 h atrás para no perder los que están en curso. */
+const VENTANA_TURNOS_MS = 86_400_000;
 
 /**
  * Indica si un turno existente retiene su slot durante la gracia de pago.
@@ -42,14 +45,14 @@ export function retieneSlot(estado: string, createdAt: string, ahoraMs: number):
 /**
  * Filtra los turnos existentes a intervalos de bloqueo.
  *
- * @param turnos Turnos futuros del staff.
+ * @param turnos Turnos del staff, incluidos los que están en curso.
  * @param duracionPorServicio Mapa de duraciones por servicio.
  * @param duracionDefault Duración del servicio actual.
  * @param ahoraMs Ahora en milisegundos.
  * @return Intervalos que bloquean agenda.
  */
 export function filtrarBloqueos(
-  turnos: ReadonlyArray<{ readonly inicio: string; readonly servicio_id: string;
+  turnos: ReadonlyArray<{ readonly inicio: string; readonly fin?: string | null; readonly servicio_id: string;
     readonly estado: string; readonly created_at: string }>,
   duracionPorServicio: ReadonlyMap<string, { readonly duracion_min: number }>,
   duracionDefault: number,
@@ -62,7 +65,11 @@ export function filtrarBloqueos(
     {
       const ref = duracionPorServicio.get(t.servicio_id);
 
-      return getBlockedInterval(new Date(t.inicio), ref?.duracion_min ?? duracionDefault);
+      return getTurnoBlockedInterval(
+        new Date(t.inicio),
+        t.fin === undefined || t.fin === null ? null : new Date(t.fin),
+        ref?.duracion_min ?? duracionDefault,
+      );
     });
 }
 
@@ -98,8 +105,9 @@ export async function estaOcupado(
 {
   const ahoraMs = Date.now();
   const { data: turnosExistentes } = await admin.from("turnos")
-    .select("inicio, servicio_id, estado, created_at")
-    .eq("negocio_id", negocioId).eq("staff_id", staffId).gte("inicio", new Date(ahoraMs).toISOString());
+    .select("inicio, fin, servicio_id, estado, created_at")
+    .eq("negocio_id", negocioId).eq("staff_id", staffId)
+    .gte("inicio", new Date(ahoraMs - VENTANA_TURNOS_MS).toISOString());
   const { data: serviciosTodos } = await admin.from("servicios")
     .select("id, duracion_min").eq("negocio_id", negocioId);
   const duracionPorServicio = new Map((serviciosTodos ?? []).map((s: {
@@ -107,7 +115,7 @@ export async function estaOcupado(
   }) => [s.id, s]));
   const bloqueos = filtrarBloqueos(
     ((turnosExistentes ?? []) as Array<{
-      inicio: string; servicio_id: string; estado: string; created_at: string;
+      inicio: string; fin?: string | null; servicio_id: string; estado: string; created_at: string;
     }>),
     duracionPorServicio,
     duracionMin,

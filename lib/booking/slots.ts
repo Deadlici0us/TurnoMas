@@ -7,7 +7,7 @@
 
 import
 {
-  getBlockedInterval,
+  getTurnoBlockedInterval,
   isSlotAvailable,
 } from "@/lib/availability/availability";
 import type { BlockedInterval } from "@/lib/availability/availability";
@@ -17,6 +17,7 @@ export interface TurnoExistente
 {
   readonly staffId: string;
   readonly inicio: string;
+  readonly fin?: string | null;
   readonly duracionMin: number;
 }
 
@@ -130,7 +131,11 @@ export function buildAvailableSlots(params: BuildAvailableSlotsParams): readonly
     const blocked: BlockedInterval[] = [
       ...turnos
         .filter((turno) => staffId === null || turno.staffId === staffId)
-        .map((turno) => getBlockedInterval(new Date(turno.inicio), turno.duracionMin)),
+        .map((turno) => getTurnoBlockedInterval(
+          new Date(turno.inicio),
+          turno.fin === undefined || turno.fin === null ? null : new Date(turno.fin),
+          turno.duracionMin,
+        )),
       // Bloqueos del negocio (Google Calendar): aplican a todo el equipo.
       ...businessBlocked,
     ];

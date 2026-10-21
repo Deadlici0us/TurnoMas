@@ -420,6 +420,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       return {
         staffId: t.staffId,
         inicio: t.inicio,
+        fin: t.fin,
         duracionMin: base?.duracionMin ?? servicio.duracionMin,
       };
     });

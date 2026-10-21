@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import BookingFlow from "@/components/booking-flow";
 import { getDemoBusiness } from "@/lib/portal/demo-business";
+import { dayKeyForWeekday } from "@/lib/staff/schedule";
 
 describe("BookingFlow",
 () =>
@@ -377,6 +378,45 @@ describe("BookingFlow",
 
     expect(screen.getByRole("button", { name: /Corte/ })).toBeDefined();
     expect(screen.queryByRole("button", { name: /Barba/ })).toBeNull();
+  });
+
+  it("no debería ofrecer un horario dentro de un turno de 45 minutos",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    manana.setHours(0, 0, 0, 0);
+    const claveDia = dayKeyForWeekday(manana.getDay());
+    const inicioTurno = new Date(manana.getFullYear(), manana.getMonth(), manana.getDate(), 9, 0, 0, 0);
+    const finTurno = new Date(manana.getFullYear(), manana.getMonth(), manana.getDate(), 9, 45, 0, 0);
+
+    render(
+      <BookingFlow
+        negocioNombre="Barbería Diego"
+        pais="ar"
+        slug="barberia-diego"
+        staff={[{ id: "s1", nombre: "Gisela", horarios: { [claveDia]: "09:00-11:00" }, activo: true }]}
+        servicios={[{ id: "sv1", nombre: "Corte", duracionMin: 30, precioBase: 1500000,
+          precioPromocional: null, senaRequerida: false, senaPorcentaje: 0 }]}
+        asociaciones={[{ staffId: "s1", servicioId: "sv1" }]}
+        turnos={[{
+          staffId: "s1",
+          servicioId: "sv1",
+          inicio: inicioTurno.toISOString(),
+          fin: finTurno.toISOString(),
+        }]}
+        bloqueos={[]}
+        horariosNegocio={{ [claveDia]: "09:00-11:00" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Gisela" }));
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getAllByRole("button", { name: /Elegir día/ })[0]!);
+
+    expect(screen.queryByRole("button", { name: "09:30" })).toBeNull();
+    expect(screen.getByRole("button", { name: "10:00" })).toBeDefined();
   });
 
   it("debería avisar cuando el profesional no tiene servicios asignados",

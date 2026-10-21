@@ -53,15 +53,23 @@ function modoSupabase(): void
  * @param servicios Servicios del portal.
  * @param turnos Turnos para disponibilidad.
  */
+interface EspiaTurnos
+{
+  readonly columnas: () => string;
+  readonly inicioMinimo: () => string;
+}
+
 function stubPortal(
   negocio: unknown,
   legacy: unknown = null,
   staff: unknown[] = [],
   servicios: unknown[] = [],
   turnos: unknown[] = [],
-): void
+): EspiaTurnos
 {
   let negocioCalls = 0;
+  let columnasTurnos = "";
+  let inicioMinimoTurnos = "";
   const listas: Record<string, unknown[]> = { portal_staff: staff, portal_servicios: servicios };
   mockServer.mockResolvedValue({
     from: (tabla: string) => ({
@@ -89,16 +97,37 @@ function stubPortal(
     }),
   } as never);
   mockAdmin.mockReturnValue({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          gte: () => ({
-            order: async () => ({ data: turnos }),
+    from: (tabla: string) => ({
+      select: (columnas: string) =>
+      {
+        if (tabla === "turnos")
+        {
+          columnasTurnos = columnas;
+        }
+
+        return {
+          eq: () => ({
+            gte: (_columna: string, valor: string) =>
+            {
+              if (tabla === "turnos")
+              {
+                inicioMinimoTurnos = valor;
+              }
+
+              return {
+                order: async () => ({ data: turnos }),
+              };
+            },
           }),
-        }),
-      }),
+        };
+      },
     }),
   } as never);
+
+  return {
+    columnas: () => columnasTurnos,
+    inicioMinimo: () => inicioMinimoTurnos,
+  };
 }
 
 beforeEach(() =>
@@ -193,6 +222,25 @@ describe("PortalPage supabase",
     render(await PortalPage({ params: params("ar", "x") }));
 
     expect(screen.getByText("Barbería")).toBeDefined();
+  });
+
+  it("debería traer el fin y los turnos en curso para la disponibilidad",
+  async () =>
+  {
+    modoSupabase();
+    const espia = stubPortal({
+      id: "neg-1",
+      nombre: "Barbería",
+      pais: "ar",
+      slug: "x",
+      horarios: {},
+      timezone: "America/Argentina/Buenos_Aires",
+    });
+
+    render(await PortalPage({ params: params("ar", "x") }));
+
+    expect(espia.columnas()).toContain("fin");
+    expect(new Date(espia.inicioMinimo()).getTime()).toBeLessThan(Date.now() - 60_000);
   });
 
   it("debería mostrar logo, descripción y mapa cuando están cargados",

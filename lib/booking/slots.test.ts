@@ -125,6 +125,57 @@ describe("buildAvailableSlots",
     expect(week[0]?.starts).toHaveLength(2);
   });
 
+  it("debería bloquear hasta el fin real del turno aunque el servicio dure menos",
+  () =>
+  {
+    const horarios = { lun: ["09:00-11:00"] };
+    const monday = new Date(2026, 8, 28, 8, 0, 0, 0);
+    const turnos = [{
+      staffId: "gisela",
+      inicio: new Date(2026, 8, 28, 9, 0).toISOString(),
+      fin: new Date(2026, 8, 28, 9, 45).toISOString(),
+      duracionMin: 30,
+    }];
+
+    const week = buildAvailableSlots({
+      horarios,
+      turnos,
+      serviceMinutes: 30,
+      now: monday,
+      days: 1,
+      staffId: "gisela",
+    });
+
+    expect(week[0]?.starts.map((d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`))
+      .toEqual(["10:00", "10:30"]);
+  });
+
+  it("debería bloquear un turno en curso aunque haya empezado antes de ahora",
+  () =>
+  {
+    const horarios = { lun: ["09:00-11:00"] };
+    const now = new Date(2026, 8, 28, 9, 10, 0, 0);
+    const turnos = [{
+      staffId: "gisela",
+      inicio: new Date(2026, 8, 28, 9, 0).toISOString(),
+      fin: new Date(2026, 8, 28, 9, 45).toISOString(),
+      duracionMin: 30,
+    }];
+
+    const week = buildAvailableSlots({
+      horarios,
+      turnos,
+      serviceMinutes: 30,
+      now,
+      days: 1,
+      staffId: "gisela",
+      bufferMinutes: 0,
+    });
+
+    expect(week[0]?.starts.map((d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`))
+      .toEqual(["10:00", "10:30"]);
+  });
+
   it("debería bloquear a todo el equipo por ocupación del negocio",
   () =>
   {

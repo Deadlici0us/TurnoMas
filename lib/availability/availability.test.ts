@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import
 {
   getBlockedInterval,
+  getTurnoBlockedInterval,
   intervalsOverlap,
   isSlotAvailable,
 } from "./availability";
@@ -28,6 +29,37 @@ describe("getBlockedInterval",
 
     expect(result.start).toEqual(at(0));
     expect(result.end).toEqual(at(30));
+  });
+});
+
+describe("getTurnoBlockedInterval",
+() =>
+{
+  it("debería usar el fin real del turno aunque la duración del servicio sea menor",
+  () =>
+  {
+    const result = getTurnoBlockedInterval(at(0), at(45), 30);
+
+    expect(result.start).toEqual(at(0));
+    expect(result.end).toEqual(at(45));
+  });
+
+  it("debería usar la duración del servicio cuando no hay fin",
+  () =>
+  {
+    const result = getTurnoBlockedInterval(at(0), null, 30);
+
+    expect(result.end).toEqual(at(30));
+  });
+
+  it("debería ignorar un fin inválido o anterior al inicio",
+  () =>
+  {
+    const invalido = new Date(Number.NaN);
+    const anterior = at(-30);
+
+    expect(getTurnoBlockedInterval(at(0), invalido, 30).end).toEqual(at(30));
+    expect(getTurnoBlockedInterval(at(0), anterior, 30).end).toEqual(at(30));
   });
 });
 

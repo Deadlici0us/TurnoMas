@@ -13,6 +13,9 @@ import { sanitizeUrlExterna } from "@/lib/validation/url";
 
 type Row = Record<string, unknown>;
 
+/** Ventana hacia atrás para incluir turnos que todavía están en curso. */
+const VENTANA_TURNOS_MS = 86_400_000;
+
 function asString(value: unknown): string
 {
   return typeof value === "string" ? value : "";
@@ -122,13 +125,18 @@ async function buildPortalBusiness(
 
   // Los turnos tienen RLS solo-dueño: se leen con service role (solo servidor)
   // para calcular disponibilidad. Si falla, el portal muestra todo libre.
-  let turnos: Array<{ staff_id: unknown; servicio_id: unknown; inicio: unknown }> = [];
+  let turnos: Array<{ staff_id: unknown; servicio_id: unknown; inicio: unknown; fin: unknown }> = [];
 
   try
   {
     const admin = getSupabaseAdmin();
-    const { data } = await admin.from("turnos").select("staff_id, servicio_id, inicio")
-      .eq("negocio_id", negocio.id).gte("inicio", new Date().toISOString()).order("inicio");
+    const ahora = Date.now();
+    // Se incluyen los turnos iniciados en las últimas 24 h para que los que
+    // están en curso sigan bloqueando la agenda del portal.
+    const { data } = await admin.from("turnos").select("staff_id, servicio_id, inicio, fin")
+      .eq("negocio_id", negocio.id)
+      .gte("inicio", new Date(ahora - VENTANA_TURNOS_MS).toISOString())
+      .order("inicio");
 
     turnos = data ?? [];
   }
@@ -193,6 +201,7 @@ async function buildPortalBusiness(
       staffId: asString(t.staff_id),
       servicioId: asString(t.servicio_id),
       inicio: asString(t.inicio),
+      fin: typeof t.fin === "string" ? t.fin : null,
     })),
     bloqueos,
     requiereEmail: negocioRow.requiere_email === true,
