@@ -25,6 +25,7 @@ import
   type DiaCivil,
   claveDeDiaCivil,
   claveDiaEnZona,
+  formatearHoraEnZona,
   minutosEnZona,
 } from "@/lib/timezone/timezone";
 
@@ -36,6 +37,7 @@ export interface CalendarTurno
   readonly fin: string;
   readonly estado: string;
   readonly titulo: string;
+  readonly profesional: string;
 }
 
 export interface CalendarExterno
@@ -53,6 +55,14 @@ interface BloqueDia
   readonly height: number;
   readonly clase: string;
   readonly titulo: string;
+  readonly hora: string | null;
+  readonly profesional: string | null;
+}
+
+interface DetalleBloque
+{
+  readonly hora: string;
+  readonly profesional: string;
 }
 
 interface BloqueDiaConCarril extends BloqueDia
@@ -139,14 +149,31 @@ function claseEtiquetaHora(esPrimera: boolean): string
  */
 function estiloBloque(bloque: BloqueDiaConCarril): CSSProperties
 {
-  const ancho = 100 / bloque.carriles;
+  const anchoCarril = 100 / bloque.carriles;
 
   return {
     top: bloque.top,
     height: bloque.height,
-    left: `calc(${bloque.carril * ancho}% + ${HUECO_BLOQUES_PX}px)`,
-    width: `calc(${ancho}% - ${HUECO_BLOQUES_PX * 2}px)`,
+    left: `calc(${bloque.carril * anchoCarril}% + ${HUECO_BLOQUES_PX}px)`,
+    width: "fit-content",
+    maxWidth: `calc(${anchoCarril}% - ${HUECO_BLOQUES_PX * 2}px)`,
   };
+}
+
+/**
+ * Texto completo de un bloque para tooltip y vista semana.
+ *
+ * @param bloque Bloque con sus datos visibles.
+ * @return Título con horario y profesional cuando corresponde.
+ */
+function textoCompletoBloque(bloque: BloqueDia): string
+{
+  if (bloque.hora === null || bloque.profesional === null)
+  {
+    return bloque.titulo;
+  }
+
+  return `${bloque.titulo} · ${bloque.hora} · ${bloque.profesional}`;
 }
 
 function etiquetaRango(vista: VistaAgenda, dias: readonly DiaCivil[], base: DiaCivil): string
@@ -236,13 +263,18 @@ function renderVistaDia(props: {
         {props.bloques.map((b) => (
           <div
             key={b.key}
-            title={b.titulo}
-            className={`absolute overflow-hidden rounded-md border p-2 text-xs leading-[18px]
+            title={textoCompletoBloque(b)}
+            className={`absolute overflow-hidden rounded-md border px-2 py-px text-[11px] leading-[12px]
               font-semibold shadow-sm transition-all duration-200 hover:-translate-y-px
               hover:shadow-md ${b.clase}`}
             style={estiloBloque(b)}
           >
-            {b.titulo}
+            <span className="block truncate">{b.titulo}</span>
+            {b.hora !== null && b.profesional !== null ? (
+              <span className="block truncate text-[10px] leading-[11px] font-medium opacity-80">
+                {`${b.hora} · ${b.profesional}`}
+              </span>
+            ) : null}
           </div>
         ))}
         {props.bloques.length === 0 ? (
@@ -449,7 +481,14 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
     const salida: BloqueDia[] = [];
     const pxPorHora = vista === "dia" ? PX_POR_HORA_DIA : 44;
 
-    const empujar = (key: string, inicioIso: string, finIso: string, clase: string, titulo: string): void =>
+    const empujar = (
+      key: string,
+      inicioIso: string,
+      finIso: string,
+      clase: string,
+      titulo: string,
+      detalle?: DetalleBloque,
+    ): void =>
     {
       const inicio = new Date(inicioIso);
       const fin = new Date(finIso);
@@ -484,12 +523,19 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
         height: Math.max(((hasta - desde) / 60) * pxPorHora, vista === "dia" ? 28 : 18),
         clase,
         titulo,
+        hora: detalle?.hora ?? null,
+        profesional: detalle?.profesional ?? null,
       });
     };
 
     for (const t of turnosFiltrados)
     {
-      empujar(`t-${t.id}`, t.inicio, t.fin, claseGrillaPara(t.estado), `${t.titulo}`);
+      const hora = formatearHoraEnZona(t.inicio, props.timeZone);
+
+      empujar(`t-${t.id}`, t.inicio, t.fin, claseGrillaPara(t.estado), t.titulo, {
+        hora,
+        profesional: t.profesional,
+      });
     }
 
     for (const e of props.externos)
@@ -679,13 +725,13 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
                       {bloquesDelDia(claveDeDiaCivil(dia)).map((b) => (
                         <div
                           key={b.key}
-                          title={b.titulo}
+                          title={textoCompletoBloque(b)}
                           className={`absolute overflow-hidden rounded border px-1 py-0.5
                             text-[11px] leading-tight font-semibold shadow-sm transition-all
                             duration-200 hover:-translate-y-px hover:shadow-md ${b.clase}`}
                           style={estiloBloque(b)}
                         >
-                          {b.titulo}
+                          {textoCompletoBloque(b)}
                         </div>
                       ))}
                     </div>

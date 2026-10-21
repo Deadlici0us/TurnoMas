@@ -166,6 +166,7 @@ export default async function AgendaPage(props?: {
       estado: t.estado,
       titulo: `${nombrePorCliente.get(t.cliente_id) ?? "Cliente"} · ` +
         `${nombrePorServicio.get(t.servicio_id) ?? "Servicio"}`,
+      profesional: nombrePorStaff.get(t.staff_id) ?? "Profesional",
     };
   });
 

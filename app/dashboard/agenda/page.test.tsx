@@ -217,7 +217,7 @@ describe("AgendaPage",
 
     render(await AgendaPage({ searchParams: Promise.resolve({ fecha: "2026-10-06" }) }));
 
-    expect(screen.getByTitle("Juan · Corte")).toBeDefined();
+    expect(screen.getByTitle("Juan · Corte · 10:00 · Diego")).toBeDefined();
   });
 
   it("debería omitir WhatsApp sin número del cliente",

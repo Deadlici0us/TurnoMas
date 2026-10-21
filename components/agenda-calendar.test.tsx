@@ -22,6 +22,7 @@ function turnoBase(overrides: Record<string, unknown> = {})
     fin: "2026-05-12T10:30:00-03:00",
     estado: "confirmado",
     titulo: "Juan · Corte",
+    profesional: "Diego",
     ...overrides,
   };
 }
@@ -69,8 +70,30 @@ describe("AgendaCalendar",
     render(<AgendaCalendar {...propsBase()} />);
 
     expect(screen.getByText("Calendario")).toBeDefined();
-    expect(screen.getByTitle("Juan · Corte")).toBeDefined();
+    expect(screen.getByTitle("Juan · Corte · 10:00 · Diego")).toBeDefined();
     expect(screen.getByTitle("Google · Dentista")).toBeDefined();
+  });
+
+  it("debería mostrar horario y profesional dentro del bloque del turno",
+  () =>
+  {
+    render(<AgendaCalendar {...propsBase()} />);
+
+    const bloque = screen.getByTitle("Juan · Corte · 10:00 · Diego");
+
+    expect(bloque.textContent).toContain("Juan · Corte");
+    expect(bloque.textContent).toContain("10:00 · Diego");
+  });
+
+  it("debería ajustar el ancho del bloque al texto sin superar el carril",
+  () =>
+  {
+    render(<AgendaCalendar {...propsBase()} />);
+
+    const bloque = screen.getByTitle("Juan · Corte · 10:00 · Diego");
+
+    expect(bloque.style.width).toBe("fit-content");
+    expect(bloque.style.maxWidth).toContain("100%");
   });
 
   it("debería cambiar entre día, semana y mes",
@@ -81,7 +104,9 @@ describe("AgendaCalendar",
     render(<AgendaCalendar {...propsBase()} />);
     await user.click(screen.getByRole("button", { name: "Semana" }));
 
-    expect(screen.getByTitle("Juan · Corte")).toBeDefined();
+    const bloque = screen.getByTitle("Juan · Corte · 10:00 · Diego");
+
+    expect(bloque.textContent).toContain("10:00 · Diego");
 
     await user.click(screen.getByRole("button", { name: "Mes" }));
 
@@ -96,11 +121,11 @@ describe("AgendaCalendar",
     render(<AgendaCalendar {...propsBase()} />);
     await user.click(screen.getByRole("button", { name: "Día siguiente" }));
 
-    expect(screen.queryByTitle("Juan · Corte")).toBeNull();
+    expect(screen.queryByTitle("Juan · Corte · 10:00 · Diego")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Hoy" }));
 
-    expect(screen.getByTitle("Juan · Corte")).toBeDefined();
+    expect(screen.getByTitle("Juan · Corte · 10:00 · Diego")).toBeDefined();
   });
 
   it("debería filtrar por profesional",
@@ -111,7 +136,7 @@ describe("AgendaCalendar",
     render(<AgendaCalendar {...propsBase()} />);
     await user.click(screen.getByRole("button", { name: "Camila" }));
 
-    expect(screen.queryByTitle("Juan · Corte")).toBeNull();
+    expect(screen.queryByTitle("Juan · Corte · 10:00 · Diego")).toBeNull();
   });
 
   it("debería mostrar la zona horaria y la leyenda",
@@ -248,12 +273,14 @@ describe("AgendaCalendar",
       ],
     })} />);
 
-    const gisela = screen.getByTitle("Gisela · Corte");
-    const diego = screen.getByTitle("Diego · Corte");
+    const gisela = screen.getByTitle("Gisela · Corte · 10:00 · Diego");
+    const diego = screen.getByTitle("Diego · Corte · 10:00 · Diego");
 
     expect(gisela.style.left).not.toBe(diego.style.left);
-    expect(gisela.style.width).toBe(diego.style.width);
-    expect(gisela.style.width).toContain("50%");
+    expect(gisela.style.width).toBe("fit-content");
+    expect(diego.style.width).toBe("fit-content");
+    expect(gisela.style.maxWidth).toContain("50%");
+    expect(diego.style.maxWidth).toContain("50%");
   });
 
   it("debería mostrar en columnas separadas dos turnos solapados en la semana",
@@ -269,10 +296,13 @@ describe("AgendaCalendar",
     })} />);
     await user.click(screen.getByRole("button", { name: "Semana" }));
 
-    const gisela = screen.getByTitle("Gisela · Corte");
-    const diego = screen.getByTitle("Diego · Corte");
+    const gisela = screen.getByTitle("Gisela · Corte · 10:00 · Diego");
+    const diego = screen.getByTitle("Diego · Corte · 10:00 · Diego");
 
     expect(gisela.style.left).not.toBe(diego.style.left);
-    expect(gisela.style.width).toContain("50%");
+    expect(gisela.style.width).toBe("fit-content");
+    expect(diego.style.width).toBe("fit-content");
+    expect(gisela.style.maxWidth).toContain("50%");
+    expect(diego.style.maxWidth).toContain("50%");
   });
 });

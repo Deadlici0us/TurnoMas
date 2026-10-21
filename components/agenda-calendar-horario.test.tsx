@@ -104,6 +104,7 @@ describe("AgendaCalendar rango dinámico por horario del negocio",
         fin: "2026-05-12T21:30:00-03:00",
         estado: "confirmado",
         titulo: "Tarde · Corte",
+        profesional: "Diego",
       }],
       citas: [citaBase({ id: "c-tarde", inicio: "2026-05-12T21:00:00-03:00" })],
     })} />);
