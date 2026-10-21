@@ -240,6 +240,35 @@ describe("crearTurnoManual",
     }));
   });
 
+  it("debería crear el turno desde el inicio ISO de la grilla",
+  async () =>
+  {
+    sesionDueno();
+    const inserts: StubOpts["inserts"] = [];
+    stubAdmin({
+      singles: {
+        negocios: [{ data: NEGOCIO }],
+        staff: [{ data: { id: "staff-1", nombre: "Diego" } }],
+        servicios: [{ data: SERVICIO }],
+        clientes: [{ data: null }],
+      },
+      insertResults: {
+        clientes: [{ data: { id: "cli-new" }, error: null }],
+        turnos: [{ data: { id: "t-1" }, error: null }],
+      },
+      inserts,
+    });
+
+    const data = formDataTurno({ inicio: "2026-10-06T13:00:00.000Z" });
+    data.delete("fecha");
+    data.delete("hora");
+
+    await expect(crearTurnoManual(data)).resolves.toBe("2026-10-06");
+
+    expect(inserts.find((i) => i.tabla === "turnos")?.values.inicio)
+      .toBe("2026-10-06T13:00:00.000Z");
+  });
+
   it("debería reutilizar un cliente existente por WhatsApp",
   async () =>
   {

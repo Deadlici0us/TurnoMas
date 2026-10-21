@@ -3,8 +3,8 @@
  *
  * Función pura para TDD: el dueño carga nombre/WhatsApp/email a mano (o
  * precargados desde un cliente) y elige profesional, servicio, fecha, hora
- * y estado. La conversión fecha+hora civiles → instante UTC la resuelve
- * `instanteDesdeZonaCivil` con la zona del negocio.
+ * y estado. Acepta el instante ISO que devuelve la grilla del portal o, por
+ * compatibilidad, la fecha y hora civiles que resuelve `instanteDesdeZonaCivil`.
  */
 
 import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
@@ -28,6 +28,7 @@ export interface TurnoManualInput
   readonly nombre: unknown;
   readonly whatsapp: unknown;
   readonly email: unknown;
+  readonly inicio?: unknown;
   readonly fecha: unknown;
   readonly hora: unknown;
   readonly estado: unknown;
@@ -42,8 +43,9 @@ export interface TurnoManualValidado
   readonly nombre: string;
   readonly whatsapp: string;
   readonly email: string | null;
-  readonly fecha: string;
-  readonly hora: string;
+  readonly inicio: Date | null;
+  readonly fecha: string | null;
+  readonly hora: string | null;
   readonly estado: EstadoTurnoManual;
 }
 
@@ -113,6 +115,62 @@ function normalizarEstado(valor: unknown): EstadoTurnoManual
   throw new RangeError("Elegí un estado válido para el turno.");
 }
 
+function normalizarInicio(valor: unknown): Date | null
+{
+  if (valor === undefined || valor === null || valor === "")
+  {
+    return null;
+  }
+
+  if (typeof valor !== "string" || valor.trim().length === 0)
+  {
+    throw new RangeError("Elegí un horario válido.");
+  }
+
+  const inicio = new Date(valor.trim());
+
+  if (Number.isNaN(inicio.getTime()))
+  {
+    throw new RangeError("Elegí un horario válido.");
+  }
+
+  return inicio;
+}
+
+function normalizarFecha(valor: unknown, opcional: boolean): string | null
+{
+  if (opcional && (valor === undefined || valor === null || valor === ""))
+  {
+    return null;
+  }
+
+  const fecha = exigirTexto(valor, "Elegí una fecha válida.");
+
+  if (!FECHA_PATTERN.test(fecha))
+  {
+    throw new RangeError("Elegí una fecha válida.");
+  }
+
+  return fecha;
+}
+
+function normalizarHora(valor: unknown, opcional: boolean): string | null
+{
+  if (opcional && (valor === undefined || valor === null || valor === ""))
+  {
+    return null;
+  }
+
+  const hora = exigirTexto(valor, "Elegí una hora válida.");
+
+  if (!HORA_PATTERN.test(hora))
+  {
+    throw new RangeError("Elegí una hora válida.");
+  }
+
+  return hora;
+}
+
 /**
  * Valida y normaliza los datos del alta manual de un turno.
  *
@@ -121,17 +179,13 @@ function normalizarEstado(valor: unknown): EstadoTurnoManual
  */
 export function parseTurnoManualInput(input: TurnoManualInput): TurnoManualValidado
 {
-  const fecha = exigirTexto(input.fecha, "Elegí una fecha válida.");
-  const hora = exigirTexto(input.hora, "Elegí una hora válida.");
+  const inicio = normalizarInicio(input.inicio);
+  const fecha = normalizarFecha(input.fecha, inicio !== null);
+  const hora = normalizarHora(input.hora, inicio !== null);
 
-  if (!FECHA_PATTERN.test(fecha))
+  if (inicio === null && (fecha === null || hora === null))
   {
-    throw new RangeError("Elegí una fecha válida.");
-  }
-
-  if (!HORA_PATTERN.test(hora))
-  {
-    throw new RangeError("Elegí una hora válida.");
+    throw new RangeError("Elegí una fecha y hora válidas.");
   }
 
   return {
@@ -141,6 +195,7 @@ export function parseTurnoManualInput(input: TurnoManualInput): TurnoManualValid
     nombre: normalizarNombre(input.nombre),
     whatsapp: normalizarWhatsapp(input.whatsapp),
     email: normalizarEmail(input.email),
+    inicio,
     fecha,
     hora,
     estado: normalizarEstado(input.estado),

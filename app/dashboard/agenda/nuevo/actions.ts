@@ -11,7 +11,7 @@ import { parseTurnoManualInput } from "@/lib/reservas/turno-manual";
 import type { TurnoManualValidado } from "@/lib/reservas/turno-manual";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { instanteDesdeZonaCivil, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
+import { claveDiaEnZona, instanteDesdeZonaCivil, resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
 interface NegocioManual
 {
@@ -197,6 +197,7 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
     nombre: formData.get("nombre"),
     whatsapp: formData.get("whatsapp"),
     email: formData.get("email"),
+    inicio: formData.get("inicio"),
     fecha: formData.get("fecha"),
     hora: formData.get("hora"),
     estado: formData.get("estado"),
@@ -217,7 +218,10 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
   const negocio = await cargarNegocio(admin, negocioId);
   const { servicio, staffNombre } = await cargarServicio(admin, negocioId, datos.staffId, datos.servicioId);
   const clienteId = await resolverCliente(admin, negocioId, datos);
-  const inicio = instanteDesdeZonaCivil({ fecha: datos.fecha, hora: datos.hora }, negocio.timeZone);
+  const inicio = datos.inicio ?? instanteDesdeZonaCivil({
+    fecha: datos.fecha ?? "",
+    hora: datos.hora ?? "",
+  }, negocio.timeZone);
   const fin = new Date(inicio.getTime() + servicio.duracion_min * 60_000);
 
   if (await estaOcupado(admin, negocioId, datos.staffId, inicio, servicio.duracion_min))
@@ -275,5 +279,5 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
   revalidatePath("/dashboard/clientes");
   revalidatePath("/dashboard");
 
-  return datos.fecha;
+  return claveDiaEnZona(inicio, negocio.timeZone);
 }

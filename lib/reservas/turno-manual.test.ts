@@ -33,8 +33,30 @@ describe("parseTurnoManualInput",
       email: null,
       fecha: "2026-10-06",
       hora: "10:30",
+      inicio: null,
       estado: "confirmado",
     });
+  });
+
+  it("debería aceptar un inicio ISO sin exigir fecha y hora",
+  () =>
+  {
+    const resultado = parseTurnoManualInput(base({
+      inicio: "2026-10-06T13:00:00.000Z",
+      fecha: "",
+      hora: "",
+    }));
+
+    expect(resultado.inicio).toEqual(new Date("2026-10-06T13:00:00.000Z"));
+    expect(resultado.fecha).toBeNull();
+    expect(resultado.hora).toBeNull();
+  });
+
+  it("debería rechazar un inicio ISO inválido",
+  () =>
+  {
+    expect(() => parseTurnoManualInput(base({ inicio: "no-es-fecha" })))
+      .toThrow("horario válido");
   });
 
   it("debería aceptar email y estado pagado",

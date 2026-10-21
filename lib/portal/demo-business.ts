@@ -11,7 +11,7 @@ export interface PortalStaff
 {
   readonly id: string;
   readonly nombre: string;
-  readonly horarios: Record<string, string>;
+  readonly horarios: Record<string, unknown>;
   readonly activo: boolean;
   readonly fotoUrl?: string | null;
   readonly descripcion?: string | null;
