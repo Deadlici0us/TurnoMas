@@ -7,6 +7,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -67,7 +69,7 @@ function errorSoloLectura(error: unknown): NextResponse
   );
 }
 
-export async function GET()
+async function handleGET()
 {
   try
   {
@@ -131,3 +133,5 @@ export async function GET()
     );
   }
 }
+
+export const GET = withApiHandler("/app/api/suscripcion/estado", handleGET);

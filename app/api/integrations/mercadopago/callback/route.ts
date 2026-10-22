@@ -7,6 +7,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
 import { buildMpCallbackUrl, decodificarMpState, exchangeMpCodeForTokens } from "@/lib/payments/mp-oauth";
@@ -30,7 +32,7 @@ function redirectConfig(requestUrl: string, params: Record<string, string>): Nex
   return redirectDestino(requestUrl, "/dashboard/config", params);
 }
 
-export async function GET(request: Request)
+async function handleGET(request: Request)
 {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -118,3 +120,5 @@ export async function GET(request: Request)
     return redirectDestino(request.url, destino, { mp: "error" });
   }
 }
+
+export const GET = withApiHandler("/app/api/integrations/mercadopago/callback", handleGET);

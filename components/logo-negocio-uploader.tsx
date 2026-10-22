@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import type { ActionResult } from "@/lib/actions/action-result";
 import { inicialesDe } from "@/components/ui/avatar";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
@@ -14,7 +15,7 @@ interface LogoNegocioUploaderProps
   readonly nombre: string;
   readonly logoUrl: string | null;
   /** Server Action que persiste la URL pública (o null al quitar). */
-  readonly action: (url: string | null) => Promise<void>;
+  readonly action: (url: string | null) => Promise<ActionResult<unknown> | void>;
 }
 
 /**
@@ -73,7 +74,14 @@ export default function LogoNegocioUploader(
 
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
-      await action(data.publicUrl);
+      const result = await action(data.publicUrl);
+
+      if (result !== undefined && !result.ok)
+      {
+        setError(result.error);
+        return;
+      }
+
       setPreview(data.publicUrl);
     }
     catch
@@ -99,7 +107,14 @@ export default function LogoNegocioUploader(
 
     try
     {
-      await action(null);
+      const result = await action(null);
+
+      if (result !== undefined && !result.ok)
+      {
+        setError(result.error);
+        return;
+      }
+
       setPreview(null);
     }
     catch

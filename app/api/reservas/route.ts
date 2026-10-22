@@ -10,6 +10,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { requierePagoSena } from "@/lib/checkout/checkout";
 import { readEnv } from "@/lib/env/env";
 import { NegocioSinMpError } from "@/lib/payments/mp-token";
@@ -376,7 +378,7 @@ function respuestaErrorReserva(error: unknown): NextResponse
   return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." }, { status: 500 });
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   const lectura = await leerYValidarReserva(request);
 
@@ -561,3 +563,5 @@ export async function POST(request: Request)
     return respuestaErrorReserva(error);
   }
 }
+
+export const POST = withApiHandler("/app/api/reservas", handlePOST);

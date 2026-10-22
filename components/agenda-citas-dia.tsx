@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/use-toast";
+import type { ActionResult } from "@/lib/actions/action-result";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { formatearARS } from "@/lib/dashboard/moneda";
@@ -30,7 +31,7 @@ interface AgendaCitasDiaProps
   readonly timeZone: string;
   readonly diaClave: string;
   readonly citas: readonly CitaDia[];
-  readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<void>;
+  readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<ActionResult<void> | void>;
 }
 
 /**
@@ -113,7 +114,17 @@ export default function AgendaCitasDia(props: AgendaCitasDiaProps)
 
     try
     {
-      await props.onCambiarEstado(cita.id, nuevo);
+      const resultado = await props.onCambiarEstado(cita.id, nuevo);
+
+      if (resultado !== undefined && !resultado.ok)
+      {
+        setErrorId(cita.id);
+        showToast({ tone: "error", title: "No se pudo actualizar", message: resultado.error });
+        setTimeout(() => setErrorId(null), 400);
+
+        return;
+      }
+
       setFlashId(cita.id);
       setErrorId(null);
       showToast({

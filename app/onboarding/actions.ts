@@ -7,6 +7,7 @@ import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 import { validarHorariosStaff } from "@/lib/staff/validation";
+import { withRedirectAction } from "@/lib/actions/with-redirect-action";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 
@@ -49,7 +50,7 @@ function horariosDeFormulario(formData: FormData): Record<string, string[]> | nu
  * En Vercel persiste en `negocios` y sigue al paso 2 (conectar MercadoPago,
  * obligatorio para cobrar señas); en local redirige al dashboard demo.
  */
-export async function createBusiness(formData: FormData): Promise<void>
+async function createBusinessInterno(formData: FormData): Promise<void>
 {
   const nombre = leerTexto(formData, "nombre");
   const pais = leerTexto(formData, "pais");
@@ -131,7 +132,7 @@ export async function createBusiness(formData: FormData): Promise<void>
  *
  * @param formData Formulario con el campo `whatsapp`.
  */
-export async function saveBusinessWhatsapp(formData: FormData): Promise<void>
+async function saveBusinessWhatsappInterno(formData: FormData): Promise<void>
 {
   if (resolveAuthMode() === "demo")
   {
@@ -177,3 +178,17 @@ export async function saveBusinessWhatsapp(formData: FormData): Promise<void>
 
   redirect("/onboarding?paso=4");
 }
+
+/** Alta del negocio con redirección ante errores inesperados. */
+export const createBusiness = withRedirectAction(
+  "createBusiness",
+  createBusinessInterno,
+  "/onboarding?error=inesperado",
+);
+
+/** Guardado del WhatsApp con redirección ante errores inesperados. */
+export const saveBusinessWhatsapp = withRedirectAction(
+  "saveBusinessWhatsapp",
+  saveBusinessWhatsappInterno,
+  "/onboarding?paso=3&error=inesperado",
+);

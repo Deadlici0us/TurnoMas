@@ -83,7 +83,8 @@
     "googleHint": "Más rápido, sin contraseña. Google Calendar lo conectás después en el onboarding",
     "useEmailInstead": "o usá email y contraseña",
     "orSeparator": "o",
-    "oauthError": "No pudimos iniciar con Google. Probá de nuevo"
+    "oauthError": "No pudimos iniciar con Google. Probá de nuevo",
+    "unexpectedError": "Ocurrió un error inesperado. Probá de nuevo."
   },
   "onboarding": {
     "title": "Poné en marcha tu negocio",
@@ -112,7 +113,8 @@
     "connectGcal": "Conectar Google Calendar",
     "skipGcal": "Conectar después",
     "finish": "Terminar y ver mi agenda",
-    "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de 14.999 ARS/mes"
+    "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de 14.999 ARS/mes",
+    "unexpectedError": "Ocurrió un error inesperado. Probá de nuevo."
   },
   "calculator": {
     "title": "¿Cuánto perdés por inasistencias?",

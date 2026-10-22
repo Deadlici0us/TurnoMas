@@ -6,13 +6,15 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { buildMpAuthorizeUrl, buildMpCallbackUrl, codificarMpState, sanearNext } from "@/lib/payments/mp-oauth";
 import { readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-export async function GET(request: Request)
+async function handleGET(request: Request)
 {
   try
   {
@@ -106,3 +108,5 @@ export async function GET(request: Request)
     return NextResponse.json({ error: "No pudimos iniciar la conexión con MercadoPago." }, { status: 500 });
   }
 }
+
+export const GET = withApiHandler("/app/api/integrations/mercadopago/authorize", handleGET);

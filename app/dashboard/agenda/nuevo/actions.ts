@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
+import { AuthError } from "@/lib/errors/auth-error";
+import { ConflictError } from "@/lib/errors/conflict-error";
+import { NotFoundError } from "@/lib/errors/not-found-error";
+import { UnavailableError } from "@/lib/errors/unavailable-error";
 import { sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
 import { calcularMontosReserva, tieneSenaEfectiva } from "@/lib/reservas/montos";
@@ -57,7 +61,7 @@ async function cargarNegocio(
 
   if (row === null || typeof row.id !== "string")
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   return {
@@ -94,12 +98,12 @@ async function cargarServicio(
 
   if (staff === null)
   {
-    throw new Error("No encontramos ese profesional.");
+    throw new NotFoundError("No encontramos ese profesional.");
   }
 
   if (servicio === null)
   {
-    throw new Error("No encontramos ese servicio.");
+    throw new NotFoundError("No encontramos ese servicio.");
   }
 
   return {
@@ -133,16 +137,16 @@ async function resolverCliente(
 
     if (existente === null)
     {
-      throw new Error("No encontramos ese cliente.");
+      throw new NotFoundError("No encontramos ese cliente.");
     }
 
     const { error } = await admin.from("clientes").update(campos).eq("id", datos.clienteId);
 
     if (error !== null)
     {
-      throw new Error(error.code === "23505"
-        ? "Ya existe un cliente con ese WhatsApp."
-        : "No pudimos guardar el cliente. Probá de nuevo.");
+      throw error.code === "23505"
+        ? new ConflictError("Ya existe un cliente con ese WhatsApp.")
+        : new UnavailableError("No pudimos guardar el cliente. Probá de nuevo.");
     }
 
     return datos.clienteId;
@@ -159,7 +163,7 @@ async function resolverCliente(
 
     if (error !== null)
     {
-      throw new Error("No pudimos guardar el cliente. Probá de nuevo.");
+      throw new UnavailableError("No pudimos guardar el cliente. Probá de nuevo.");
     }
 
     return clienteId;
@@ -170,9 +174,9 @@ async function resolverCliente(
 
   if (error !== null || nuevo === null)
   {
-    throw new Error(error?.code === "23505"
-      ? "Ya existe un cliente con ese WhatsApp."
-      : "No pudimos guardar el cliente. Probá de nuevo.");
+    throw error?.code === "23505"
+      ? new ConflictError("Ya existe un cliente con ese WhatsApp.")
+      : new UnavailableError("No pudimos guardar el cliente. Probá de nuevo.");
   }
 
   return (nuevo as { id: string }).id;
@@ -210,7 +214,7 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cargar un turno.");
+    throw new AuthError("Tenés que iniciar sesión para cargar un turno.");
   }
 
   const admin = getSupabaseAdmin();
@@ -226,7 +230,7 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
 
   if (await estaOcupado(admin, negocioId, datos.staffId, inicio, servicio.duracion_min))
   {
-    throw new Error("Ese horario ya está ocupado. Elegí otro.");
+    throw new ConflictError("Ese horario ya está ocupado. Elegí otro.");
   }
 
   const montos = calcularMontosReserva({
@@ -253,7 +257,7 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
 
   if (error !== null || turno === null)
   {
-    throw new Error("No pudimos crear el turno. Probá de nuevo.");
+    throw new UnavailableError("No pudimos crear el turno. Probá de nuevo.");
   }
 
   const turnoId = (turno as { id: string }).id;

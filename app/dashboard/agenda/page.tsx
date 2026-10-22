@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { actualizarEstadoTurno } from "./actions";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import AgendaCalendar from "@/components/agenda-calendar";
 import PageHeader from "@/components/ui/page-header";
@@ -39,11 +41,14 @@ function formatearInicio(iso: string, timeZone: string): string
   return formatearEnZona(iso, timeZone);
 }
 
-async function cambiarEstado(turnoId: string, nuevo: EstadoTurno): Promise<void>
+async function cambiarEstado(turnoId: string, nuevo: EstadoTurno): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarEstadoTurno(turnoId, nuevo);
+  return runAction("cambiarEstadoTurno", async () =>
+  {
+    await actualizarEstadoTurno(turnoId, nuevo);
+  });
 }
 
 export default async function AgendaPage(props?: {

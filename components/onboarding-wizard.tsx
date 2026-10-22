@@ -184,6 +184,11 @@ export default function OnboardingWizard()
                 {t("onboarding.whatsappGuardadoError")}
               </p>
             )}
+            {errorPaso3 === "inesperado" && (
+              <p role="alert" className="ui-alert ui-alert-danger text-sm font-semibold">
+                {t("onboarding.unexpectedError")}
+              </p>
+            )}
             <form action={saveBusinessWhatsapp} className="space-y-4">
               <div>
                 <label htmlFor="business-whatsapp"

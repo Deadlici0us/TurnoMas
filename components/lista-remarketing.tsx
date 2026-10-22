@@ -61,7 +61,16 @@ export default function ListaRemarketing({
 
     try
     {
-      await marcarRemarketingManual(turnoId);
+      const resultado = await marcarRemarketingManual(turnoId);
+
+      if (resultado !== undefined && !resultado.ok)
+      {
+        mostrar(turnoId);
+        showToast({ tone: "error", title: "No se pudo completar", message: resultado.error });
+
+        return;
+      }
+
       showToast({
         tone: "success",
         title: "Contacto registrado",
@@ -92,7 +101,14 @@ export default function ListaRemarketing({
   {
     try
     {
-      await deshacerRemarketingManual(turnoId);
+      const resultado = await deshacerRemarketingManual(turnoId);
+
+      if (resultado !== undefined && !resultado.ok)
+      {
+        showToast({ tone: "error", title: "No se pudo completar", message: resultado.error });
+
+        return;
+      }
       showToast({ tone: "success", title: "Listo", message: "Se deshizo el cambio." });
     }
     catch

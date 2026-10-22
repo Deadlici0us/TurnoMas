@@ -9,13 +9,14 @@ import { register } from "./actions";
 const ERROR_KEYS = {
   datos: "auth.invalidData",
   registro: "auth.registerError",
+  inesperado: "auth.unexpectedError",
 } as const;
 
 type ErrorParam = keyof typeof ERROR_KEYS;
 
 function isErrorParam(value: string | undefined): value is ErrorParam
 {
-  return value === "datos" || value === "registro";
+  return value === "datos" || value === "registro" || value === "inesperado";
 }
 
 export default async function RegisterPage({

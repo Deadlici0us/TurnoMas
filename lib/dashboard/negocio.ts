@@ -7,6 +7,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { NotFoundError } from "@/lib/errors/not-found-error";
+
 /** Devuelve el `id` del negocio del dueño o lanza si no existe. */
 export async function getNegocioIdDelDueno(admin: SupabaseClient, userId: string): Promise<string>
 {
@@ -15,7 +17,7 @@ export async function getNegocioIdDelDueno(admin: SupabaseClient, userId: string
 
   if (negocio === null)
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   return negocio.id as string;

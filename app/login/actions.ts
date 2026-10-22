@@ -6,10 +6,11 @@ import { redirect } from "next/navigation";
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { DEMO_COOKIE, DEMO_COOKIE_VALUE } from "@/lib/auth/demo-cookie";
 import { esCredencialDemo } from "@/lib/auth/demo-credentials";
+import { withRedirectAction } from "@/lib/actions/with-redirect-action";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Inicia sesión: Supabase Auth en Vercel, sesión demo temporal sin DB. */
-export async function login(formData: FormData): Promise<void>
+async function loginInterno(formData: FormData): Promise<void>
 {
   const emailCrudo = formData.get("email");
   const email = (typeof emailCrudo === "string" ? emailCrudo : "").trim();
@@ -53,7 +54,7 @@ export async function login(formData: FormData): Promise<void>
 }
 
 /** Cierra sesión: limpia siempre la cookie demo y luego Supabase si aplica. */
-export async function logout(): Promise<void>
+async function logoutInterno(): Promise<void>
 {
   (await cookies()).delete(DEMO_COOKIE);
 
@@ -67,3 +68,9 @@ export async function logout(): Promise<void>
 
   redirect("/login");
 }
+
+/** Acción de login con redirección ante errores inesperados. */
+export const login = withRedirectAction("login", loginInterno, "/login?error=inesperado");
+
+/** Acción de logout con redirección ante errores inesperados. */
+export const logout = withRedirectAction("logout", logoutInterno, "/login?error=inesperado");

@@ -8,6 +8,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { shouldReleaseBooking } from "@/lib/automations/anti-ghost";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -148,7 +150,7 @@ async function liberarTurno(
   return NextResponse.json({ success: true, liberado: true });
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
   const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
@@ -210,7 +212,10 @@ export async function POST(request: Request)
   return NextResponse.json({ success: true, liberados });
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/cron/antifantasma", handleGET);
+export const POST = withApiHandler("/app/api/cron/antifantasma", handlePOST);

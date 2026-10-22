@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import type { ActionResult } from "@/lib/actions/action-result";
 import { DAY_ORDER, dayLabel, type DayKey, type DayRange } from "@/lib/staff/schedule";
 import
 {
@@ -25,7 +26,7 @@ interface EditorHorariosSemanalesProps
    * Server Action que recibe el FormData con 7 campos (`lun`...`dom`).
    * Si se omite, renderiza solo los campos (para embeber en otro form).
    */
-  readonly action?: (formData: FormData) => Promise<void>;
+  readonly action?: (formData: FormData) => Promise<ActionResult<unknown> | void>;
   /** Etiqueta del botón de guardado. */
   readonly submitLabel?: string;
 }
@@ -176,7 +177,14 @@ export default function EditorHorariosSemanales({ inicial, action, submitLabel }
 
         try
         {
-          await action(formData);
+          const result = await action(formData);
+
+          if (result !== undefined && !result.ok)
+          {
+            showToast({ tone: "error", title: "No se pudo guardar", message: result.error });
+            return;
+          }
+
           showToast({ tone: "success", title: "Listo", message: "Horarios guardados." });
         }
         catch

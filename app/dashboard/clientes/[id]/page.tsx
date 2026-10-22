@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { actualizarCliente } from "../actions";
+import { actualizarCliente as actualizarClienteAction } from "../actions";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import FormularioCliente from "@/components/formulario-cliente";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
@@ -75,6 +77,17 @@ function resolverEstadoFicha(
 }
 
 /** Ficha del cliente con sus datos editables y el historial de servicios. */
+
+async function actualizarCliente(clienteId: string, formData: FormData): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("actualizarCliente", async () =>
+  {
+    await actualizarClienteAction(clienteId, formData);
+  });
+}
+
 export default async function ClienteDetallePage({
   params,
 }: {

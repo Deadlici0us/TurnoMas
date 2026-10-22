@@ -15,6 +15,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { promocionService } from "@/lib/services/promociones";
 import { subscriptionService } from "@/lib/services/subscription";
@@ -55,7 +57,7 @@ export function criterioRiesgo(ahora: Date): string
   ].join(",");
 }
 
-export async function POST(request: Request): Promise<ReturnType<typeof NextResponse.json>>
+async function handlePOST(request: Request): Promise<ReturnType<typeof NextResponse.json>>
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
   const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
@@ -166,7 +168,10 @@ export async function POST(request: Request): Promise<ReturnType<typeof NextResp
   });
 }
 
-export async function GET(): Promise<ReturnType<typeof NextResponse.json>>
+async function handleGET(): Promise<ReturnType<typeof NextResponse.json>>
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/cron/suscripciones", handleGET);
+export const POST = withApiHandler("/app/api/cron/suscripciones", handlePOST);

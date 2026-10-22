@@ -12,7 +12,8 @@
     "useEmailInstead": "o usa email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Intenta de nuevo",
-    "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo"
+    "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo",
+    "unexpectedError": "Ocurrió un error inesperado. Intenta de nuevo."
   },
   "onboarding": {
     "title": "Pon en marcha tu negocio",
@@ -41,7 +42,8 @@
     "connectGcal": "Conectar Google Calendar",
     "skipGcal": "Conectar después",
     "finish": "Terminar y ver mi agenda",
-    "trialNote": "Tienes 14 días gratis."
+    "trialNote": "Tienes 14 días gratis.",
+    "unexpectedError": "Ocurrió un error inesperado. Intenta de nuevo."
   },
   "footer": { "rights": "© TurnoMas", "privacy": "Privacidad", "terms": "Términos" }
 }

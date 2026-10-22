@@ -8,6 +8,10 @@
     "useEmailInstead": "or use email and password",
     "orSeparator": "or",
     "oauthError": "We couldn't sign you in with Google. Try again",
-    "sessionExpired": "Your session expired. Sign in again"
+    "sessionExpired": "Your session expired. Sign in again",
+    "unexpectedError": "Something unexpected happened. Try again."
+  },
+  "onboarding": {
+    "unexpectedError": "Something unexpected happened. Try again."
   }
 }

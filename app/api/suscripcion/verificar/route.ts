@@ -9,6 +9,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -93,7 +95,7 @@ function respuestaFalloVerificacion(error: unknown): NextResponse
   );
 }
 
-export async function POST()
+async function handlePOST()
 {
   try
   {
@@ -162,3 +164,5 @@ export async function POST()
     return respuestaFalloVerificacion(error);
   }
 }
+
+export const POST = withApiHandler("/app/api/suscripcion/verificar", handlePOST);

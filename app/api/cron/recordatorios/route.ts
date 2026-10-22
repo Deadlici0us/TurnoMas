@@ -15,6 +15,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { resolverRecordatorioHs, shouldSendReminder } from "@/lib/automations/recordatorios";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { incluyeComodinLink, resolverPlantilla } from "@/lib/notifications/custom-templates";
@@ -111,7 +113,7 @@ async function enviarRecordatorio(
   });
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
   const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
@@ -189,7 +191,10 @@ export async function POST(request: Request)
   return NextResponse.json({ success: true, enviados });
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/cron/recordatorios", handleGET);
+export const POST = withApiHandler("/app/api/cron/recordatorios", handlePOST);

@@ -33,14 +33,17 @@ export async function proxy(request: NextRequest): Promise<NextResponse>
   const nonce = crearNonce();
   const csp = buildCspPolicy(nonce, process.env.NODE_ENV !== "production");
 
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(LOCALE_HEADER, LOCALE);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("x-request-id", requestId);
   // Next lee el nonce del CSP del request y lo inyecta en sus <script>.
   requestHeaders.set("Content-Security-Policy", csp);
 
   const { snapshot, response } = await resolveAccess(request, requestHeaders);
   response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("x-request-id", requestId);
 
   const destination = resolveAccessRedirect(request.nextUrl.pathname, snapshot);
 
@@ -51,6 +54,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse>
 
   const redirect = NextResponse.redirect(new URL(destination, request.url));
   redirect.headers.set("Content-Security-Policy", csp);
+  redirect.headers.set("x-request-id", requestId);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
 
   return redirect;

@@ -8,11 +8,13 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { esEstrellasValidas } from "@/lib/automations/resenas";
 import { DEMO_NEGOCIO_ID } from "@/lib/portal/demo-business";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   let body: { turnoId?: unknown; estrellas?: unknown; comentario?: unknown };
 
@@ -88,7 +90,10 @@ export async function POST(request: Request)
   return NextResponse.json({ success: true });
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/resenas", handleGET);
+export const POST = withApiHandler("/app/api/resenas", handlePOST);

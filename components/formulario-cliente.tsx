@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import type { ActionResult } from "@/lib/actions/action-result";
 import { useToast } from "@/components/ui/use-toast";
 import { analizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { normalizarEmailCliente } from "@/lib/validation/email";
@@ -17,7 +18,7 @@ interface ClienteInicial
 
 export interface FormularioClienteProps
 {
-  readonly action: (formData: FormData) => Promise<void>;
+  readonly action: (formData: FormData) => Promise<ActionResult<unknown> | void>;
   readonly titulo: string;
   readonly cta: string;
   readonly successMessage: string;
@@ -113,7 +114,16 @@ export default function FormularioCliente({
 
     try
     {
-      await action(datos);
+      const resultado = await action(datos);
+
+      if (resultado !== undefined && !resultado.ok)
+      {
+        setErrorGeneral(resultado.error);
+        showToast({ tone: "error", title: "No se pudo guardar", message: resultado.error });
+
+        return;
+      }
+
       setWhatsapp(analisisWhatsapp.valor);
       setEmail(emailNormalizado ?? "");
       showToast({ tone: "success", title: "Listo", message: successMessage });

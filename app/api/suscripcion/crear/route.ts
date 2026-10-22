@@ -8,6 +8,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -166,7 +168,7 @@ function respuestaFalloCrear(error: unknown): NextResponse
   );
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   try
   {
@@ -250,3 +252,5 @@ export async function POST(request: Request)
     return respuestaFalloCrear(error);
   }
 }
+
+export const POST = withApiHandler("/app/api/suscripcion/crear", handlePOST);

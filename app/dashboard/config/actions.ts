@@ -31,6 +31,12 @@ import { normalizarTextoPlantilla, validarGoogleMapsUrl, validarGooglePlaceId } 
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { AuthError } from "@/lib/errors/auth-error";
+import { ConflictError } from "@/lib/errors/conflict-error";
+import { ForbiddenError } from "@/lib/errors/forbidden-error";
+import { NotFoundError } from "@/lib/errors/not-found-error";
+import { UnavailableError } from "@/lib/errors/unavailable-error";
+import { ValidationError } from "@/lib/errors/validation-error";
 
 const PENALIDADES = ["blocked", "fullDeposit"] as const;
 
@@ -56,7 +62,7 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -65,7 +71,7 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -86,7 +92,7 @@ export async function actualizarPoliticaSena(retencionHs: number): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -95,7 +101,7 @@ export async function actualizarPoliticaSena(retencionHs: number): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -109,7 +115,7 @@ async function exigirNegocioDelDueno(admin: ReturnType<typeof getSupabaseAdmin>,
 
   if (negocio === null)
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   return negocio as { id: string; resena_activa?: unknown };
@@ -131,7 +137,7 @@ export async function actualizarPoliticaRecordatorios(activo: boolean, hs: numbe
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -140,7 +146,7 @@ export async function actualizarPoliticaRecordatorios(activo: boolean, hs: numbe
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -161,7 +167,7 @@ export async function actualizarPoliticaResenas(activa: boolean, hs: number): Pr
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -170,7 +176,7 @@ export async function actualizarPoliticaResenas(activa: boolean, hs: number): Pr
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -192,7 +198,7 @@ export async function actualizarPoliticaRemarketing(activo: boolean, dias: numbe
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -201,7 +207,7 @@ export async function actualizarPoliticaRemarketing(activo: boolean, dias: numbe
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -235,7 +241,7 @@ export async function actualizarPlantillaMensaje(
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -246,7 +252,7 @@ export async function actualizarPlantillaMensaje(
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -264,7 +270,7 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -273,7 +279,7 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -293,7 +299,7 @@ export async function actualizarDescripcionNegocio(descripcion: string | null): 
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la descripción.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la descripción.");
   }
 
   const admin = getSupabaseAdmin();
@@ -302,7 +308,7 @@ export async function actualizarDescripcionNegocio(descripcion: string | null): 
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la descripción. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la descripción. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -330,7 +336,7 @@ export async function actualizarLogoNegocio(url: string | null): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar el logo.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar el logo.");
   }
 
   const admin = getSupabaseAdmin();
@@ -339,7 +345,7 @@ export async function actualizarLogoNegocio(url: string | null): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar el logo. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar el logo. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -359,7 +365,7 @@ export async function actualizarGooglePlaceId(valor: string | null): Promise<voi
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la configuración.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la configuración.");
   }
 
   const admin = getSupabaseAdmin();
@@ -375,7 +381,7 @@ export async function actualizarGooglePlaceId(valor: string | null): Promise<voi
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la configuración. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la configuración. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -397,7 +403,7 @@ export async function actualizarWhatsappNegocio(valor: string | null): Promise<v
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar el WhatsApp.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar el WhatsApp.");
   }
 
   const admin = getSupabaseAdmin();
@@ -406,7 +412,7 @@ export async function actualizarWhatsappNegocio(valor: string | null): Promise<v
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar el WhatsApp. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar el WhatsApp. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -427,7 +433,7 @@ export async function desconectarMercadoPago(): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para desconectar MercadoPago.");
+    throw new AuthError("Tenés que iniciar sesión para desconectar MercadoPago.");
   }
 
   assertDuenoEditable({ userId: user.id, email: user.email ?? null });
@@ -438,7 +444,7 @@ export async function desconectarMercadoPago(): Promise<void>
 
   if (negocio === null)
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   const negocioId = negocio.id as string;
@@ -447,7 +453,7 @@ export async function desconectarMercadoPago(): Promise<void>
 
   if (Array.isArray(conSena) && conSena.length > 0)
   {
-    throw new Error("Tenés servicios con seña activa. Desactivalas primero en Servicios.");
+    throw new ConflictError("Tenés servicios con seña activa. Desactivalas primero en Servicios.");
   }
 
   const { error } = await admin.from("negocio_secretos")
@@ -456,7 +462,7 @@ export async function desconectarMercadoPago(): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos desconectar MercadoPago. Probá de nuevo.");
+    throw new UnavailableError("No pudimos desconectar MercadoPago. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -472,7 +478,7 @@ export async function desconectarGoogleCalendar(): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para desconectar Google.");
+    throw new AuthError("Tenés que iniciar sesión para desconectar Google.");
   }
 
   const admin = getSupabaseAdmin();
@@ -481,7 +487,7 @@ export async function desconectarGoogleCalendar(): Promise<void>
 
   if (negocio === null)
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   const { error } = await admin.from("negocio_secretos")
@@ -490,7 +496,7 @@ export async function desconectarGoogleCalendar(): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos desconectar Google. Probá de nuevo.");
+    throw new UnavailableError("No pudimos desconectar Google. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -508,7 +514,7 @@ export async function actualizarHorariosNegocio(horarios: unknown): Promise<void
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar los horarios.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar los horarios.");
   }
 
   const admin = getSupabaseAdmin();
@@ -518,7 +524,7 @@ export async function actualizarHorariosNegocio(horarios: unknown): Promise<void
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar los horarios. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar los horarios. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -536,7 +542,7 @@ export async function actualizarTimezoneNegocio(timezone: string): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar la zona horaria.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar la zona horaria.");
   }
 
   const admin = getSupabaseAdmin();
@@ -546,7 +552,7 @@ export async function actualizarTimezoneNegocio(timezone: string): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar la zona horaria. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar la zona horaria. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -565,7 +571,7 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para cambiar el nombre.");
+    throw new AuthError("Tenés que iniciar sesión para cambiar el nombre.");
   }
 
   // Permitir que la demo renombre su negocio.
@@ -576,7 +582,7 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar el nombre. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar el nombre. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/config");
@@ -595,7 +601,7 @@ function secretoEliminacion(): string
 
   if (secreto === null || secreto.trim().length === 0)
   {
-    throw new Error("Falta configurar el secreto de eliminación en el entorno.");
+    throw new UnavailableError("Falta configurar el secreto de eliminación en el entorno.");
   }
 
   return secreto;
@@ -621,7 +627,7 @@ export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacio
 
   if (user === null || email.length === 0)
   {
-    throw new Error("Tenés que iniciar sesión para eliminar tu negocio.");
+    throw new AuthError("Tenés que iniciar sesión para eliminar tu negocio.");
   }
 
   const admin = getSupabaseAdmin();
@@ -665,7 +671,7 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
 
   if (!codigoCoincide(codigo.trim(), payload.codigoHash))
   {
-    throw new Error("El código no coincide. Revisá tu email e intentá de nuevo.");
+    throw new ValidationError("El código no coincide. Revisá tu email e intentá de nuevo.");
   }
 
   const supabase = await getSupabaseServer();
@@ -673,12 +679,12 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para eliminar tu negocio.");
+    throw new AuthError("Tenés que iniciar sesión para eliminar tu negocio.");
   }
 
   if (user.email !== payload.email)
   {
-    throw new Error("Ese código se envió a otro email. Pedí uno nuevo.");
+    throw new ForbiddenError("Ese código se envió a otro email. Pedí uno nuevo.");
   }
 
   const admin = getSupabaseAdmin();
@@ -686,7 +692,7 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
 
   if (negocioId !== payload.negocioId)
   {
-    throw new Error("Ese código no corresponde a tu negocio. Pedí uno nuevo.");
+    throw new ForbiddenError("Ese código no corresponde a tu negocio. Pedí uno nuevo.");
   }
 
   // Turnos referencia staff/servicios/clientes con restrict: van primero.
@@ -694,7 +700,7 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
 
   if (errorTurnos !== null)
   {
-    throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+    throw new UnavailableError("No pudimos eliminar tu negocio. Probá de nuevo.");
   }
 
   const borrados = await Promise.all([
@@ -707,7 +713,7 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
   {
     if (r.error !== null)
     {
-      throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+      throw new UnavailableError("No pudimos eliminar tu negocio. Probá de nuevo.");
     }
   }
 
@@ -721,7 +727,7 @@ export async function confirmarEliminacionNegocio(token: string, codigo: string,
   {
     if (r.error !== null)
     {
-      throw new Error("No pudimos eliminar tu negocio. Probá de nuevo.");
+      throw new UnavailableError("No pudimos eliminar tu negocio. Probá de nuevo.");
     }
   }
 

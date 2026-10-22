@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
+import { AuthError } from "@/lib/errors/auth-error";
+import { NotFoundError } from "@/lib/errors/not-found-error";
+import { ValidationError } from "@/lib/errors/validation-error";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -19,14 +22,14 @@ async function negocioDelDueno(): Promise<{
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para gestionar tu plan.");
+    throw new AuthError("Tenés que iniciar sesión para gestionar tu plan.");
   }
 
   assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   if (typeof user.email !== "string" || user.email.trim().length === 0)
   {
-    throw new Error("Necesitamos tu email para el débito mensual.");
+    throw new ValidationError("Necesitamos tu email para el débito mensual.");
   }
 
   const admin = getSupabaseAdmin();
@@ -35,7 +38,7 @@ async function negocioDelDueno(): Promise<{
 
   if (negocio === null)
   {
-    throw new Error("No encontramos tu negocio.");
+    throw new NotFoundError("No encontramos tu negocio.");
   }
 
   const row = negocio as {

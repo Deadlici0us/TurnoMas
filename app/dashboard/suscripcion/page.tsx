@@ -1,7 +1,11 @@
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 
-import { cancelarPlan } from "./actions";
+import { cancelarPlan as cancelarPlanAction } from "./actions";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
+import ActionForm from "@/components/ui/action-form";
+import SubmitButton from "@/components/ui/submit-button";
 import CopiarComprobante from "@/components/copiar-comprobante";
 import SuscripcionForm from "@/components/suscripcion-form";
 import VerificarPago from "@/components/verificar-pago";
@@ -288,6 +292,17 @@ function descripcionEstado(
     + (diasPlan !== null ? ` (${diasPlan} días restantes).` : ".");
 }
 
+
+async function cancelarPlan(): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("cancelarPlan", async () =>
+  {
+    await cancelarPlanAction();
+  });
+}
+
 interface PanelAccionProps
 {
   readonly estado: string;
@@ -301,14 +316,11 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   if (props.estado === "active" && !props.planCancelado)
   {
     return (
-      <form action={cancelarPlan}>
-        <button
-          type="submit"
-          className="ui-btn ui-btn-outline ui-btn-sm"
-        >
+      <ActionForm action={cancelarPlan} successMessage="Plan cancelado.">
+        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
           Cancelar plan
-        </button>
-      </form>
+        </SubmitButton>
+      </ActionForm>
     );
   }
 

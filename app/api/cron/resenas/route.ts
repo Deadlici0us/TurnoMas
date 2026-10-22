@@ -11,6 +11,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { resolverResenaHs, shouldAskReview } from "@/lib/automations/resenas";
 import { exigeFirmas, readEnv } from "@/lib/env/env";
 import { resolverPlantilla } from "@/lib/notifications/custom-templates";
@@ -40,7 +42,7 @@ interface TurnoCandidato
   readonly cliente: { email: string | null; nombre?: string | null } | null;
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   const claveActual = readEnv("QSTASH_CURRENT_SIGNING_KEY");
   const claveSiguiente = readEnv("QSTASH_NEXT_SIGNING_KEY");
@@ -143,7 +145,10 @@ export async function POST(request: Request)
   return NextResponse.json({ success: true, enviados });
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/cron/resenas", handleGET);
+export const POST = withApiHandler("/app/api/cron/resenas", handlePOST);

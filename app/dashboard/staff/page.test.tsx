@@ -23,6 +23,11 @@ vi.mock("@/lib/dashboard/queries", () =>
   return { getDashboardData: vi.fn() };
 });
 
+vi.mock("next/navigation", () =>
+{
+  return { useRouter: () => ({ refresh: vi.fn() }) };
+});
+
 const mockData = vi.mocked(getDashboardData);
 
 function dashboardBase(staff: unknown[] = [])
@@ -108,6 +113,66 @@ describe("StaffPage",
     expect(screen.getByText("Inactivo")).toBeDefined();
     expect(screen.getByRole("button", { name: "Activar" })).toBeDefined();
     expect((document.querySelector('input[name="lun"]') as HTMLInputElement).value).toBe("");
+  });
+
+  it("no debería ofrecer eliminar a un profesional con historial",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: {
+        ...dashboardBase([{
+          id: "s-1",
+          nombre: "Gisela",
+          activo: true,
+          horarios: { lun: "09:00-19:00" },
+        }]),
+        turnos: [{
+          staff_id: "s-1",
+          inicio: "2026-10-20T12:15:00.000Z",
+          fin: "2026-10-20T13:00:00.000Z",
+          estado: "cancelado",
+        }],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await StaffPage());
+
+    expect(screen.queryByRole("button", { name: "Eliminar" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Desactivar" })).toBeDefined();
+    expect(screen.getByText("Con historial: solo desactivar.")).toBeDefined();
+  });
+
+  it("debería avisar cuántos turnos próximos siguen agendados al desactivar",
+  async () =>
+  {
+    const user = userEvent.setup();
+    window.confirm = vi.fn(() => false);
+    mockData.mockResolvedValueOnce({
+      data: {
+        ...dashboardBase([{
+          id: "s-1",
+          nombre: "Gisela",
+          activo: true,
+          horarios: { lun: "09:00-19:00" },
+        }]),
+        turnos: [{
+          staff_id: "s-1",
+          inicio: "2026-10-23T12:00:00.000Z",
+          fin: "2026-10-23T13:00:00.000Z",
+          estado: "confirmado",
+        }],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await StaffPage());
+    await user.click(screen.getByRole("button", { name: "Desactivar" }));
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("1 turno próximo"));
+    expect(vi.mocked(cambiarEstadoStaff)).not.toHaveBeenCalled();
   });
 
   it("debería invocar las acciones al enviar formularios",

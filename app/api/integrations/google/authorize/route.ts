@@ -5,13 +5,15 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { buildGoogleAuthorizeUrl, buildGoogleCallbackUrl } from "@/lib/calendar/google-oauth";
 import { readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-export async function GET(request: Request)
+async function handleGET(request: Request)
 {
   try
   {
@@ -82,3 +84,5 @@ export async function GET(request: Request)
     return NextResponse.json({ error: "No pudimos iniciar la conexión con Google." }, { status: 500 });
   }
 }
+
+export const GET = withApiHandler("/app/api/integrations/google/authorize", handleGET);

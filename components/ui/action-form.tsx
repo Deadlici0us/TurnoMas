@@ -3,14 +3,16 @@
 import { useState } from "react";
 import type { FormEvent, FormHTMLAttributes, ReactNode } from "react";
 
+import type { ActionResult } from "@/lib/actions/action-result";
 import { ActionFormPendingContext } from "./action-form-pending-context";
 import { useToast } from "./use-toast";
 
 export interface ActionFormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "onSubmit">
 {
-  readonly action: (formData: FormData) => Promise<void>;
+  readonly action: (formData: FormData) => Promise<ActionResult<unknown> | void>;
   readonly successMessage: string;
   readonly errorMessage?: string;
+  readonly confirmMessage?: string;
   readonly children: ReactNode;
 }
 
@@ -27,6 +29,7 @@ export default function ActionForm({
   action,
   successMessage,
   errorMessage = "No pudimos completar la acción. Probá de nuevo.",
+  confirmMessage,
   children,
   ...props
 }: ActionFormProps)
@@ -43,11 +46,28 @@ export default function ActionForm({
       return;
     }
 
+    if (confirmMessage !== undefined && !window.confirm(confirmMessage))
+    {
+      return;
+    }
+
     setPendiente(true);
 
     try
     {
-      await action(new FormData(event.currentTarget));
+      const result = await action(new FormData(event.currentTarget));
+
+      if (result !== undefined && !result.ok)
+      {
+        showToast({
+          tone: "error",
+          title: "No se pudo completar",
+          message: result.error.length > 0 ? result.error : errorMessage,
+        });
+
+        return;
+      }
+
       showToast({ tone: "success", title: "Listo", message: successMessage });
     }
     catch (error)

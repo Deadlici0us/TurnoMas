@@ -6,6 +6,8 @@ import ConfigSubnav from "@/components/config-subnav";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
 import GuiaWhatsapp from "@/components/guia-whatsapp";
 import LogoNegocioUploader from "@/components/logo-negocio-uploader";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import ActionForm from "@/components/ui/action-form";
 import SeccionConfig from "@/components/seccion-config";
 import ZonaPeligroEliminar from "@/components/zona-peligro-eliminar";
@@ -36,7 +38,7 @@ import { DAY_ORDER } from "@/lib/staff/schedule";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolverTimezoneNegocio, TIMEZONES_SOPORTADAS } from "@/lib/timezone/timezone";
 
-async function guardarPolitica(formData: FormData): Promise<void>
+async function guardarPolitica(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
@@ -44,143 +46,191 @@ async function guardarPolitica(formData: FormData): Promise<void>
   const penalidadCruda = formData.get("penalidad");
   const penalidad = (typeof penalidadCruda === "string" ? penalidadCruda : "fullDeposit") as PenalidadListaNegra;
 
-  await actualizarPoliticaListaNegra(umbral, penalidad);
+  return runAction("guardarPolitica", async () =>
+  {
+    await actualizarPoliticaListaNegra(umbral, penalidad);
+  });
 }
 
-async function guardarSena(formData: FormData): Promise<void>
+async function guardarSena(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarPoliticaSena(Number(formData.get("retencionHs")));
+  return runAction("guardarSena", async () =>
+  {
+    await actualizarPoliticaSena(Number(formData.get("retencionHs")));
+  });
 }
 
-async function guardarRecordatorios(formData: FormData): Promise<void>
+async function guardarRecordatorios(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarPoliticaRecordatorios(
-    formData.get("recordatorioActivo") === "on", Number(formData.get("recordatorioHs")));
+  return runAction("guardarRecordatorios", async () =>
+  {
+    await actualizarPoliticaRecordatorios(
+      formData.get("recordatorioActivo") === "on", Number(formData.get("recordatorioHs")));
+  });
 }
 
-async function guardarResenas(formData: FormData): Promise<void>
+async function guardarResenas(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarPoliticaResenas(
-    formData.get("resenaActiva") === "on", Number(formData.get("resenaHs")));
+  return runAction("guardarResenas", async () =>
+  {
+    await actualizarPoliticaResenas(
+      formData.get("resenaActiva") === "on", Number(formData.get("resenaHs")));
+  });
 }
 
-async function guardarRemarketing(formData: FormData): Promise<void>
+async function guardarRemarketing(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarPoliticaRemarketing(
-    formData.get("remarketingActivo") === "on", Number(formData.get("remarketingDias")));
+  return runAction("guardarRemarketing", async () =>
+  {
+    await actualizarPoliticaRemarketing(
+      formData.get("remarketingActivo") === "on", Number(formData.get("remarketingDias")));
+  });
 }
 
-async function guardarPlantilla(tipo: TipoPlantillaConfigurable, formData: FormData): Promise<void>
+async function guardarPlantilla(
+  tipo: TipoPlantillaConfigurable,
+  formData: FormData,
+): Promise<ActionResult<void>>
 {
   "use server";
 
   const subject = formData.get("subject");
   const cuerpo = formData.get("cuerpo");
 
-  await actualizarPlantillaMensaje(tipo,
-    typeof subject === "string" ? subject : null,
-    typeof cuerpo === "string" ? cuerpo : null);
+  return runAction("guardarPlantilla", async () =>
+  {
+    await actualizarPlantillaMensaje(tipo,
+      typeof subject === "string" ? subject : null,
+      typeof cuerpo === "string" ? cuerpo : null);
+  });
 }
 
-async function guardarMaps(formData: FormData): Promise<void>
+async function guardarMaps(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const url = formData.get("mapsUrl");
 
-  await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
+  return runAction("guardarMaps", async () =>
+  {
+    await actualizarGoogleMapsUrl(typeof url === "string" ? url : null);
+  });
 }
 
-async function guardarPlaceId(formData: FormData): Promise<void>
+async function guardarPlaceId(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const placeId = formData.get("placeId");
 
-  await actualizarGooglePlaceId(typeof placeId === "string" ? placeId : null);
+  return runAction("guardarPlaceId", async () =>
+  {
+    await actualizarGooglePlaceId(typeof placeId === "string" ? placeId : null);
+  });
 }
 
-async function guardarDescripcion(formData: FormData): Promise<void>
+async function guardarDescripcion(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const descripcion = formData.get("descripcion");
 
-  await actualizarDescripcionNegocio(typeof descripcion === "string" ? descripcion : null);
+  return runAction("guardarDescripcion", async () =>
+  {
+    await actualizarDescripcionNegocio(typeof descripcion === "string" ? descripcion : null);
+  });
 }
 
-async function guardarLogo(url: string | null): Promise<void>
+async function guardarLogo(url: string | null): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarLogoNegocio(url);
+  return runAction("guardarLogo", async () =>
+  {
+    await actualizarLogoNegocio(url);
+  });
 }
 
-async function guardarWhatsapp(formData: FormData): Promise<void>
+async function guardarWhatsapp(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const crudo = formData.get("whatsapp");
 
-  await actualizarWhatsappNegocio(typeof crudo === "string" ? crudo : null);
+  return runAction("guardarWhatsapp", async () =>
+  {
+    await actualizarWhatsappNegocio(typeof crudo === "string" ? crudo : null);
+  });
 }
 
-async function quitarTokenMp(): Promise<void>
+async function quitarTokenMp(): Promise<ActionResult<void>>
 {
   "use server";
 
-  try
+  return runAction("quitarTokenMp", async () =>
   {
-    await desconectarMercadoPago();
-  }
-  catch (error)
-  {
-    // Guarda esperado: avisa en vez de 500. El resto se propaga (500).
-    const destino = destinoDesconexionMp(error);
-
-    if (destino !== null)
+    try
     {
-      redirect(destino);
+      await desconectarMercadoPago();
     }
+    catch (error)
+    {
+      // Guarda esperado: avisa en vez de 500. El resto se traduce a ActionResult.
+      const destino = destinoDesconexionMp(error);
 
-    throw error;
-  }
+      if (destino !== null)
+      {
+        redirect(destino);
+      }
+
+      throw error;
+    }
+  });
 }
 
-async function quitarGoogle(): Promise<void>
+async function quitarGoogle(): Promise<ActionResult<void>>
 {
   "use server";
 
-  await desconectarGoogleCalendar();
+  return runAction("quitarGoogle", async () =>
+  {
+    await desconectarGoogleCalendar();
+  });
 }
 
-async function guardarNombre(formData: FormData): Promise<void>
+async function guardarNombre(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const nombreCrudo = formData.get("nombre");
 
-  await actualizarNombreNegocio(typeof nombreCrudo === "string" ? nombreCrudo : "");
+  return runAction("guardarNombre", async () =>
+  {
+    await actualizarNombreNegocio(typeof nombreCrudo === "string" ? nombreCrudo : "");
+  });
 }
 
-async function guardarTimezone(formData: FormData): Promise<void>
+async function guardarTimezone(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const timezoneCruda = formData.get("timezone");
 
-  await actualizarTimezoneNegocio(typeof timezoneCruda === "string" ? timezoneCruda : "");
+  return runAction("guardarTimezone", async () =>
+  {
+    await actualizarTimezoneNegocio(typeof timezoneCruda === "string" ? timezoneCruda : "");
+  });
 }
 
-async function guardarHorariosNegocio(formData: FormData): Promise<void>
+async function guardarHorariosNegocio(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
@@ -193,7 +243,10 @@ async function guardarHorariosNegocio(formData: FormData): Promise<void>
     horarios[day] = typeof valorCrudo === "string" ? valorCrudo : "";
   }
 
-  await actualizarHorariosNegocio(horarios);
+  return runAction("guardarHorariosNegocio", async () =>
+  {
+    await actualizarHorariosNegocio(horarios);
+  });
 }
 
 interface NegocioConfigRow
@@ -402,7 +455,7 @@ async function cargarContextoConfig(
 function panelMercadoPago(
   demo: boolean,
   mpConectado: boolean,
-  desconectar: () => Promise<void>,
+  desconectar: () => Promise<ActionResult<void> | void>,
 ): ReactNode
 {
   if (demo)

@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-import { ajustarAusencia, cambiarBloqueoCliente, crearCliente, eliminarCliente } from "./actions";
+import
+{
+  ajustarAusencia as ajustarAusenciaAction,
+  cambiarBloqueoCliente as cambiarBloqueoClienteAction,
+  crearCliente as crearClienteAction,
+  eliminarCliente as eliminarClienteAction,
+} from "./actions";
 import FormularioCliente from "@/components/formulario-cliente";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
@@ -62,6 +70,47 @@ function coincideBusqueda(cliente: ClienteRow, query: string): boolean
     || email.includes(q)
     || (digitos.length >= 3 && cliente.whatsapp.replace(/\D/g, "").includes(digitos))
     || (telefono.ok && telefono.valor === cliente.whatsapp);
+}
+
+
+async function crearCliente(formData: FormData): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("crearCliente", async () =>
+  {
+    await crearClienteAction(formData);
+  });
+}
+
+async function ajustarAusencia(clienteId: string, delta: 1 | -1): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("ajustarAusencia", async () =>
+  {
+    await ajustarAusenciaAction(clienteId, delta);
+  });
+}
+
+async function cambiarBloqueoCliente(clienteId: string, bloqueado: boolean): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("cambiarBloqueoCliente", async () =>
+  {
+    await cambiarBloqueoClienteAction(clienteId, bloqueado);
+  });
+}
+
+async function eliminarCliente(clienteId: string): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("eliminarCliente", async () =>
+  {
+    await eliminarClienteAction(clienteId);
+  });
 }
 
 export default async function ClientesPage({

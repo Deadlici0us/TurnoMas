@@ -105,7 +105,30 @@ export default function ListaResenas({
 
     try
     {
-      await marcarResenaResuelta(id, nuevo);
+      const resultado = await marcarResenaResuelta(id, nuevo);
+
+      if (resultado !== undefined && !resultado.ok)
+      {
+        setResueltos((prev) =>
+        {
+          const copia = new Set(prev);
+
+          if (nuevo)
+          {
+            copia.delete(id);
+          }
+          else
+          {
+            copia.add(id);
+          }
+
+          return copia;
+        });
+        showToast({ tone: "error", title: "No se pudo completar", message: resultado.error });
+
+        return;
+      }
+
       showToast({
         tone: "success",
         title: "Reseña actualizada",

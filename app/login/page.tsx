@@ -12,6 +12,7 @@ const ERROR_KEYS = {
   credenciales: "auth.invalidCredentials",
   oauth: "auth.oauthError",
   sesion: "auth.sessionExpired",
+  inesperado: "auth.unexpectedError",
 } as const;
 
 export default async function LoginPage({
@@ -23,6 +24,7 @@ export default async function LoginPage({
   const t = await getTranslations("common");
   const { error } = await searchParams;
   const errorKey = error === "credenciales" || error === "oauth" || error === "sesion"
+    || error === "inesperado"
     ? ERROR_KEYS[error]
     : null;
   const demo = getDemoCredentials();

@@ -7,6 +7,7 @@ import
   cambiarEstadoStaff,
   eliminarStaff,
 } from "./actions";
+import type { ActionResult } from "@/lib/actions/action-result";
 import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
@@ -15,6 +16,8 @@ import FotoStaffUploader from "@/components/foto-staff-uploader";
 import PerfilStaffForm from "@/components/perfil-staff-form";
 import StaffDeleteForm from "@/components/staff-delete-form";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { calcularResumenTurnosPorStaff } from "@/lib/staff/resumen-turnos";
+import type { TurnoResumenRow } from "@/lib/staff/resumen-turnos";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 
 interface StaffRow
@@ -39,30 +42,30 @@ interface AsociacionRow
   readonly servicioId: string;
 }
 
-async function crearStaff(formData: FormData): Promise<void>
+async function crearStaff(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
   const nombreCrudo = formData.get("nombre");
 
-  await agregarStaff(typeof nombreCrudo === "string" ? nombreCrudo : "");
+  return agregarStaff(typeof nombreCrudo === "string" ? nombreCrudo : "");
 }
 
-async function alternarStaff(staffId: string, activo: boolean): Promise<void>
+async function alternarStaff(staffId: string, activo: boolean): Promise<ActionResult<void>>
 {
   "use server";
 
-  await cambiarEstadoStaff(staffId, activo);
+  return cambiarEstadoStaff(staffId, activo);
 }
 
-async function quitarStaff(staffId: string): Promise<void>
+async function quitarStaff(staffId: string): Promise<ActionResult<void>>
 {
   "use server";
 
-  await eliminarStaff(staffId);
+  return eliminarStaff(staffId);
 }
 
-async function guardarHorarios(staffId: string, formData: FormData): Promise<void>
+async function guardarHorarios(staffId: string, formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
 
@@ -75,7 +78,7 @@ async function guardarHorarios(staffId: string, formData: FormData): Promise<voi
     horarios[day] = typeof valorCrudo === "string" ? valorCrudo : "";
   }
 
-  await actualizarHorariosStaff(staffId, horarios);
+  return actualizarHorariosStaff(staffId, horarios);
 }
 
 async function guardarPerfil(
@@ -86,23 +89,20 @@ async function guardarPerfil(
 {
   "use server";
 
-  try
-  {
-    await actualizarPerfilStaff(staffId, formData.get("descripcion"), formData.getAll("servicios"));
-  }
-  catch (error)
-  {
-    return error instanceof Error ? error.message : "No pudimos guardar el perfil. Probá de nuevo.";
-  }
+  const result = await actualizarPerfilStaff(
+    staffId,
+    formData.get("descripcion"),
+    formData.getAll("servicios"),
+  );
 
-  return null;
+  return result.ok ? null : result.error;
 }
 
-async function guardarFoto(staffId: string, fotoUrl: string | null): Promise<void>
+async function guardarFoto(staffId: string, fotoUrl: string | null): Promise<ActionResult<void>>
 {
   "use server";
 
-  await actualizarFotoStaff(staffId, fotoUrl);
+  return actualizarFotoStaff(staffId, fotoUrl);
 }
 
 export default async function StaffPage()
@@ -110,6 +110,9 @@ export default async function StaffPage()
   const { data: dashboard } = await getDashboardData();
   const servicios = (dashboard.servicios as ServicioRow[]).map((s) => ({ id: s.id, nombre: s.nombre }));
   const asociaciones = (dashboard as { asociaciones?: AsociacionRow[] }).asociaciones ?? [];
+  const resumenTurnos = calcularResumenTurnosPorStaff(
+    (dashboard.turnos as TurnoResumenRow[] | undefined) ?? [],
+  );
 
   return (
     <div>
@@ -134,7 +137,21 @@ export default async function StaffPage()
         <SubmitButton pendingLabel="Agregando...">Agregar profesional</SubmitButton>
       </ActionForm>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {(dashboard.staff as StaffRow[]).map((member) => (
+        {(dashboard.staff as StaffRow[]).map((member) =>
+        {
+          const resumen = resumenTurnos.get(member.id) ?? { total: 0, proximos: 0 };
+          const conHistorial = resumen.total > 0;
+          const confirmacion = member.activo === false
+            ? undefined
+            : conHistorial
+              ? resumen.proximos > 0
+                ? `Tiene ${resumen.proximos} turno${resumen.proximos === 1 ? "" : "s"} próximo${resumen.proximos === 1 ? "" : "s"}. `
+                  + "No recibirá nuevas reservas, pero esos turnos seguirán agendados. ¿Desactivar?"
+                : `Tiene ${resumen.total} turno${resumen.total === 1 ? "" : "s"} en el historial. `
+                  + "Se conservarán. ¿Desactivar?"
+              : undefined;
+
+          return (
           <div key={member.id} className="ui-card p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex size-12 items-center justify-center rounded-full bg-warning-soft
@@ -146,16 +163,25 @@ export default async function StaffPage()
                 <p className="text-sm text-muted-foreground">
                   {member.activo === false ? "Inactivo" : "Activo"}
                 </p>
+                {conHistorial ? (
+                  <p className="text-xs text-muted-foreground">Con historial: solo desactivar.</p>
+                ) : null}
               </div>
               <ActionForm
                 action={alternarStaff.bind(null, member.id, member.activo === false)}
                 successMessage={member.activo === false ? "Profesional activado." : "Profesional desactivado."}
+                confirmMessage={confirmacion}
               >
                 <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
                   {member.activo === false ? "Activar" : "Desactivar"}
                 </SubmitButton>
               </ActionForm>
-              <StaffDeleteForm action={quitarStaff.bind(null, member.id)} />
+              {conHistorial ? null : (
+                <StaffDeleteForm
+                  action={quitarStaff.bind(null, member.id)}
+                  nombre={member.nombre}
+                />
+              )}
             </div>
             <div className="mt-4 space-y-4 border-t border-line pt-4">
               <h4 className="text-sm font-semibold text-ink">Perfil</h4>
@@ -187,7 +213,8 @@ export default async function StaffPage()
               />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

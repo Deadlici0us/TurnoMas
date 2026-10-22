@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { paymentService } from "@/lib/services/payment";
 import { bookingService } from "@/lib/services/booking";
 import { primerVencimiento, MpHttpError } from "@/lib/payments/subscription";
@@ -265,7 +267,7 @@ async function aplicarCobroSuscripcion(
   return NextResponse.json({ success: true, status: vinculo.status });
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   const secretoMp = readEnv("MP_WEBHOOK_SECRET");
 
@@ -367,7 +369,10 @@ async function borrarEventoGoogle(bookingId: string): Promise<void>
   }
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/webhooks", handleGET);
+export const POST = withApiHandler("/app/api/webhooks", handlePOST);

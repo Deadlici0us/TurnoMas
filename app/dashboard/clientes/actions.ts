@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
+import { AuthError } from "@/lib/errors/auth-error";
+import { ConflictError } from "@/lib/errors/conflict-error";
+import { NotFoundError } from "@/lib/errors/not-found-error";
+import { UnavailableError } from "@/lib/errors/unavailable-error";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { normalizarEmailCliente } from "@/lib/validation/email";
@@ -18,7 +22,7 @@ async function exigirDueno(): Promise<{ admin: ReturnType<typeof getSupabaseAdmi
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para modificar clientes.");
+    throw new AuthError("Tenés que iniciar sesión para modificar clientes.");
   }
 
   const admin = getSupabaseAdmin();
@@ -53,10 +57,10 @@ export async function crearCliente(formData: FormData): Promise<void>
   {
     if (error.code === "23505")
     {
-      throw new Error("Ya existe un cliente con ese WhatsApp.");
+      throw new ConflictError("Ya existe un cliente con ese WhatsApp.");
     }
 
-    throw new Error("No pudimos crear el cliente. Probá de nuevo.");
+    throw new UnavailableError("No pudimos crear el cliente. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/clientes");
@@ -77,10 +81,10 @@ export async function actualizarCliente(clienteId: string, formData: FormData): 
   {
     if (error.code === "23505")
     {
-      throw new Error("Ese WhatsApp ya pertenece a otro cliente.");
+      throw new ConflictError("Ese WhatsApp ya pertenece a otro cliente.");
     }
 
-    throw new Error("No pudimos actualizar el cliente. Probá de nuevo.");
+    throw new UnavailableError("No pudimos actualizar el cliente. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/clientes");
@@ -96,7 +100,7 @@ export async function ajustarAusencia(clienteId: string, delta: 1 | -1): Promise
 
   if (cliente === null)
   {
-    throw new Error("No encontramos ese cliente.");
+    throw new NotFoundError("No encontramos ese cliente.");
   }
 
   const ausencias = Math.max(0, (cliente as { ausencias: number }).ausencias + delta);
@@ -105,7 +109,7 @@ export async function ajustarAusencia(clienteId: string, delta: 1 | -1): Promise
 
   if (error !== null)
   {
-    throw new Error("No pudimos actualizar las ausencias. Probá de nuevo.");
+    throw new UnavailableError("No pudimos actualizar las ausencias. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/clientes");
@@ -120,7 +124,7 @@ export async function cambiarBloqueoCliente(clienteId: string, bloqueado: boolea
 
   if (error !== null)
   {
-    throw new Error("No pudimos actualizar el cliente. Probá de nuevo.");
+    throw new UnavailableError("No pudimos actualizar el cliente. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/clientes");
@@ -137,10 +141,10 @@ export async function eliminarCliente(clienteId: string): Promise<void>
   {
     if (error.code === "23503")
     {
-      throw new Error("No se puede eliminar porque tiene turnos. Bloquealo en su lugar.");
+      throw new ConflictError("No se puede eliminar porque tiene turnos. Bloquealo en su lugar.");
     }
 
-    throw new Error("No pudimos eliminar el cliente. Probá de nuevo.");
+    throw new UnavailableError("No pudimos eliminar el cliente. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/clientes");

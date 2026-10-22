@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
+import { AuthError } from "@/lib/errors/auth-error";
+import { ConflictError } from "@/lib/errors/conflict-error";
+import { UnavailableError } from "@/lib/errors/unavailable-error";
+import { ValidationError } from "@/lib/errors/validation-error";
 import { validarServicio } from "@/lib/servicios/validation";
 import type { ServicioInput } from "@/lib/servicios/validation";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -45,7 +49,7 @@ async function exigirMpConectado(
 
   if (typeof token !== "string" || token.trim().length === 0)
   {
-    throw new Error("Conectá tu MercadoPago antes de activar señas en un servicio.");
+    throw new ValidationError("Conectá tu MercadoPago antes de activar señas en un servicio.");
   }
 }
 
@@ -89,7 +93,7 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para modificar servicios.");
+    throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
   // El dueño demo está permitido si está en modo editable (ej: local).
@@ -122,7 +126,7 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
 
   if (error !== null)
   {
-    throw new Error("No pudimos guardar el servicio. Probá de nuevo.");
+    throw new UnavailableError("No pudimos guardar el servicio. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/servicios");
@@ -139,7 +143,7 @@ export async function eliminarServicio(servicioId: string): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para modificar servicios.");
+    throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
   // Si querés forzar que el dueño demo no pueda eliminar servicios, podés volver a llamar a assertDuenoEditable.
@@ -155,10 +159,10 @@ export async function eliminarServicio(servicioId: string): Promise<void>
   {
     if (error.code === "23503")
     {
-      throw new Error("No se puede eliminar porque tiene turnos asociados. Desactivalo en su lugar.");
+      throw new ConflictError("No se puede eliminar porque tiene turnos asociados. Desactivalo en su lugar.");
     }
 
-    throw new Error("No pudimos eliminar el servicio. Probá de nuevo.");
+    throw new UnavailableError("No pudimos eliminar el servicio. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/servicios");
@@ -175,7 +179,7 @@ export async function cambiarEstadoServicio(servicioId: string, activo: boolean)
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para modificar servicios.");
+    throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
   // Mantenerlo editable para la demo también.
@@ -188,7 +192,7 @@ export async function cambiarEstadoServicio(servicioId: string, activo: boolean)
 
   if (error !== null)
   {
-    throw new Error("No pudimos actualizar el servicio. Probá de nuevo.");
+    throw new UnavailableError("No pudimos actualizar el servicio. Probá de nuevo.");
   }
 
   revalidatePath("/dashboard/servicios");

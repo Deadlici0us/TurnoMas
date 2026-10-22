@@ -3,6 +3,8 @@ import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
 import FormularioServicio from "@/components/formulario-servicio";
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import { getDashboardData } from "@/lib/dashboard/queries";
 
 interface ServicioRow
@@ -55,18 +57,24 @@ async function editarServicio(
   return null;
 }
 
-async function borrarServicio(servicioId: string): Promise<void>
+async function borrarServicio(servicioId: string): Promise<ActionResult<void>>
 {
   "use server";
 
-  await eliminarServicio(servicioId);
+  return runAction("borrarServicio", async () =>
+  {
+    await eliminarServicio(servicioId);
+  });
 }
 
-async function alternarServicio(servicioId: string, activo: boolean): Promise<void>
+async function alternarServicio(servicioId: string, activo: boolean): Promise<ActionResult<void>>
 {
   "use server";
 
-  await cambiarEstadoServicio(servicioId, activo);
+  return runAction("alternarServicio", async () =>
+  {
+    await cambiarEstadoServicio(servicioId, activo);
+  });
 }
 
 export default async function ServiciosPage()

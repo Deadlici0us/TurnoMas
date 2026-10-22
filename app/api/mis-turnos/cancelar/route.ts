@@ -8,6 +8,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { verificarTokenCancelacion } from "@/lib/cancelacion/token";
 import { readEnv } from "@/lib/env/env";
 import { DEMO_NEGOCIO_ID } from "@/lib/portal/demo-business";
@@ -62,7 +64,7 @@ async function superaLimite(turnoId: string): Promise<boolean>
   }
 }
 
-export async function POST(request: Request)
+async function handlePOST(request: Request)
 {
   let body: { turnoId?: unknown; token?: unknown };
 
@@ -150,7 +152,10 @@ export async function POST(request: Request)
   }
 }
 
-export async function GET()
+async function handleGET()
 {
   return NextResponse.json({ status: "ok" });
 }
+
+export const GET = withApiHandler("/app/api/mis-turnos/cancelar", handleGET);
+export const POST = withApiHandler("/app/api/mis-turnos/cancelar", handlePOST);

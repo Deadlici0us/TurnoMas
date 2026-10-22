@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { ActionResult } from "@/lib/actions/action-result";
+import { runAction } from "@/lib/actions/run-action";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
+import { AuthError } from "@/lib/errors/auth-error";
+import { ConflictError } from "@/lib/errors/conflict-error";
+import { UnavailableError } from "@/lib/errors/unavailable-error";
 import { validarServiciosStaff } from "@/lib/staff/servicios";
 import {
   HORARIOS_POR_DEFECTO,
@@ -15,11 +20,12 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-/** Agrega un profesional al equipo del negocio del dueño autenticado. */
-export async function agregarStaff(nombre: string): Promise<void>
-{
-  const value = validarNombreStaff(nombre);
+/** Estados que cuentan como un turno todavía por atender. */
+const ESTADOS_PROXIMOS = ["pendiente", "confirmado", "pagado"] as const;
 
+/** Resuelve el negocio del dueño autenticado o falla con un error de negocio. */
+async function contextoDelDueno(mensajeSesion: string)
+{
   await assertModoEditable();
 
   const supabase = await getSupabaseServer();
@@ -27,122 +33,130 @@ export async function agregarStaff(nombre: string): Promise<void>
 
   if (user === null)
   {
-    throw new Error("Tenés que iniciar sesión para agregar profesionales.");
+    throw new AuthError(mensajeSesion);
   }
-
-  // Permitir que el dueño demo modifique su equipo.
-
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
 
-  const { error } = await admin.from("staff")
-    .insert({ negocio_id: negocioId, nombre: value, horarios: HORARIOS_POR_DEFECTO });
+  return { admin, negocioId };
+}
 
-  if (error !== null)
+/** Cuenta turnos totales y próximos de un profesional. */
+async function contarTurnos(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  negocioId: string,
+  staffId: string,
+)
+{
+  const [total, proximos] = await Promise.all([
+    admin.from("turnos").select("id", { count: "exact", head: true })
+      .eq("staff_id", staffId).eq("negocio_id", negocioId),
+    admin.from("turnos").select("id", { count: "exact", head: true })
+      .eq("staff_id", staffId).eq("negocio_id", negocioId)
+      .gt("fin", new Date().toISOString()).in("estado", ESTADOS_PROXIMOS),
+  ]);
+
+  return { total: total.count ?? 0, proximos: proximos.count ?? 0 };
+}
+
+/** Agrega un profesional al equipo del negocio del dueño autenticado. */
+export async function agregarStaff(nombre: string): Promise<ActionResult<void>>
+{
+  return runAction("agregarStaff", async () =>
   {
-    throw new Error("No pudimos agregar al profesional. Probá de nuevo.");
-  }
+    const value = validarNombreStaff(nombre);
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para agregar profesionales.");
 
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    const { error } = await admin.from("staff")
+      .insert({ negocio_id: negocioId, nombre: value, horarios: HORARIOS_POR_DEFECTO });
+
+    if (error !== null)
+    {
+      throw new UnavailableError("No pudimos agregar al profesional. Probá de nuevo.");
+    }
+
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }
 
 /** Actualiza las franjas horarias semanales de un profesional. */
-export async function actualizarHorariosStaff(staffId: string, horarios: unknown): Promise<void>
+export async function actualizarHorariosStaff(staffId: string, horarios: unknown): Promise<ActionResult<void>>
 {
-  const value = validarHorariosStaff(horarios);
-
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
+  return runAction("actualizarHorariosStaff", async () =>
   {
-    throw new Error("Tenés que iniciar sesión para modificar los horarios.");
-  }
+    const value = validarHorariosStaff(horarios);
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar los horarios.");
 
-  const admin = getSupabaseAdmin();
-  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+    const { error } = await admin.from("staff").update({ horarios: value })
+      .eq("id", staffId).eq("negocio_id", negocioId);
 
-  const { error } = await admin.from("staff").update({ horarios: value })
-    .eq("id", staffId).eq("negocio_id", negocioId);
+    if (error !== null)
+    {
+      throw new UnavailableError("No pudimos guardar los horarios. Probá de nuevo.");
+    }
 
-  if (error !== null)
-  {
-    throw new Error("No pudimos guardar los horarios. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }
 
 /** Activa o desactiva un profesional del negocio del dueño autenticado. */
-export async function cambiarEstadoStaff(staffId: string, activo: boolean): Promise<void>
+export async function cambiarEstadoStaff(staffId: string, activo: boolean): Promise<ActionResult<void>>
 {
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
+  return runAction("cambiarEstadoStaff", async () =>
   {
-    throw new Error("Tenés que iniciar sesión para modificar el equipo.");
-  }
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar el equipo.");
 
-  // Permitir acción para demo.
+    const { error } = await admin.from("staff").update({ activo })
+      .eq("id", staffId).eq("negocio_id", negocioId);
 
+    if (error !== null)
+    {
+      throw new UnavailableError("No pudimos actualizar al profesional. Probá de nuevo.");
+    }
 
-  const admin = getSupabaseAdmin();
-  const negocioId = await getNegocioIdDelDueno(admin, user.id);
-
-  const { error } = await admin.from("staff").update({ activo })
-    .eq("id", staffId).eq("negocio_id", negocioId);
-
-  if (error !== null)
-  {
-    throw new Error("No pudimos actualizar al profesional. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }
 
-/** Elimina un profesional solo si no tiene turnos (el historial se preserva). */
-export async function eliminarStaff(staffId: string): Promise<void>
+/** Elimina un profesional solo si nunca tuvo turnos (el historial se preserva). */
+export async function eliminarStaff(staffId: string): Promise<ActionResult<void>>
 {
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
+  return runAction("eliminarStaff", async () =>
   {
-    throw new Error("Tenés que iniciar sesión para modificar el equipo.");
-  }
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar el equipo.");
+    const { total, proximos } = await contarTurnos(admin, negocioId, staffId);
 
-  const admin = getSupabaseAdmin();
-  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+    if (total > 0)
+    {
+      const detalle = proximos > 0
+        ? `Tiene ${proximos} turno${proximos === 1 ? "" : "s"} próximo${proximos === 1 ? "" : "s"} y ${total} en el historial.`
+        : `Tiene ${total} turno${total === 1 ? "" : "s"} en el historial.`;
 
-  const { count } = await admin.from("turnos").select("id", { count: "exact", head: true })
-    .eq("staff_id", staffId).eq("negocio_id", negocioId);
+      throw new ConflictError(
+        `${detalle} No se puede eliminar; desactivalo para conservar el historial.`,
+        proximos > 0 ? "staff_con_turnos_proximos" : "staff_con_historial",
+        { total, proximos },
+      );
+    }
 
-  if ((count ?? 0) > 0)
-  {
-    throw new Error("Tiene turnos registrados. Mejor desactivalo para conservar el historial.");
-  }
+    const { error } = await admin.from("staff").delete()
+      .eq("id", staffId).eq("negocio_id", negocioId);
 
-  const { error } = await admin.from("staff").delete()
-    .eq("id", staffId).eq("negocio_id", negocioId);
+    if (error !== null)
+    {
+      throw new ConflictError(
+        "No se puede eliminar: el profesional ya tiene registros asociados. Desactivalo para conservar el historial.",
+        "staff_con_historial",
+      );
+    }
 
-  if (error !== null)
-  {
-    throw new Error("No pudimos eliminar al profesional. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }
 
 /**
@@ -155,90 +169,72 @@ export async function actualizarPerfilStaff(
   staffId: string,
   descripcion: unknown,
   serviciosIds: unknown,
-): Promise<void>
+): Promise<ActionResult<void>>
 {
-  const descripcionValida = validarDescripcionStaff(descripcion);
-  const ids = validarServiciosStaff(serviciosIds);
-
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
+  return runAction("actualizarPerfilStaff", async () =>
   {
-    throw new Error("Tenés que iniciar sesión para modificar el equipo.");
-  }
+    const descripcionValida = validarDescripcionStaff(descripcion);
+    const ids = validarServiciosStaff(serviciosIds);
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar el equipo.");
 
-  const admin = getSupabaseAdmin();
-  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+    const { data: servicios } = await admin.from("servicios").select("id").eq("negocio_id", negocioId);
+    const permitidos = new Set(((servicios ?? []) as Array<{ id: string }>).map((s) => s.id));
+    const serviciosValidos = ids.filter((id) => permitidos.has(id));
 
-  const { data: servicios } = await admin.from("servicios").select("id").eq("negocio_id", negocioId);
-  const permitidos = new Set(((servicios ?? []) as Array<{ id: string }>).map((s) => s.id));
-  const serviciosValidos = ids.filter((id) => permitidos.has(id));
+    const { error: perfilError } = await admin.from("staff")
+      .update({ descripcion: descripcionValida }).eq("id", staffId).eq("negocio_id", negocioId);
 
-  const { error: perfilError } = await admin.from("staff")
-    .update({ descripcion: descripcionValida }).eq("id", staffId).eq("negocio_id", negocioId);
-
-  if (perfilError !== null)
-  {
-    throw new Error("No pudimos guardar el perfil. Probá de nuevo.");
-  }
-
-  const { error: borradoError } = await admin.from("staff_servicios").delete()
-    .eq("staff_id", staffId).eq("negocio_id", negocioId);
-
-  if (borradoError !== null)
-  {
-    throw new Error("No pudimos guardar los servicios. Probá de nuevo.");
-  }
-
-  if (serviciosValidos.length > 0)
-  {
-    const filas = serviciosValidos.map((servicioId) => ({
-      staff_id: staffId,
-      servicio_id: servicioId,
-      negocio_id: negocioId,
-    }));
-
-    const { error: insercionError } = await admin.from("staff_servicios").insert(filas);
-
-    if (insercionError !== null)
+    if (perfilError !== null)
     {
-      throw new Error("No pudimos guardar los servicios. Probá de nuevo.");
+      throw new UnavailableError("No pudimos guardar el perfil. Probá de nuevo.");
     }
-  }
 
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    const { error: borradoError } = await admin.from("staff_servicios").delete()
+      .eq("staff_id", staffId).eq("negocio_id", negocioId);
+
+    if (borradoError !== null)
+    {
+      throw new UnavailableError("No pudimos guardar los servicios. Probá de nuevo.");
+    }
+
+    if (serviciosValidos.length > 0)
+    {
+      const filas = serviciosValidos.map((servicioId) => ({
+        staff_id: staffId,
+        servicio_id: servicioId,
+        negocio_id: negocioId,
+      }));
+
+      const { error: insercionError } = await admin.from("staff_servicios").insert(filas);
+
+      if (insercionError !== null)
+      {
+        throw new UnavailableError("No pudimos guardar los servicios. Probá de nuevo.");
+      }
+    }
+
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }
 
 /** Guarda la URL pública de la foto del profesional (o la limpia). */
-export async function actualizarFotoStaff(staffId: string, fotoUrl: unknown): Promise<void>
+export async function actualizarFotoStaff(staffId: string, fotoUrl: unknown): Promise<ActionResult<void>>
 {
-  const url = validarFotoUrl(fotoUrl);
-
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
+  return runAction("actualizarFotoStaff", async () =>
   {
-    throw new Error("Tenés que iniciar sesión para modificar el equipo.");
-  }
+    const url = validarFotoUrl(fotoUrl);
+    const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar el equipo.");
 
-  const admin = getSupabaseAdmin();
-  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+    const { error } = await admin.from("staff").update({ foto_url: url })
+      .eq("id", staffId).eq("negocio_id", negocioId);
 
-  const { error } = await admin.from("staff").update({ foto_url: url })
-    .eq("id", staffId).eq("negocio_id", negocioId);
+    if (error !== null)
+    {
+      throw new UnavailableError("No pudimos guardar la foto. Probá de nuevo.");
+    }
 
-  if (error !== null)
-  {
-    throw new Error("No pudimos guardar la foto. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/staff");
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+  });
 }

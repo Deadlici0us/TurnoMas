@@ -4,6 +4,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 
 import LeyendaEstados from "@/components/leyenda-estados";
 import AgendaCitasDia, { type CitaDia } from "@/components/agenda-citas-dia";
+import type { ActionResult } from "@/lib/actions/action-result";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { claseBadgePara, claseGrillaPara, EXTERNO_LEYENDA } from "@/lib/dashboard/estados-colores";
 import
@@ -86,7 +87,7 @@ interface AgendaCalendarProps
   readonly turnos: readonly CalendarTurno[];
   readonly externos: readonly CalendarExterno[];
   readonly citas: readonly CitaDia[];
-  readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<void>;
+  readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<ActionResult<void> | void>;
   readonly vistaInicial?: unknown;
   readonly fechaInicial?: unknown;
   readonly horariosNegocio?: Record<string, unknown>;

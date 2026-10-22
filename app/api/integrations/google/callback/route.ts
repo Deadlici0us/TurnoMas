@@ -6,6 +6,8 @@
 
 import { NextResponse } from "next/server";
 
+import { withApiHandler } from "@/lib/api/with-api-handler";
+
 import { buildGoogleCallbackUrl, exchangeCodeForTokens } from "@/lib/calendar/google-oauth";
 import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
@@ -24,7 +26,7 @@ function redirectConfig(requestUrl: string, params: Record<string, string>): Nex
   return NextResponse.redirect(url);
 }
 
-export async function GET(request: Request)
+async function handleGET(request: Request)
 {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -110,3 +112,5 @@ export async function GET(request: Request)
     return redirectConfig(request.url, { gcal: "error" });
   }
 }
+
+export const GET = withApiHandler("/app/api/integrations/google/callback", handleGET);

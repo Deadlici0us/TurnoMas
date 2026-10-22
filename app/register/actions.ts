@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
+import { withRedirectAction } from "@/lib/actions/with-redirect-action";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Registra al profesional: Supabase Auth en Vercel, demo local sin secrets. */
-export async function register(formData: FormData): Promise<void>
+async function registerInterno(formData: FormData): Promise<void>
 {
   const businessCrudo = formData.get("business");
   const business = (typeof businessCrudo === "string" ? businessCrudo : "").trim();
@@ -42,3 +43,6 @@ export async function register(formData: FormData): Promise<void>
 
   redirect("/onboarding");
 }
+
+/** Acción de registro con redirección ante errores inesperados. */
+export const register = withRedirectAction("register", registerInterno, "/register?error=inesperado");

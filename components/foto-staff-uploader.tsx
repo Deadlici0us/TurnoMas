@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import type { ActionResult } from "@/lib/actions/action-result";
 import { inicialesDe } from "@/components/ui/avatar";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
@@ -14,7 +15,7 @@ interface FotoStaffUploaderProps
   readonly nombre: string;
   readonly fotoUrl: string | null;
   /** Server Action que persiste la URL pública (o null al quitar). */
-  readonly action: (url: string | null) => Promise<void>;
+  readonly action: (url: string | null) => Promise<ActionResult<unknown> | void>;
 }
 
 /**
@@ -71,7 +72,14 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
 
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
-      await action(data.publicUrl);
+      const result = await action(data.publicUrl);
+
+      if (result !== undefined && !result.ok)
+      {
+        setError(result.error);
+        return;
+      }
+
       setPreview(data.publicUrl);
     }
     catch
@@ -97,7 +105,14 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
 
     try
     {
-      await action(null);
+      const result = await action(null);
+
+      if (result !== undefined && !result.ok)
+      {
+        setError(result.error);
+        return;
+      }
+
       setPreview(null);
     }
     catch
