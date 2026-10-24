@@ -148,7 +148,7 @@ function formDataTurno(overrides: Record<string, string> = {}): FormData
   data.set("clienteId", "");
   data.set("nombre", "Juan Pérez");
   data.set("whatsapp", "+549110000001");
-  data.set("email", "");
+  data.set("email", "juan@ejemplo.com");
   data.set("fecha", "2026-10-06");
   data.set("hora", "10:00");
   data.set("estado", "confirmado");
@@ -342,6 +342,22 @@ describe("crearTurnoManual",
       sena_monto: 500000,
       sena_porcentaje: 50,
     });
+  });
+
+  it("debería rechazar un estado pagado si el servicio no tiene seña",
+  async () =>
+  {
+    sesionDueno();
+    stubAdmin({
+      singles: {
+        negocios: [{ data: NEGOCIO }],
+        staff: [{ data: { id: "staff-1", nombre: "Diego" } }],
+        servicios: [{ data: SERVICIO }],
+      },
+    });
+
+    await expect(crearTurnoManual(formDataTurno({ estado: "pagado" })))
+      .rejects.toThrow("no requiere seña");
   });
 
   it("debería rechazar un horario ocupado",

@@ -10,7 +10,7 @@ function base(overrides: Record<string, unknown> = {})
     clienteId: "",
     nombre: "Juan Pérez",
     whatsapp: "+549110000001",
-    email: "",
+    email: "juan@ejemplo.com",
     fecha: "2026-10-06",
     hora: "10:30",
     estado: "confirmado",
@@ -21,7 +21,7 @@ function base(overrides: Record<string, unknown> = {})
 describe("parseTurnoManualInput",
 () =>
 {
-  it("debería normalizar un turno confirmado sin email",
+  it("debería normalizar un turno confirmado con email",
   () =>
   {
     expect(parseTurnoManualInput(base())).toEqual({
@@ -30,12 +30,20 @@ describe("parseTurnoManualInput",
       clienteId: null,
       nombre: "Juan Pérez",
       whatsapp: "+549110000001",
-      email: null,
+      email: "juan@ejemplo.com",
       fecha: "2026-10-06",
       hora: "10:30",
       inicio: null,
       estado: "confirmado",
     });
+  });
+
+  it("debería exigir email",
+  () =>
+  {
+    expect(() => parseTurnoManualInput(base({ email: "" }))).toThrow("Completá el email");
+    expect(() => parseTurnoManualInput(base({ email: "   " }))).toThrow("Completá el email");
+    expect(() => parseTurnoManualInput(base({ email: null }))).toThrow("Completá el email");
   });
 
   it("debería aceptar un inicio ISO sin exigir fecha y hora",

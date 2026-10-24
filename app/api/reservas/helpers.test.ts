@@ -4,25 +4,8 @@ import {
   evaluarRiesgo,
   filtrarBloqueos,
   parseReservaBody,
-  requiereEmailObligatorio,
   retieneSlot,
 } from "./helpers";
-
-describe("requiereEmailObligatorio", () =>
-{
-  it("exige email por defecto (features activas)", () =>
-  {
-    expect(requiereEmailObligatorio(null)).toBe(true);
-    expect(requiereEmailObligatorio({})).toBe(true);
-    expect(requiereEmailObligatorio({ resena_activa: true })).toBe(true);
-    expect(requiereEmailObligatorio({ recordatorio_activo: true })).toBe(true);
-  });
-
-  it("no lo exige si el negocio apagó reseñas y recordatorios", () =>
-  {
-    expect(requiereEmailObligatorio({ resena_activa: false, recordatorio_activo: false })).toBe(false);
-  });
-});
 
 describe("parseReservaBody", () =>
 {
@@ -37,12 +20,28 @@ describe("parseReservaBody", () =>
       inicio: futuro,
       nombre: "Juan Pérez",
       whatsapp: "+5491112345678",
-      email: null,
+      email: "juan@ejemplo.com",
     });
 
     expect(result.pais).toBe("ar");
     expect(result.slug).toBe("demo");
     expect(result.nombre).toBe("Juan Pérez");
+  });
+
+  it("exige email", () =>
+  {
+    const futuro = new Date(Date.now() + 60 * 60_000).toISOString();
+
+    expect(() => parseReservaBody({
+      pais: "AR",
+      slug: "demo",
+      staffId: "s",
+      servicioId: "v",
+      inicio: futuro,
+      nombre: "Juan Pérez",
+      whatsapp: "+5491112345678",
+      email: "",
+    })).toThrow("Dejanos tu email");
   });
 
   it("conserva un email válido largo sin truncarlo", () =>
@@ -75,7 +74,7 @@ describe("parseReservaBody", () =>
       inicio: futuro,
       nombre: "x",
       whatsapp: "+5491112345678",
-      email: null,
+      email: "juan@ejemplo.com",
     })).toThrow();
   });
 });

@@ -42,7 +42,7 @@ export interface TurnoManualValidado
   readonly clienteId: string | null;
   readonly nombre: string;
   readonly whatsapp: string;
-  readonly email: string | null;
+  readonly email: string;
   readonly inicio: Date | null;
   readonly fecha: string | null;
   readonly hora: string | null;
@@ -83,16 +83,25 @@ function normalizarWhatsapp(valor: unknown): string
   }
 }
 
-function normalizarEmail(valor: unknown): string | null
+function normalizarEmail(valor: unknown): string
 {
+  let email: string | null;
+
   try
   {
-    return normalizarEmailCliente(valor);
+    email = normalizarEmailCliente(valor);
   }
   catch
   {
     throw new RangeError("Revisá el email del cliente.");
   }
+
+  if (email === null)
+  {
+    throw new RangeError("Completá el email del cliente.");
+  }
+
+  return email;
 }
 
 function normalizarClienteId(valor: unknown): string | null

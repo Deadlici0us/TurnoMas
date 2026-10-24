@@ -31,7 +31,6 @@ interface BookingFlowProps
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
   readonly horariosNegocio?: Record<string, unknown> | null;
-  readonly requiereEmail?: boolean;
   /** Demo de solo lectura: simula la reserva sin llamar al backend. */
   readonly demo?: boolean;
 }
@@ -50,7 +49,6 @@ interface ValidacionReserva
   readonly nombre: string;
   readonly whatsapp: string;
   readonly email: string;
-  readonly requiereEmail: boolean;
 }
 
 /**
@@ -71,12 +69,12 @@ function validarReserva(datos: ValidacionReserva): string | null
     return "Revisá tu WhatsApp para que podamos contactarte.";
   }
 
-  if (datos.requiereEmail && datos.email.length === 0)
+  if (datos.email.length === 0)
   {
     return "Dejanos tu email para confirmar y avisarte.";
   }
 
-  if (datos.email.length > 0 && !esEmailValido(datos.email))
+  if (!esEmailValido(datos.email))
   {
     return "Revisá tu email para que te lleguen las confirmaciones.";
   }
@@ -153,21 +151,16 @@ function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
       <p className="text-sm text-muted-foreground">
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
-      {!props.demo && props.email.length > 0 && props.emailEnviado ? (
+      {!props.demo && props.emailEnviado ? (
         <p className="text-sm text-muted-foreground">
           Te enviamos la confirmación a {props.email}. Guardá ese mail: es tu comprobante y tiene
           el link para cancelar.
         </p>
       ) : null}
-      {!props.demo && props.email.length > 0 && !props.emailEnviado ? (
+      {!props.demo && !props.emailEnviado ? (
         <p className="ui-alert ui-alert-warning text-xs">
           No pudimos enviar el email de confirmación. Guardá una captura de esta pantalla para
           tener los datos.
-        </p>
-      ) : null}
-      {!props.demo && props.email.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No dejaste email. Guardá una captura de esta pantalla para tener los datos.
         </p>
       ) : null}
       {props.demo ? (
@@ -192,7 +185,6 @@ interface DatosBookingProps
   readonly email: string;
   readonly error: string | null;
   readonly enviando: boolean;
-  readonly requiereEmail: boolean;
   readonly onNombre: (valor: string) => void;
   readonly onWhatsapp: (valor: string) => void;
   readonly onEmail: (valor: string) => void;
@@ -242,7 +234,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
           <label htmlFor="booking-email" className="ui-label mb-1">
             Email{" "}
             <span className="font-normal text-muted-foreground">
-              {props.requiereEmail ? "(para confirmar y avisarte)" : "(opcional, para confirmación)"}
+              (para confirmar y avisarte)
             </span>
           </label>
           <input
@@ -251,7 +243,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
             onChange={(event) => props.onEmail(event.target.value)}
             placeholder="Ej: juan@ejemplo.com"
             inputMode="email"
-            required={props.requiereEmail}
+            required
             className={CLASE_INPUT_BOOKING}
           />
         </div>
@@ -279,7 +271,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
 
 export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, negocioDescripcion = null,
   pais, slug, staff, servicios, asociaciones, turnos,
-  bloqueos, horariosNegocio = null, requiereEmail = false, demo = false }: BookingFlowProps)
+  bloqueos, horariosNegocio = null, demo = false }: BookingFlowProps)
 {
   const seleccion = useBookingSelection({
     staff,
@@ -340,7 +332,6 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       nombre: nombre.trim(),
       whatsapp: whatsapp.trim(),
       email: email.trim(),
-      requiereEmail,
     });
 
     if (mensaje !== null)
@@ -378,7 +369,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
           inicio: slotISO,
           nombre: nombre.trim(),
           whatsapp: whatsapp.trim(),
-          email: email.trim().length > 0 ? email.trim() : null,
+          email: email.trim(),
         }),
       });
       const data = await response.json() as { error?: string; checkoutUrl?: string;
@@ -460,7 +451,6 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
             email,
             error,
             enviando,
-            requiereEmail,
             onNombre: setNombre,
             onWhatsapp: setWhatsapp,
             onEmail: setEmail,

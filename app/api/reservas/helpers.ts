@@ -40,7 +40,7 @@ export interface ReservaValidada
   readonly servicioId: string;
   readonly nombre: string;
   readonly whatsapp: string;
-  readonly email: string | null;
+  readonly email: string;
   readonly inicio: Date;
 }
 
@@ -102,17 +102,26 @@ function exigirInicio(valor: unknown): Date
   return inicio;
 }
 
-/** Email opcional del cliente (para confirmación y recordatorios). */
-function exigirEmailOpcional(valor: unknown): string | null
+/** Email obligatorio del cliente (para confirmación y recordatorios). */
+function exigirEmail(valor: unknown): string
 {
+  let email: string | null;
+
   try
   {
-    return normalizarEmailCliente(valor);
+    email = normalizarEmailCliente(valor);
   }
   catch
   {
     throw new RangeError("Revisá tu email para que te lleguen las confirmaciones.");
   }
+
+  if (email === null)
+  {
+    throw new RangeError("Dejanos tu email para confirmar y avisarte.");
+  }
+
+  return email;
 }
 
 /**
@@ -130,29 +139,9 @@ export function parseReservaBody(body: ReservaBody): ReservaValidada
     servicioId: exigirTexto(body.servicioId, "Elegí un servicio para tu reserva."),
     nombre: exigirNombre(body.nombre),
     whatsapp: exigirWhatsapp(body.whatsapp),
-    email: exigirEmailOpcional(body.email),
+    email: exigirEmail(body.email),
     inicio: exigirInicio(body.inicio),
   };
-}
-
-/**
- * Indica si el negocio exige email al reservar.
- *
- * Se exige cuando tiene reseñas o recordatorios activos (default true). Estos
- * features avisan al cliente por email, así que sin email el negocio pierde la
- * entrega. Si el dueño desactiva ambos, el email pasa a ser opcional.
- *
- * @param negocio Fila del negocio (o null).
- * @return Verdadero cuando el email es obligatorio.
- */
-export function requiereEmailObligatorio(
-  negocio: { readonly resena_activa?: unknown; readonly recordatorio_activo?: unknown } | null,
-): boolean
-{
-  const resena = negocio?.resena_activa !== false;
-  const recordatorio = negocio?.recordatorio_activo !== false;
-
-  return resena || recordatorio;
 }
 
 /**

@@ -83,7 +83,7 @@ async function getSupabaseBusiness(pais: string, slug: string): Promise<PortalBu
 
   const { data: negocio } = await supabase
     .from("portal_negocios")
-    .select("id, nombre, pais, slug, logo_url, descripcion, google_maps_url, horarios, timezone, requiere_email")
+    .select("id, nombre, pais, slug, logo_url, descripcion, google_maps_url, horarios, timezone")
     .eq("pais", pais.toLowerCase())
     .eq("slug", slug.toLowerCase())
     .single();
@@ -204,7 +204,6 @@ async function buildPortalBusiness(
       fin: typeof t.fin === "string" ? t.fin : null,
     })),
     bloqueos,
-    requiereEmail: negocioRow.requiere_email === true,
   };
 }
 
@@ -241,7 +240,6 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           turnos={business.turnos}
           bloqueos={business.bloqueos}
           horariosNegocio={business.horarios}
-          requiereEmail={business.requiereEmail === true}
           demo={demo}
         />
         {ubicacion !== null ? (

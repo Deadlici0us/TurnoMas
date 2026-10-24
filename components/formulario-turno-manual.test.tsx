@@ -74,6 +74,13 @@ function propsBase(overrides: Record<string, unknown> = {})
   };
 }
 
+/** Elige un cliente guardado desde el combobox. */
+async function elegirClienteGuardado(user: ReturnType<typeof userEvent.setup>, nombre: string): Promise<void>
+{
+  await user.click(screen.getByLabelText("Cliente"));
+  await user.click(await screen.findByRole("option", { name: new RegExp(nombre) }));
+}
+
 /** Recorre los pasos 1-3 hasta abrir el paso de datos. */
 async function elegirTurno(user: ReturnType<typeof userEvent.setup>): Promise<void>
 {
@@ -121,10 +128,10 @@ describe("FormularioTurnoManual",
 
     await elegirTurno(user);
 
-    expect((screen.getByLabelText("Cliente") as HTMLSelectElement).value).toBe("cli-1");
+    expect((screen.getByLabelText("Cliente") as HTMLInputElement).value).toBe("Juan Pérez");
     expect((screen.getByLabelText("Nombre") as HTMLInputElement).value).toBe("Juan Pérez");
     expect((screen.getByLabelText("WhatsApp") as HTMLInputElement).value).toBe("+549110000001");
-    expect((screen.getByLabelText("Email (opcional)") as HTMLInputElement).value)
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value)
       .toBe("juan@ejemplo.com");
   });
 
@@ -136,11 +143,11 @@ describe("FormularioTurnoManual",
     render(<FormularioTurnoManual {...propsBase()} />);
     await elegirTurno(user);
 
-    fireEvent.change(screen.getByLabelText("Cliente"), { target: { value: "cli-2" } });
+    await elegirClienteGuardado(user, "María Gómez");
 
     expect((screen.getByLabelText("Nombre") as HTMLInputElement).value).toBe("María Gómez");
     expect((screen.getByLabelText("WhatsApp") as HTMLInputElement).value).toBe("+549110000002");
-    expect((screen.getByLabelText("Email (opcional)") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("");
   });
 
   it("debería limpiar los datos al elegir un cliente nuevo",
@@ -151,7 +158,7 @@ describe("FormularioTurnoManual",
     render(<FormularioTurnoManual {...propsBase({ clienteInicial: CLIENTES[0] })} />);
     await elegirTurno(user);
 
-    fireEvent.change(screen.getByLabelText("Cliente"), { target: { value: "" } });
+    await user.click(screen.getByRole("button", { name: "Cargar cliente nuevo" }));
 
     expect((screen.getByLabelText("Nombre") as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText("WhatsApp") as HTMLInputElement).value).toBe("");
@@ -191,6 +198,60 @@ describe("FormularioTurnoManual",
     expect(screen.queryByRole("button", { name: /Corte/ })).toBeNull();
   });
 
+  it("debería exigir email en el alta manual",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<FormularioTurnoManual {...propsBase()} />);
+    await elegirTurno(user);
+
+    expect(screen.getByLabelText("Email")).toBeRequired();
+  });
+
+  it("debería bloquear el estado cuando el servicio no tiene seña",
+  async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<FormularioTurnoManual {...propsBase()} />);
+    await elegirTurno(user);
+
+    const estado = screen.getByLabelText("Estado") as HTMLSelectElement;
+
+    expect(estado.value).toBe("confirmado");
+    expect(estado.disabled).toBe(true);
+    expect(screen.getByText(/no requiere seña/)).toBeDefined();
+  });
+
+  it("debería permitir pagado cuando el servicio tiene seña",
+  async () =>
+  {
+    const user = userEvent.setup();
+    const action = vi.fn(async (...args: [string | null, FormData]) =>
+    {
+      void args;
+
+      return null;
+    });
+
+    render(<FormularioTurnoManual {...propsBase({
+      action,
+      servicios: [{ ...SERVICIOS[0], senaRequerida: true, senaPorcentaje: 50 }],
+    })} />);
+    await elegirTurno(user);
+
+    const estado = screen.getByLabelText("Estado") as HTMLSelectElement;
+
+    expect(estado.disabled).toBe(false);
+    fireEvent.change(estado, { target: { value: "pagado" } });
+    fireEvent.submit(document.querySelector("form") as HTMLFormElement);
+
+    await vi.waitFor(() => expect(action).toHaveBeenCalledOnce());
+
+    expect((action.mock.calls[0]?.[1] as FormData).get("estado")).toBe("pagado");
+  });
+
   it("debería enviar los datos del turno a la acción",
   async () =>
   {
@@ -204,6 +265,8 @@ describe("FormularioTurnoManual",
 
     render(<FormularioTurnoManual {...propsBase({ action })} />);
     await elegirTurno(user);
+
+    expect((screen.getByLabelText("Estado") as HTMLSelectElement).disabled).toBe(true);
     fireEvent.submit(document.querySelector("form") as HTMLFormElement);
 
     await vi.waitFor(() => expect(action).toHaveBeenCalledOnce());

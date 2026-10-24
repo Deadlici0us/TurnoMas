@@ -221,6 +221,13 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
   const negocio = await cargarNegocio(admin, negocioId);
   const { servicio, staffNombre } = await cargarServicio(admin, negocioId, datos.staffId, datos.servicioId);
+
+  if (datos.estado === "pagado"
+    && !tieneSenaEfectiva(servicio.sena_requerida, servicio.sena_porcentaje))
+  {
+    throw new RangeError("Ese servicio no requiere seña: el turno se crea confirmado.");
+  }
+
   const clienteId = await resolverCliente(admin, negocioId, datos);
   const inicio = datos.inicio ?? instanteDesdeZonaCivil({
     fecha: datos.fecha ?? "",

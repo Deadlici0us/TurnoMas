@@ -61,6 +61,7 @@ const BASE = {
   inicio: new Date(Date.now() + 86_400_000).toISOString(),
   nombre: "Juan Pérez",
   whatsapp: "+549110000001",
+  email: "cli@ejemplo.com",
 };
 
 const NEGOCIO_PORTAL = { id: "neg-1", nombre: "Barbería", pais: "ar", slug: "barberia-diego" };
@@ -323,10 +324,10 @@ describe("POST /api/reservas",
     expect(body.error).toBe("Revisá tu email para que te lleguen las confirmaciones.");
   });
 
-  it("debería exigir email cuando el negocio tiene reseñas o recordatorios activos",
+  it("debería exigir email aunque el negocio no tenga avisos activos",
   async () =>
   {
-    flujoFeliz({ tablas: { negocios: negocioFullFixture({ resena_activa: true, recordatorio_activo: true }) } });
+    flujoFeliz({ tablas: { negocios: negocioFullFixture({ resena_activa: false, recordatorio_activo: false }) } });
 
     const response = await POST(requestWith({ ...BASE, email: null }));
     const body = await response.json() as { error: string };
@@ -561,35 +562,29 @@ describe("POST /api/reservas",
     expect(inserts[0]).toMatchObject({ cliente_id: "cli-9" });
   });
 
-  it("debería tratar email vacío como ausente",
+  it("debería rechazar un email vacío",
   async () =>
   {
     flujoFeliz();
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
     const response = await POST(requestWith({ ...BASE, email: "   " }));
-    const body = await response.json() as { success: boolean; emailEnviado: boolean };
+    const body = await response.json() as { error: string };
 
-    expect(response.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(body.emailEnviado).toBe(false);
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Dejanos tu email para confirmar y avisarte.");
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
-  it("debería confirmar sin email sin intentar enviar",
+  it("debería rechazar una reserva sin email",
   async () =>
   {
     flujoFeliz();
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
-    const response = await POST(requestWith(BASE));
-    const body = await response.json() as { success: boolean; emailEnviado: boolean };
+    const response = await POST(requestWith({ ...BASE, email: null }));
+    const body = await response.json() as { error: string };
 
-    expect(response.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(body.emailEnviado).toBe(false);
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Dejanos tu email para confirmar y avisarte.");
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
@@ -875,7 +870,7 @@ describe("POST /api/reservas integración",
     prefSpy.mockResolvedValue({ id: "pref-int", initPoint: "https://pay/int", amountCents: 5000 });
     mockQstashSchedule.mockResolvedValue("job-int");
 
-    const response = await POST(requestWith({ ...BASE, email: null }));
+    const response = await POST(requestWith(BASE));
     const body = await response.json() as { success: boolean; turnoId: string };
 
     expect(response.status).toBe(200);

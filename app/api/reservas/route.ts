@@ -26,7 +26,7 @@ import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
 import type { ReservaBody, ReservaValidada } from "./helpers";
-import { evaluarRiesgo, parseReservaBody, requiereEmailObligatorio } from "./helpers";
+import { evaluarRiesgo, parseReservaBody } from "./helpers";
 
 /**
  * Resuelve el cliente existente o crea uno nuevo.
@@ -35,7 +35,7 @@ import { evaluarRiesgo, parseReservaBody, requiereEmailObligatorio } from "./hel
  * @param negocioId ID del negocio.
  * @param nombre Nombre del cliente.
  * @param whatsapp WhatsApp del cliente.
- * @param email Email opcional.
+ * @param email Email del cliente.
  * @return ID del cliente.
  */
 async function resolverCliente(
@@ -43,7 +43,7 @@ async function resolverCliente(
   negocioId: string,
   nombre: string,
   whatsapp: string,
-  email: string | null,
+  email: string,
 ): Promise<string>
 {
   const { data: existente } = await admin.from("clientes").select("id, ausencias")
@@ -52,8 +52,7 @@ async function resolverCliente(
   if (existente !== null && typeof (existente as { id?: unknown }).id === "string")
   {
     const clienteId = (existente as { id: string }).id;
-    await admin.from("clientes").update({ nombre, ...(email !== null ? { email } : {}) })
-      .eq("id", clienteId);
+    await admin.from("clientes").update({ nombre, email }).eq("id", clienteId);
 
     return clienteId;
   }
@@ -420,17 +419,6 @@ async function handlePOST(request: Request)
       pais,
     );
 
-    // Email obligatorio cuando el negocio tiene reseñas o recordatorios activos
-    // (ambos avisan al cliente por email).
-    if (email === null && requiereEmailObligatorio(
-      negocioFull as { resena_activa?: unknown; recordatorio_activo?: unknown } | null))
-    {
-      return NextResponse.json(
-        { error: "Dejanos tu email para confirmar y avisarte." },
-        { status: 400 },
-      );
-    }
-
     const servicioRow = servicio as unknown as {
       nombre: string; duracion_min: number; precio_base: number;
       precio_promocional: number | null; sena_requerida: boolean; sena_porcentaje: number;
@@ -528,23 +516,21 @@ async function handlePOST(request: Request)
       negocio.nombre as string,
     );
 
-    const resultadoEmail = email !== null
-      ? await enviarEmailReservaPendiente({
-        negocioId,
-        negocioNombre: negocio.nombre as string,
-        servicioNombre,
-        staffNombre,
-        clienteId,
-        clienteNombre: nombre,
-        email,
-        inicio,
-        timeZone,
-        turnoId,
-        checkoutUrl,
-        plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,
-        plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
-      })
-      : null;
+    const resultadoEmail = await enviarEmailReservaPendiente({
+      negocioId,
+      negocioNombre: negocio.nombre as string,
+      servicioNombre,
+      staffNombre,
+      clienteId,
+      clienteNombre: nombre,
+      email,
+      inicio,
+      timeZone,
+      turnoId,
+      checkoutUrl,
+      plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,
+      plantillaCuerpo: negocioRow?.msg_confirmacion_cuerpo ?? null,
+    });
 
     return NextResponse.json({
       success: true,
@@ -555,7 +541,7 @@ async function handlePOST(request: Request)
       checkoutUrl,
       checkoutError,
       sinMp,
-      emailEnviado: resultadoEmail?.enviado ?? false,
+      emailEnviado: resultadoEmail.enviado,
     });
   }
   catch (error)

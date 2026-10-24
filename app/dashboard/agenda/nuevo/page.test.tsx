@@ -92,10 +92,10 @@ describe("NuevoTurnoPage",
 
     await elegirTurno(user);
 
-    expect((screen.getByLabelText("Cliente") as HTMLSelectElement).value).toBe("cli-1");
+    expect((screen.getByLabelText("Cliente") as HTMLInputElement).value).toBe("Juan Pérez");
     expect((screen.getByLabelText("Nombre") as HTMLInputElement).value).toBe("Juan Pérez");
     expect((screen.getByLabelText("WhatsApp") as HTMLInputElement).value).toBe("+549110000001");
-    expect((screen.getByLabelText("Email (opcional)") as HTMLInputElement).value)
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value)
       .toBe("juan@ejemplo.com");
   });
 

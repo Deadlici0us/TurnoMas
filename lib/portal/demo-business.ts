@@ -65,8 +65,6 @@ export interface PortalBusiness
   readonly asociaciones: readonly PortalAsociacion[];
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
-  /** El negocio exige email al reservar (tiene reseñas o recordatorios activos). */
-  readonly requiereEmail?: boolean;
 }
 
 /** ID fijo del negocio demo en el seed y la DB. */

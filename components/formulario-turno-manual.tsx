@@ -5,8 +5,10 @@ import { useActionState } from "react";
 
 import { useBookingSelection } from "@/components/booking/use-booking-selection";
 import { PasoHorario, PasoProfesional, PasoServicio } from "@/components/booking-steps";
+import SelectorCliente from "@/components/selector-cliente";
 import { analizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { formatearDiaLargoYMes } from "@/lib/format/fecha";
+import { tieneSenaEfectiva } from "@/lib/reservas/montos";
 import type
 {
   PortalAsociacion,
@@ -85,9 +87,25 @@ export default function FormularioTurnoManual({
     ? analisisWhatsapp.error
     : null;
   const whatsappCanonico = analisisWhatsapp.ok ? analisisWhatsapp.valor : null;
+  const permitePagado = servicio !== null
+    && tieneSenaEfectiva(servicio.senaRequerida, servicio.senaPorcentaje);
   const previewWhatsapp = whatsappCanonico !== null
     && whatsapp.trim().length > 0
     && whatsappCanonico !== whatsapp.trim();
+
+  /** Elige un profesional y vuelve el estado a confirmado. */
+  function elegirProfesional(id: string): void
+  {
+    setEstado("confirmado");
+    seleccion.elegirProfesional(id);
+  }
+
+  /** Elige un servicio y vuelve el estado a confirmado. */
+  function elegirServicio(id: string): void
+  {
+    setEstado("confirmado");
+    seleccion.elegirServicio(id);
+  }
 
   /** Carga los datos del cliente elegido o limpia el formulario. */
   function elegirCliente(id: string): void
@@ -124,14 +142,14 @@ export default function FormularioTurnoManual({
         ) : null}
       </div>
 
-      <PasoProfesional staff={staff} staffId={staffId} onElegir={seleccion.elegirProfesional} />
+      <PasoProfesional staff={staff} staffId={staffId} onElegir={elegirProfesional} />
 
       {profesional !== null ? (
         <PasoServicio
           profesional={profesional}
           servicios={serviciosDisponibles}
           servicioId={servicioId}
-          onElegir={seleccion.elegirServicio}
+          onElegir={elegirServicio}
         />
       ) : null}
 
@@ -156,24 +174,11 @@ export default function FormularioTurnoManual({
               `${String(new Date(slotISO).getMinutes()).padStart(2, "0")}`}
           </p>
           <div className="space-y-3">
-            <div>
-              <label htmlFor="turno-cliente" className="ui-label mb-1">
-                Cliente
-              </label>
-              <select
-                id="turno-cliente"
-                value={clienteId}
-                onChange={(event) => elegirCliente(event.target.value)}
-                className="ui-select"
-              >
-                <option value="">Nuevo cliente</option>
-                {clientes.map((cliente) => (
-                  <option key={cliente.id} value={cliente.id}>
-                    {`${cliente.nombre} · ${cliente.whatsapp}`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectorCliente
+              clientes={clientes}
+              seleccionadoId={clienteId}
+              onElegir={elegirCliente}
+            />
             <div>
               <label htmlFor="turno-nombre" className="ui-label mb-1">
                 Nombre
@@ -219,12 +224,13 @@ export default function FormularioTurnoManual({
             </div>
             <div>
               <label htmlFor="turno-email" className="ui-label mb-1">
-                Email (opcional)
+                Email
               </label>
               <input
                 id="turno-email"
                 type="email"
                 name="email"
+                required
                 inputMode="email"
                 autoComplete="email"
                 spellCheck={false}
@@ -241,20 +247,26 @@ export default function FormularioTurnoManual({
               </label>
               <select
                 id="turno-estado"
-                name="estado"
-                value={estado}
+                value={permitePagado ? estado : "confirmado"}
                 onChange={(event) => setEstado(event.target.value)}
-                className="ui-select"
+                disabled={!permitePagado}
+                className={`ui-select ${permitePagado ? "" : "cursor-not-allowed text-muted-foreground"}`}
               >
                 <option value="confirmado">Confirmado</option>
                 <option value="pagado">Pagado (seña cobrada)</option>
               </select>
+              {permitePagado ? null : (
+                <span className="ui-hint mt-1 block">
+                  Este servicio no requiere seña: el turno se crea confirmado.
+                </span>
+              )}
             </div>
           </div>
           <input type="hidden" name="staffId" value={staffId ?? ""} />
           <input type="hidden" name="servicioId" value={servicioId ?? ""} />
           <input type="hidden" name="inicio" value={slotISO} />
           <input type="hidden" name="clienteId" value={clienteId} />
+          <input type="hidden" name="estado" value={permitePagado ? estado : "confirmado"} />
           {error !== null ? (
             <p key={error} className="ui-alert ui-alert-danger animate-shake text-sm" role="alert">
               {error}

@@ -66,6 +66,7 @@ export interface DemoClienteRow
   readonly negocio_id: string;
   readonly nombre: string;
   readonly whatsapp: string;
+  readonly email: string | null;
   readonly ausencias: number;
 }
 
@@ -213,6 +214,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Juan Pérez",
         whatsapp: "+549110000001",
+        email: "juan@ejemplo.com",
         ausencias: 0,
       },
       {
@@ -220,6 +222,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: DEMO_NEGOCIO_ID,
         nombre: "María Gómez",
         whatsapp: "+549110000002",
+        email: "maria@ejemplo.com",
         ausencias: 1,
       },
       {
@@ -227,6 +230,7 @@ export function buildDemoSeed(duenioId: string): DemoSeed
         negocio_id: DEMO_NEGOCIO_ID,
         nombre: "Falta Siempre",
         whatsapp: "+549110000003",
+        email: "falta@ejemplo.com",
         ausencias: 2,
       },
     ],
