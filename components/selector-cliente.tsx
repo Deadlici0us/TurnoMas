@@ -4,6 +4,7 @@ import { Combobox } from "@base-ui/react/combobox";
 import { Check, ChevronDown, X } from "lucide-react";
 import { useMemo } from "react";
 
+import { coincideBusquedaCliente } from "@/lib/clientes/busqueda-clientes";
 import { ordenarClientesPorNombre } from "@/lib/clientes/orden-clientes";
 
 /** Cliente seleccionable en el alta manual de turnos. */
@@ -23,7 +24,7 @@ interface SelectorClienteProps
 }
 
 /**
- * Selector de clientes con búsqueda por nombre.
+ * Selector de clientes con búsqueda por nombre, WhatsApp o email.
  *
  * Muestra la lista ordenada alfabéticamente y cada opción incluye nombre,
  * WhatsApp y email. Permite escribir para filtrar y limpiar la selección
@@ -52,11 +53,12 @@ export default function SelectorCliente({
         onValueChange={(cliente) => onElegir(cliente?.id ?? "")}
         itemToStringLabel={(cliente) => cliente.nombre}
         isItemEqualToValue={(item, value) => item.id === value.id}
+        filter={(cliente, query) => coincideBusquedaCliente(cliente, query)}
       >
         <Combobox.InputGroup className="relative mt-1">
           <Combobox.Input
             id="turno-cliente"
-            placeholder="Buscá por nombre..."
+            placeholder="Buscá por nombre, WhatsApp o email..."
             autoComplete="off"
             className="ui-input pr-20"
           />
@@ -85,7 +87,7 @@ export default function SelectorCliente({
                 shadow-[var(--shadow-modal)]"
             >
               <Combobox.Empty className="px-3 py-4 text-sm text-muted-foreground">
-                No encontramos clientes con ese nombre.
+                No encontramos clientes con esa búsqueda.
               </Combobox.Empty>
               <Combobox.List>
                 {(cliente: ClienteOpcion) => (
@@ -114,7 +116,7 @@ export default function SelectorCliente({
       </Combobox.Root>
       <p className="ui-hint mt-1">
         {seleccionado === null
-          ? "Escribí para filtrar por nombre o dejalo vacío para cargar un cliente nuevo."
+          ? "Escribí para filtrar por nombre, WhatsApp o email, o dejalo vacío para cargar un cliente nuevo."
           : `${seleccionado.whatsapp} · ${seleccionado.email ?? "Sin email"}`}
       </p>
     </div>

@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 
 import { marcarResenaResuelta } from "@/app/dashboard/resenas/actions";
+import BuscadorEnVivo from "@/components/ui/buscador-en-vivo";
 import { useToast } from "@/components/ui/use-toast";
+import { filtrarEnVivo } from "@/lib/busqueda/filtrar-en-vivo";
 import { formatearFechaCorta } from "@/lib/format/fecha";
 import { normalizarWhatsappParaLink } from "@/lib/notifications/whatsapp";
 
@@ -52,29 +54,34 @@ export default function ListaResenas({
   const [pendiente, setPendiente] = useState(false);
   const { showToast } = useToast();
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [query, setQuery] = useState("");
   const [resueltos, setResueltos] = useState<ReadonlySet<string>>(
     () => new Set(items.filter((i) => i.resuelto).map((i) => i.id)),
   );
 
   const visibles = useMemo(() =>
   {
+    let porFiltro: readonly ResenaItem[] = items;
+
     if (filtro === "buenas")
     {
-      return items.filter((i) => i.estrellas >= 4);
+      porFiltro = items.filter((i) => i.estrellas >= 4);
     }
-
-    if (filtro === "malas")
+    else if (filtro === "malas")
     {
-      return items.filter((i) => i.estrellas <= 3);
+      porFiltro = items.filter((i) => i.estrellas <= 3);
     }
-
-    if (filtro === "pendientes")
+    else if (filtro === "pendientes")
     {
-      return items.filter((i) => !resueltos.has(i.id));
+      porFiltro = items.filter((i) => !resueltos.has(i.id));
     }
 
-    return items;
-  }, [items, filtro, resueltos]);
+    return filtrarEnVivo(
+      porFiltro,
+      query,
+      (i) => [i.cliente, i.servicio, i.comentario ?? ""],
+    );
+  }, [items, filtro, resueltos, query]);
 
   async function alternarResuelto(id: string): Promise<void>
   {
@@ -164,6 +171,11 @@ export default function ListaResenas({
 
   return (
     <div className="space-y-4">
+      <BuscadorEnVivo
+        value={query}
+        onChange={setQuery}
+        placeholder="Buscar por cliente, servicio o comentario"
+      />
       <div className="flex flex-wrap gap-2">
         {FILTROS.map(({ clave, etiqueta }) => (
           <button
@@ -178,8 +190,10 @@ export default function ListaResenas({
       </div>
 
       {visibles.length === 0 ? (
-        <p className="ui-card p-8 text-center text-sm text-muted-foreground">
-          No hay reseñas para este filtro.
+        <p className="ui-card p-8 text-center text-sm text-muted-foreground" role="status">
+          {query.trim().length > 0
+            ? "No hay reseñas que coincidan con la búsqueda."
+            : "No hay reseñas para este filtro."}
         </p>
       ) : (
         <ul className="space-y-3">

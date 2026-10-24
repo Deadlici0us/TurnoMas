@@ -49,6 +49,38 @@ describe("SelectorCliente",
     expect(opciones[0]?.textContent).toContain("María Gómez");
   });
 
+  it("debería filtrar por WhatsApp", async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<SelectorCliente clientes={CLIENTES} seleccionadoId="" onElegir={vi.fn()} />);
+    const buscador = screen.getByLabelText("Cliente");
+
+    await user.click(buscador);
+    await user.type(buscador, "0002");
+
+    const opciones = await screen.findAllByRole("option");
+
+    expect(opciones).toHaveLength(1);
+    expect(opciones[0]?.textContent).toContain("María Gómez");
+  });
+
+  it("debería filtrar por email", async () =>
+  {
+    const user = userEvent.setup();
+
+    render(<SelectorCliente clientes={CLIENTES} seleccionadoId="" onElegir={vi.fn()} />);
+    const buscador = screen.getByLabelText("Cliente");
+
+    await user.click(buscador);
+    await user.type(buscador, "zoe@ejemplo");
+
+    const opciones = await screen.findAllByRole("option");
+
+    expect(opciones).toHaveLength(1);
+    expect(opciones[0]?.textContent).toContain("Zoe");
+  });
+
   it("debería mostrar WhatsApp y email en cada opción",
   async () =>
   {

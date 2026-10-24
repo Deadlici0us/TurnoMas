@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import PagosPage from "./page";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -93,6 +94,35 @@ describe("PagosPage",
     expect(screen.getAllByText("Cliente").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Servicio").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("debería filtrar movimientos mientras se escribe", async () =>
+  {
+    const user = userEvent.setup();
+    mockData.mockResolvedValueOnce({
+      data: {
+        ...dashboardBase([
+          turnoBase({ id: "t-1", cliente_id: "cli-1" }),
+          turnoBase({ id: "t-2", cliente_id: "cli-2" }),
+        ]),
+        clientes: [
+          { id: "cli-1", nombre: "Juan" },
+          { id: "cli-2", nombre: "María" },
+        ],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await PagosPage());
+
+    await user.type(
+      screen.getByRole("searchbox", { name: "Buscar por cliente, servicio o estado" }),
+      "maria",
+    );
+
+    expect(screen.queryByText("Juan")).toBeNull();
+    expect(screen.getByText("María")).toBeDefined();
   });
 
   it("debería avisar sin movimientos",

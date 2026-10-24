@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-
 import
 {
   ajustarAusencia as ajustarAusenciaAction,
@@ -9,13 +6,11 @@ import
   eliminarCliente as eliminarClienteAction,
 } from "./actions";
 import FormularioCliente from "@/components/formulario-cliente";
+import ListaClientes, { type ClienteListado, type FiltroEstado } from "@/components/lista-clientes";
 import type { ActionResult } from "@/lib/actions/action-result";
 import { runAction } from "@/lib/actions/run-action";
-import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
-import SubmitButton from "@/components/ui/submit-button";
 import { evaluateCustomer } from "@/lib/blacklist/blacklist";
-import { analizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { readEnv } from "@/lib/env/env";
@@ -40,8 +35,6 @@ interface TurnoRow
   readonly estado: string;
 }
 
-type FiltroEstado = "todos" | "activos" | "lista-negra";
-
 function normalizarFiltro(valor: string | undefined): FiltroEstado
 {
   if (valor === "activos" || valor === "lista-negra")
@@ -51,27 +44,6 @@ function normalizarFiltro(valor: string | undefined): FiltroEstado
 
   return "todos";
 }
-
-function coincideBusqueda(cliente: ClienteRow, query: string): boolean
-{
-  const q = query.trim().toLowerCase();
-
-  if (q.length === 0)
-  {
-    return true;
-  }
-
-  const digitos = q.replace(/\D/g, "");
-  const telefono = analizarWhatsappCliente(q);
-  const email = cliente.email?.toLowerCase() ?? "";
-
-  return cliente.nombre.toLowerCase().includes(q)
-    || cliente.whatsapp.toLowerCase().includes(q)
-    || email.includes(q)
-    || (digitos.length >= 3 && cliente.whatsapp.replace(/\D/g, "").includes(digitos))
-    || (telefono.ok && telefono.valor === cliente.whatsapp);
-}
-
 
 async function crearCliente(formData: FormData): Promise<ActionResult<void>>
 {
@@ -173,30 +145,39 @@ export default async function ClientesPage({
       ? "blocked"
       : evaluateCustomer(cliente.ausencias, { maxAllowedAbsences: umbral, penaltyOnExceed: penalidad });
 
-  const filtrados = clientes.filter((cliente) =>
-  {
-    if (!coincideBusqueda(cliente, q ?? ""))
-    {
-      return false;
-    }
-
-    const decision = decisionDe(cliente);
-
-    if (filtroActivo === "activos")
-    {
-      return decision === "allowed";
-    }
-
-    if (filtroActivo === "lista-negra")
-    {
-      return decision !== "allowed";
-    }
-
-    return true;
-  });
-
   const totalActivos = clientes.filter((c) => decisionDe(c) === "allowed").length;
   const totalListaNegra = clientes.length - totalActivos;
+
+  const clientesListado: ClienteListado[] = clientes.map((cliente) =>
+  {
+    const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
+      .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime())
+      .map((turno) => ({
+        id: turno.id,
+        servicio: nombrePorServicio.get(turno.servicio_id) ?? "Servicio",
+        estado: turno.estado,
+        estadoEtiqueta: etiquetaEstadoPara(turno.estado),
+      }));
+    const decision = decisionDe(cliente);
+
+    return {
+      id: cliente.id,
+      nombre: cliente.nombre,
+      whatsapp: cliente.whatsapp,
+      email: cliente.email,
+      ausencias: cliente.ausencias,
+      bloqueado: cliente.bloqueado,
+      decision,
+      historial,
+      whatsappLink: linkRemarketing(cliente, historial[0]?.servicio ?? "tu servicio"),
+      acciones: {
+        sumarFalta: ajustarAusencia.bind(null, cliente.id, 1),
+        restarFalta: ajustarAusencia.bind(null, cliente.id, -1),
+        alternarBloqueo: cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado),
+        eliminar: eliminarCliente.bind(null, cliente.id),
+      },
+    };
+  });
 
   return (
     <div>
@@ -225,288 +206,12 @@ export default async function ClientesPage({
         successMessage="Cliente agregado."
         className="ui-card mb-6 p-5 sm:p-6"
       />
-      <div className="ui-card mb-6 p-5 sm:p-6">
-        <form method="get" className="flex flex-col gap-3 sm:flex-row">
-          <input
-            type="search"
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Buscar por nombre, WhatsApp o email"
-            className="ui-input flex-1"
-          />
-          <div className="flex flex-wrap gap-1">
-            {([
-              ["todos", "Todos"],
-              ["activos", "Activos"],
-              ["lista-negra", "Lista negra"],
-            ] as const).map(([valor, etiqueta]) => (
-              <button
-                key={valor}
-                type="submit"
-                name="filtro"
-                value={valor}
-                className={`ui-tab ${filtroActivo === valor ? "ui-tab-active" : ""}`}
-              >
-                {etiqueta}
-              </button>
-            ))}
-          </div>
-        </form>
-      </div>
-      <div className="ui-card overflow-hidden">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="ui-table">
-            <thead>
-              <tr>
-                <th className="ui-th px-6">Cliente</th>
-                <th className="ui-th px-6">Turnos</th>
-                <th className="ui-th px-6">Ausencias</th>
-                <th className="ui-th px-6">Estado</th>
-                <th className="ui-th px-6 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {filtrados.map((cliente) =>
-              {
-                const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
-                  .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
-                const ultimo = historial[0];
-                const decision = decisionDe(cliente);
-                const enListaNegra = decision !== "allowed";
-
-                return (
-                  <tr key={cliente.id} className="ui-tr align-top">
-                    <td className="ui-td px-6">
-                      <Link
-                        href={"/dashboard/clientes/" + cliente.id}
-                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                      >
-                        {cliente.nombre}
-                        <ChevronRight className="size-4" aria-hidden="true" />
-                      </Link>
-                      <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
-                      {typeof cliente.email === "string" && cliente.email.length > 0 ? (
-                        <p className="text-muted-foreground text-xs">{cliente.email}</p>
-                      ) : null}
-                      <p className="text-muted-foreground text-xs mt-1">
-                        {ultimo
-                          ? "Último: " + (nombrePorServicio.get(ultimo.servicio_id) ?? "Servicio")
-                            + " · " + ultimo.estado
-                          : "Sin turnos"}
-                      </p>
-                    </td>
-                    <td className="ui-td px-6 text-muted-foreground">{historial.length}</td>
-                    <td className="ui-td px-6">
-                      <span className={cliente.ausencias >= umbral
-                        ? "text-danger font-semibold"
-                        : "text-muted-foreground"}>
-                        {cliente.ausencias}
-                      </span>
-                    </td>
-                    <td className="ui-td px-6">
-                      {enListaNegra ? (
-                        <span className="ui-badge ui-badge-danger">
-                          {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
-                        </span>
-                      ) : (
-                        <span className="ui-badge ui-badge-success">Activo</span>
-                      )}
-                    </td>
-                    <td className="ui-td px-6">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Link
-                          href={"/dashboard/clientes/" + cliente.id}
-                          className="ui-btn ui-btn-outline ui-btn-sm inline-flex items-center gap-1"
-                        >
-                          Ver ficha
-                          <ChevronRight className="size-3.5" aria-hidden="true" />
-                        </Link>
-                        <Link
-                          href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
-                          className="ui-btn ui-btn-outline ui-btn-sm"
-                        >
-                          Agregar turno
-                        </Link>
-                        {(() =>
-                        {
-                          const wa = linkRemarketing(cliente, ultimo !== undefined
-                            ? (nombrePorServicio.get(ultimo.servicio_id) ?? "tu servicio")
-                            : "tu servicio");
-
-                          return wa !== null ? (
-                            <a
-                              href={wa}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
-                                hover:bg-success-soft"
-                            >
-                              WhatsApp
-                            </a>
-                          ) : null;
-                        })()}
-                        <ActionForm
-                          action={ajustarAusencia.bind(null, cliente.id, 1)}
-                          successMessage="Ausencia registrada."
-                        >
-                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
-                            + Falta
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm
-                          action={ajustarAusencia.bind(null, cliente.id, -1)}
-                          successMessage="Ausencia descontada."
-                        >
-                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
-                            − Falta
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm
-                          action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}
-                          successMessage={cliente.bloqueado ? "Cliente desbloqueado." : "Cliente bloqueado."}
-                        >
-                          <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
-                            {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm
-                          action={eliminarCliente.bind(null, cliente.id)}
-                          successMessage="Cliente eliminado."
-                        >
-                          <SubmitButton className="ui-btn ui-btn-danger ui-btn-sm">
-                            Eliminar
-                          </SubmitButton>
-                        </ActionForm>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="md:hidden divide-y divide-line">
-          {filtrados.map((cliente) =>
-          {
-            const historial = (turnosPorCliente.get(cliente.id) ?? []).slice()
-              .sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
-            const decision = decisionDe(cliente);
-            const enListaNegra = decision !== "allowed";
-
-            return (
-              <div key={cliente.id} className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link
-                      href={"/dashboard/clientes/" + cliente.id}
-                      className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                    >
-                      {cliente.nombre}
-                      <ChevronRight className="size-4" aria-hidden="true" />
-                    </Link>
-                    <p className="text-muted-foreground text-xs mt-0.5">{cliente.whatsapp}</p>
-                    {typeof cliente.email === "string" && cliente.email.length > 0 ? (
-                      <p className="text-muted-foreground text-xs">{cliente.email}</p>
-                    ) : null}
-                    <p className="text-muted-foreground text-xs mt-1">
-                      {historial.length} turnos · {cliente.ausencias} faltas
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    {enListaNegra ? (
-                      <span className="ui-badge ui-badge-danger">
-                        {decision === "blocked" ? "Bloqueado" : "Seña 100%"}
-                      </span>
-                    ) : (
-                      <span className="ui-badge ui-badge-success">Activo</span>
-                    )}
-                    <Link
-                      href={"/dashboard/clientes/" + cliente.id}
-                      className="ui-btn ui-btn-outline ui-btn-sm inline-flex items-center gap-1"
-                    >
-                      Ver ficha
-                      <ChevronRight className="size-3.5" aria-hidden="true" />
-                    </Link>
-                  </div>
-                </div>
-                <details className="mt-3 border border-line rounded-lg">
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">
-                    Historial y acciones
-                  </summary>
-                  <div className="px-3 pb-3 pt-1 border-t border-line">
-                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                      {historial.length === 0 ? <li>Sin turnos todavía.</li> : null}
-                      {historial.slice(0, 5).map((turno) => (
-                        <li key={turno.id}>
-                          {(nombrePorServicio.get(turno.servicio_id) ?? "Servicio") + " · " + etiquetaEstadoPara(turno.estado)}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Link
-                        href={"/dashboard/agenda/nuevo?clienteId=" + cliente.id}
-                        className="ui-btn ui-btn-outline ui-btn-sm"
-                      >
-                        Agregar turno
-                      </Link>
-                      {(() =>
-                      {
-                        const ultimoMovil = historial[0];
-                        const wa = linkRemarketing(cliente, ultimoMovil !== undefined
-                          ? (nombrePorServicio.get(ultimoMovil.servicio_id) ?? "tu servicio")
-                          : "tu servicio");
-
-                        return wa !== null ? (
-                          <a
-                            href={wa}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="ui-btn ui-btn-outline ui-btn-sm border-success/40 text-[#0c6b45]
-                              hover:bg-success-soft"
-                          >
-                            WhatsApp
-                          </a>
-                        ) : null;
-                      })()}
-                      <ActionForm
-                        action={ajustarAusencia.bind(null, cliente.id, 1)}
-                        successMessage="Ausencia registrada."
-                      >
-                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">+ Falta</SubmitButton>
-                      </ActionForm>
-                      <ActionForm
-                        action={ajustarAusencia.bind(null, cliente.id, -1)}
-                        successMessage="Ausencia descontada."
-                      >
-                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">− Falta</SubmitButton>
-                      </ActionForm>
-                      <ActionForm
-                        action={cambiarBloqueoCliente.bind(null, cliente.id, !cliente.bloqueado)}
-                        successMessage={cliente.bloqueado ? "Cliente desbloqueado." : "Cliente bloqueado."}
-                      >
-                        <SubmitButton className="ui-btn ui-btn-outline ui-btn-sm">
-                          {cliente.bloqueado ? "Desbloquear" : "Bloquear"}
-                        </SubmitButton>
-                      </ActionForm>
-                      <ActionForm
-                        action={eliminarCliente.bind(null, cliente.id)}
-                        successMessage="Cliente eliminado."
-                      >
-                        <SubmitButton className="ui-btn ui-btn-danger ui-btn-sm">Eliminar</SubmitButton>
-                      </ActionForm>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            );
-          })}
-        </div>
-        {filtrados.length === 0 ? (
-          <p className="text-sm text-muted-foreground px-6 py-6">
-            {clientes.length === 0 ? "Todavía no tenés clientes." : "Ningún cliente coincide con la búsqueda."}
-          </p>
-        ) : null}
-      </div>
+      <ListaClientes
+        clientes={clientesListado}
+        initialQuery={q ?? ""}
+        initialFiltro={filtroActivo}
+        umbral={umbral}
+      />
     </div>
   );
 }

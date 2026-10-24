@@ -178,6 +178,26 @@ describe("StaffPage",
     expect(vi.mocked(cambiarEstadoStaff)).not.toHaveBeenCalled();
   });
 
+  it("debería filtrar profesionales mientras se escribe", async () =>
+  {
+    const user = userEvent.setup();
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        { id: "s-1", nombre: "Diego", activo: true, horarios: null },
+        { id: "s-2", nombre: "Ana", activo: true, horarios: null },
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await StaffPage());
+
+    await user.type(screen.getByRole("searchbox", { name: "Buscar profesional por nombre" }), "ana");
+
+    expect(screen.queryByText("Diego")).toBeNull();
+    expect(screen.getByText("Ana")).toBeDefined();
+  });
+
   it("debería invocar las acciones al enviar formularios",
   async () =>
   {

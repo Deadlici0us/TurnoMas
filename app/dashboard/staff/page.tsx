@@ -12,6 +12,7 @@ import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
 import EditorHorariosSemanales from "@/components/editor-horarios-semanales";
+import ListaFiltrable from "@/components/lista-filtrable";
 import FotoStaffUploader from "@/components/foto-staff-uploader";
 import PerfilStaffForm from "@/components/perfil-staff-form";
 import StaffDeleteForm from "@/components/staff-delete-form";
@@ -136,8 +137,9 @@ export default async function StaffPage()
         />
         <SubmitButton pendingLabel="Agregando...">Agregar profesional</SubmitButton>
       </ActionForm>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {(dashboard.staff as StaffRow[]).map((member) =>
+      <ListaFiltrable
+        claseLista="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+        items={(dashboard.staff as StaffRow[]).map((member) =>
         {
           const resumen = resumenTurnos.get(member.id) ?? { total: 0, proximos: 0 };
           const conHistorial = resumen.total > 0;
@@ -151,8 +153,11 @@ export default async function StaffPage()
                   + "Se conservarán. ¿Desactivar?"
               : undefined;
 
-          return (
-          <div key={member.id} className="ui-card p-5 sm:p-6">
+          return {
+            key: member.id,
+            busqueda: [member.nombre],
+            contenido: (
+          <div className="ui-card p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex size-12 items-center justify-center rounded-full bg-warning-soft
                 font-heading font-bold text-[#7a5200]">
@@ -213,9 +218,13 @@ export default async function StaffPage()
               />
             </div>
           </div>
-          );
+            ),
+          };
         })}
-      </div>
+        placeholder="Buscar profesional por nombre"
+        vacioSinDatos="Todavía no agregaste profesionales."
+        vacioSinCoincidencias="Ningún profesional coincide con la búsqueda."
+      />
     </div>
   );
 }

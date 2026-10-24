@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import ClientesPage from "./page";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -190,6 +191,30 @@ describe("ClientesPage",
     render(await ClientesPage({ searchParams: params("9999") }));
 
     expect(screen.queryByText("Juan")).toBeNull();
+  });
+
+  it("debería filtrar al escribir sin enviar el formulario", async () =>
+  {
+    const user = userEvent.setup();
+
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([
+        clienteBase({ id: "cli-1", nombre: "Juan" }),
+        clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+5491199999999" }),
+      ]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await ClientesPage({ searchParams: params() }));
+
+    await user.type(
+      screen.getByRole("searchbox", { name: "Buscar por nombre, WhatsApp o email" }),
+      "ana",
+    );
+
+    expect(screen.queryByText("Juan")).toBeNull();
+    expect(screen.getAllByText("Ana").length).toBeGreaterThanOrEqual(2);
   });
 
   it("debería enlazar el nombre a la ficha del cliente",

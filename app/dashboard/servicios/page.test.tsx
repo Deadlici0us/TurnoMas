@@ -132,6 +132,29 @@ describe("ServiciosPage",
     expect(screen.getByText("Remarketing 30d")).toBeDefined();
   });
 
+  it("debería filtrar servicios mientras se escribe", async () =>
+  {
+    const user = userEvent.setup();
+    mockData.mockResolvedValueOnce({
+      data: {
+        negocio: { id: "neg-1" },
+        staff: [],
+        servicios: [servicioBase(), servicioBase({ id: "serv-2", nombre: "Color" })],
+        clientes: [],
+        turnos: [],
+      },
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await ServiciosPage());
+
+    await user.type(screen.getByRole("searchbox", { name: "Buscar por nombre de servicio" }), "color");
+
+    expect(screen.queryByText("Corte")).toBeNull();
+    expect(screen.getByText("Color")).toBeDefined();
+  });
+
   it("debería invocar las acciones al enviar formularios",
   async () =>
   {

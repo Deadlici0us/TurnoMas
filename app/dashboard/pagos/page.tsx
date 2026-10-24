@@ -1,5 +1,6 @@
 import CopiarComprobante from "@/components/copiar-comprobante";
 import LeyendaEstados from "@/components/leyenda-estados";
+import TablaFiltrable from "@/components/tabla-filtrable";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { formatearARS } from "@/lib/dashboard/moneda";
 import { claseBadgePara, etiquetaEstadoPara } from "@/lib/dashboard/estados-colores";
@@ -133,53 +134,59 @@ export default async function PagosPage()
             </div>
           </div>
           <div className="mb-4"><LeyendaEstados /></div>
-          <div className="overflow-x-auto">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th className="ui-th">Cliente</th>
-                  <th className="ui-th">Servicio</th>
-                  <th className="ui-th">Total</th>
-                  <th className="ui-th">Seña</th>
-                  <th className="ui-th">Saldo</th>
-                  <th className="ui-th">Estado</th>
-                  <th className="ui-th">Inicio</th>
-                  <th className="ui-th">Pago seña</th>
-                  <th className="ui-th">Comprobante</th>
+          <TablaFiltrable
+            encabezados={(
+              <tr>
+                <th className="ui-th">Cliente</th>
+                <th className="ui-th">Servicio</th>
+                <th className="ui-th">Total</th>
+                <th className="ui-th">Seña</th>
+                <th className="ui-th">Saldo</th>
+                <th className="ui-th">Estado</th>
+                <th className="ui-th">Inicio</th>
+                <th className="ui-th">Pago seña</th>
+                <th className="ui-th">Comprobante</th>
+              </tr>
+            )}
+            filas={turnos.map((turno) => ({
+              key: turno.id,
+              busqueda: [
+                nombrePorCliente.get(turno.cliente_id) ?? "Cliente",
+                nombrePorServicio.get(turno.servicio_id) ?? "Servicio",
+                etiquetaEstadoPara(turno.estado),
+              ],
+              contenido: (
+                <tr className="ui-tr">
+                  <td className="ui-td font-medium text-ink">
+                    {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
+                  </td>
+                  <td className="ui-td text-muted-foreground">
+                    {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
+                  </td>
+                  <td className="ui-td text-muted-foreground">{formatearARS(turno.monto_total)}</td>
+                  <td className="ui-td text-muted-foreground">{formatearARS(turno.sena_monto)}</td>
+                  <td className="ui-td text-muted-foreground">{formatearARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
+                  <td className="ui-td">
+                    <span className={`ui-badge ${claseBadgePara(turno.estado)}`}>
+                      {etiquetaEstadoPara(turno.estado)}
+                    </span>
+                  </td>
+                  <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
+                    {formatearEnZonaConFecha(turno.inicio, timeZone)}
+                  </td>
+                  <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
+                    {celdaPagoSena(turno, timeZone)}
+                  </td>
+                  <td className="ui-td text-muted-foreground">
+                    {celdaComprobante(turno.mp_payment_id)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {turnos.map((turno) => (
-                  <tr key={turno.id} className="ui-tr">
-                    <td className="ui-td font-medium text-ink">
-                      {nombrePorCliente.get(turno.cliente_id) ?? "Cliente"}
-                    </td>
-                    <td className="ui-td text-muted-foreground">
-                      {nombrePorServicio.get(turno.servicio_id) ?? "Servicio"}
-                    </td>
-                    <td className="ui-td text-muted-foreground">{formatearARS(turno.monto_total)}</td>
-                    <td className="ui-td text-muted-foreground">{formatearARS(turno.sena_monto)}</td>
-                    <td className="ui-td text-muted-foreground">{formatearARS((turno.monto_total ?? 0) - (turno.sena_monto ?? 0))}</td>
-                    <td className="ui-td">
-                      <span className={`ui-badge ${claseBadgePara(turno.estado)}`}>
-                        {etiquetaEstadoPara(turno.estado)}
-                      </span>
-                    </td>
-                    <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
-                      {formatearEnZonaConFecha(turno.inicio, timeZone)}
-                    </td>
-                    <td className="ui-td whitespace-nowrap text-muted-foreground tabular-nums">
-                      {celdaPagoSena(turno, timeZone)}
-                    </td>
-                    <td className="ui-td text-muted-foreground">
-                      {celdaComprobante(turno.mp_payment_id)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {turnos.length === 0 ? <p className="text-sm text-muted-foreground mt-4">Todavía no hay movimientos.</p> : null}
+              ),
+            }))}
+            placeholder="Buscar por cliente, servicio o estado"
+            vacioSinDatos="Todavía no hay movimientos."
+            vacioSinCoincidencias="Ningún movimiento coincide con la búsqueda."
+          />
         </div>
     </div>
   );

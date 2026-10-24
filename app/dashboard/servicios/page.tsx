@@ -3,6 +3,7 @@ import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
 import SubmitButton from "@/components/ui/submit-button";
 import FormularioServicio from "@/components/formulario-servicio";
+import ListaFiltrable from "@/components/lista-filtrable";
 import type { ActionResult } from "@/lib/actions/action-result";
 import { runAction } from "@/lib/actions/run-action";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -91,8 +92,12 @@ export default async function ServiciosPage()
         <FormularioServicio action={crearServicio} titulo="Nuevo servicio" cta="Agregar servicio" />
       </div>
 
-        {(dashboard.servicios as ServicioRow[]).map((servicio) => (
-          <div key={servicio.id} className="ui-card mb-4 p-5 sm:p-6">
+      <ListaFiltrable
+        items={(dashboard.servicios as ServicioRow[]).map((servicio) => ({
+          key: servicio.id,
+          busqueda: [servicio.nombre],
+          contenido: (
+          <div className="ui-card mb-4 p-5 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="flex size-12 items-center justify-center rounded-full bg-info-soft
                 font-heading font-bold text-[#0b6e93]">
@@ -152,7 +157,12 @@ export default async function ServiciosPage()
                 </details>
               </div>
           </div>
-        ))}
+          ),
+        }))}
+        placeholder="Buscar por nombre de servicio"
+        vacioSinDatos="Todavía no tenés servicios."
+        vacioSinCoincidencias="Ningún servicio coincide con la búsqueda."
+      />
     </div>
   );
 }

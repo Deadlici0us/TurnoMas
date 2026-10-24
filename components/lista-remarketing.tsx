@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { deshacerRemarketingManual, marcarRemarketingManual } from "@/app/dashboard/remarketing/actions";
+import BuscadorEnVivo from "@/components/ui/buscador-en-vivo";
 import { useToast } from "@/components/ui/use-toast";
+import { filtrarEnVivo } from "@/lib/busqueda/filtrar-en-vivo";
 import { linkRemarketingWhatsapp } from "@/lib/remarketing/link";
 
 export interface ListaItemProps
@@ -38,6 +40,7 @@ export default function ListaRemarketing({
   const [pendiente, setPendiente] = useState(false);
   const { showToast } = useToast();
   const [visibles, setVisibles] = useState<readonly string[]>(items.map((item) => item.turnoId));
+  const [query, setQuery] = useState("");
 
   function ocultar(turnoId: string): void
   {
@@ -131,10 +134,22 @@ export default function ListaRemarketing({
     });
   }
 
-  const aMostrar = items.filter((item) => visibles.includes(item.turnoId));
+  const aMostrar = useMemo(
+    () => filtrarEnVivo(
+      items.filter((item) => visibles.includes(item.turnoId)),
+      query,
+      (item) => [item.clienteNombre, item.whatsapp, item.servicioNombre],
+    ),
+    [items, visibles, query],
+  );
 
   return (
-    <>
+    <div className="space-y-4">
+      <BuscadorEnVivo
+        value={query}
+        onChange={setQuery}
+        placeholder="Buscar por cliente, WhatsApp o servicio"
+      />
       <ul className="space-y-3">
         {aMostrar.map((item) =>
         {
@@ -191,10 +206,12 @@ export default function ListaRemarketing({
         })}
       </ul>
       {aMostrar.length === 0 ? (
-        <p className="ui-card p-8 text-center text-sm text-muted-foreground">
-          No hay nadie más para hacer remarketing. Buen trabajo.
+        <p className="ui-card p-8 text-center text-sm text-muted-foreground" role="status">
+          {query.trim().length > 0
+            ? "Ningún cliente coincide con la búsqueda."
+            : "No hay nadie más para hacer remarketing. Buen trabajo."}
         </p>
       ) : null}
-    </>
+    </div>
   );
 }
