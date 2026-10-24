@@ -148,6 +148,9 @@ describe("StaffPage",
   async () =>
   {
     const user = userEvent.setup();
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    manana.setUTCHours(12, 0, 0, 0);
     window.confirm = vi.fn(() => false);
     mockData.mockResolvedValueOnce({
       data: {
@@ -159,8 +162,8 @@ describe("StaffPage",
         }]),
         turnos: [{
           staff_id: "s-1",
-          inicio: "2026-10-23T12:00:00.000Z",
-          fin: "2026-10-23T13:00:00.000Z",
+          inicio: manana.toISOString(),
+          fin: new Date(manana.getTime() + 3_600_000).toISOString(),
           estado: "confirmado",
         }],
       },
