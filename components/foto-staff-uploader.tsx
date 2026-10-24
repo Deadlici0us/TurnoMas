@@ -4,36 +4,46 @@ import { useRef, useState } from "react";
 
 import type { ActionResult } from "@/lib/actions/action-result";
 import { inicialesDe } from "@/components/ui/avatar";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
-
-const BUCKET = "logos";
-const MAX_BYTES = 5 * 1024 * 1024;
+import { convertirFotoPerfil, validarArchivoFoto } from "@/lib/staff/foto-cliente";
+import {
+  FOTO_ACCEPT,
+  FOTO_LADO_MAXIMO,
+  FOTO_LADO_MINIMO,
+  FOTO_LADO_SALIDA,
+  FOTO_PESO_MAXIMO_BYTES,
+  MENSAJES_FOTO,
+} from "@/lib/staff/foto-limites";
 
 interface FotoStaffUploaderProps
 {
   readonly staffId: string;
   readonly nombre: string;
   readonly fotoUrl: string | null;
-  /** Server Action que persiste la URL pública (o null al quitar). */
-  readonly action: (url: string | null) => Promise<ActionResult<unknown> | void>;
+  /** Server Action que recibe el JPEG convertido y devuelve la URL pública. */
+  readonly subir: (formData: FormData) => Promise<ActionResult<{ url: string }>>;
+  /** Server Action que quita la foto actual. */
+  readonly quitar: () => Promise<ActionResult<void>>;
 }
 
 /**
  * Carga la foto del profesional al bucket público `logos`.
  *
- * Sube directo desde el navegador (RLS: el dueño autenticado escribe en
- * `logos`) y luego persiste la URL pública con la Server Action. Foto
- * opcional: sin imagen se muestran las iniciales.
+ * El navegador recorta y comprime la imagen a un JPEG 512×512 antes de
+ * enviarla. El servidor vuelve a validar y normalizar antes de guardarla.
+ * Sin imagen se muestran las iniciales.
  */
-export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: FotoStaffUploaderProps)
+export default function FotoStaffUploader(
+  { staffId, nombre, fotoUrl, subir, quitar }: FotoStaffUploaderProps,
+)
 {
   const [preview, setPreview] = useState<string | null>(fotoUrl);
+  const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  /** Valida, sube la imagen y persiste la URL pública. */
-  async function subir(event: React.ChangeEvent<HTMLInputElement>): Promise<void>
+  /** Valida, convierte y sube la imagen, y persiste la URL pública. */
+  async function cargar(event: React.ChangeEvent<HTMLInputElement>): Promise<void>
   {
     const file = event.target.files?.[0];
 
@@ -42,49 +52,37 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
       return;
     }
 
-    if (!file.type.startsWith("image/"))
-    {
-      setError("Elegí una imagen (JPG, PNG o WebP).");
-      return;
-    }
-
-    if (file.size > MAX_BYTES)
-    {
-      setError("La imagen no puede superar los 5 MB.");
-      return;
-    }
-
-    setSubiendo(true);
+    setNombreArchivo(file.name);
     setError(null);
 
     try
     {
-      const supabase = getSupabaseBrowser();
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const path = `staff/${staffId}/${Date.now()}.${extension}`;
-      const { error: subidaError } = await supabase.storage.from(BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: true });
+      validarArchivoFoto(file);
+      setSubiendo(true);
 
-      if (subidaError !== null)
-      {
-        throw new Error(subidaError.message);
-      }
+      const jpeg = await convertirFotoPerfil(file);
+      const formData = new FormData();
 
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      formData.set("archivo", jpeg, `foto-${staffId}.jpg`);
 
-      const result = await action(data.publicUrl);
+      const result = await subir(formData);
 
-      if (result !== undefined && !result.ok)
+      if (!result.ok)
       {
         setError(result.error);
+
         return;
       }
 
-      setPreview(data.publicUrl);
+      setPreview(result.data.url);
     }
-    catch
+    catch (errorCapturado)
     {
-      setError("No pudimos subir la foto. Probá de nuevo.");
+      setError(
+        errorCapturado instanceof Error && errorCapturado.message.length > 0
+          ? errorCapturado.message
+          : MENSAJES_FOTO.invalida,
+      );
     }
     finally
     {
@@ -98,22 +96,24 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
   }
 
   /** Quita la foto del profesional. */
-  async function quitar(): Promise<void>
+  async function quitarFoto(): Promise<void>
   {
     setSubiendo(true);
     setError(null);
 
     try
     {
-      const result = await action(null);
+      const result = await quitar();
 
-      if (result !== undefined && !result.ok)
+      if (!result.ok)
       {
         setError(result.error);
+
         return;
       }
 
       setPreview(null);
+      setNombreArchivo(null);
     }
     catch
     {
@@ -125,32 +125,60 @@ export default function FotoStaffUploader({ staffId, nombre, fotoUrl, action }: 
     }
   }
 
+  const textoArchivo = nombreArchivo ?? "Sin archivo seleccionado";
+  const ayudaId = `foto-ayuda-${staffId}`;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
         {preview !== null ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={nombre} className="size-16 rounded-full object-cover" />
+          <img src={preview} alt={nombre} className="size-16 shrink-0 rounded-full object-cover" />
         ) : (
-          <span className="flex size-16 items-center justify-center rounded-full bg-warning-soft
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-warning-soft
             font-heading font-bold text-[#7a5200]">{inicialesDe(nombre)}</span>
         )}
-        <div className="space-y-1">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            aria-label={`Foto de ${nombre}`}
-            disabled={subiendo}
-            onChange={(event) => { void subir(event); }}
-            className="block text-xs text-ink file:mr-3 file:rounded-full file:border-0
-              file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
-              hover:file:bg-primary-hover disabled:opacity-60"
-          />
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={FOTO_ACCEPT}
+              aria-label={`Foto de ${nombre}`}
+              disabled={subiendo}
+              onChange={(event) => { void cargar(event); }}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={subiendo}
+              aria-describedby={ayudaId}
+              className="ui-btn ui-btn-outline ui-btn-sm"
+            >
+              {subiendo ? (
+                <>
+                  <span className="ui-spinner" aria-hidden="true" />
+                  Subiendo...
+                </>
+              ) : "Elegir imagen"}
+            </button>
+            <span
+              className="block max-w-48 truncate text-xs text-muted-foreground"
+              title={textoArchivo}
+            >
+              {textoArchivo}
+            </span>
+          </div>
+          <p id={ayudaId} className="text-xs text-muted-foreground">
+            JPG, PNG o WebP. Mínimo {FOTO_LADO_MINIMO}×{FOTO_LADO_MINIMO} px, máximo{" "}
+            {FOTO_LADO_MAXIMO}×{FOTO_LADO_MAXIMO} px y {FOTO_PESO_MAXIMO_BYTES / (1024 * 1024)} MB.
+            Se guarda como JPEG {FOTO_LADO_SALIDA}×{FOTO_LADO_SALIDA}.
+          </p>
           {preview !== null ? (
             <button
               type="button"
-              onClick={() => { void quitar(); }}
+              onClick={() => { void quitarFoto(); }}
               disabled={subiendo}
               className="text-xs font-semibold text-danger hover:text-danger disabled:opacity-60"
             >

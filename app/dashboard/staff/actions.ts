@@ -8,7 +8,10 @@ import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { AuthError } from "@/lib/errors/auth-error";
 import { ConflictError } from "@/lib/errors/conflict-error";
+import { NotFoundError } from "@/lib/errors/not-found-error";
 import { UnavailableError } from "@/lib/errors/unavailable-error";
+import { esJpeg, normalizarFotoPerfil, rutaFotoDelBucket } from "@/lib/staff/foto";
+import { FOTO_PESO_MAXIMO_SALIDA_BYTES, MENSAJES_FOTO } from "@/lib/staff/foto-limites";
 import { validarServiciosStaff } from "@/lib/staff/servicios";
 import {
   HORARIOS_POR_DEFECTO,
@@ -218,6 +221,97 @@ export async function actualizarPerfilStaff(
   });
 }
 
+/**
+ * Recibe el JPEG convertido por el navegador, lo normaliza y lo guarda.
+ *
+ * El cliente ya recorta a 512×512, pero el servidor vuelve a validar los
+ * magic bytes, el peso y las dimensiones antes de reencodear y subir.
+ */
+export async function subirFotoStaff(
+  staffId: string,
+  formData: FormData,
+): Promise<ActionResult<{ url: string }>>
+{
+  return runAction("subirFotoStaff", async () =>
+  {
+    const archivo = formData.get("archivo");
+
+    if (typeof archivo === "string" || archivo === null)
+    {
+      throw new RangeError(MENSAJES_FOTO.falta);
+    }
+
+    if (archivo.type !== "image/jpeg")
+    {
+      throw new RangeError(MENSAJES_FOTO.servidor);
+    }
+
+    if (archivo.size > FOTO_PESO_MAXIMO_SALIDA_BYTES)
+    {
+      throw new RangeError(MENSAJES_FOTO.salida);
+    }
+
+    const { admin, negocioId } = await contextoDelDueno(
+      "Tenés que iniciar sesión para modificar el equipo.");
+
+    const { data: staff, error: staffError } = await admin.from("staff")
+      .select("id, foto_url")
+      .eq("id", staffId).eq("negocio_id", negocioId)
+      .maybeSingle();
+
+    if (staffError !== null)
+    {
+      throw new UnavailableError("No pudimos verificar al profesional. Probá de nuevo.");
+    }
+
+    if (staff === null)
+    {
+      throw new NotFoundError("No encontramos ese profesional.");
+    }
+
+    const buffer = Buffer.from(await archivo.arrayBuffer());
+
+    if (!esJpeg(buffer))
+    {
+      throw new RangeError(MENSAJES_FOTO.servidor);
+    }
+
+    const normalizada = await normalizarFotoPerfil(buffer);
+    const path = `staff/${staffId}/${Date.now()}.jpg`;
+    const { error: subidaError } = await admin.storage.from("logos")
+      .upload(path, normalizada, { contentType: "image/jpeg", upsert: false });
+
+    if (subidaError !== null)
+    {
+      throw new UnavailableError("No pudimos subir la foto. Probá de nuevo.");
+    }
+
+    const { data } = admin.storage.from("logos").getPublicUrl(path);
+    const { error: guardadoError } = await admin.from("staff")
+      .update({ foto_url: data.publicUrl })
+      .eq("id", staffId).eq("negocio_id", negocioId);
+
+    if (guardadoError !== null)
+    {
+      await admin.storage.from("logos").remove([path]);
+
+      throw new UnavailableError("No pudimos guardar la foto. Probá de nuevo.");
+    }
+
+    const anterior = rutaFotoDelBucket((staff as unknown as { foto_url: string | null }).foto_url);
+
+    if (anterior !== null && anterior.startsWith(`staff/${staffId}/`))
+    {
+      await admin.storage.from("logos").remove([anterior]);
+    }
+
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+
+    return { url: data.publicUrl };
+  });
+}
+
 /** Guarda la URL pública de la foto del profesional (o la limpia). */
 export async function actualizarFotoStaff(staffId: string, fotoUrl: unknown): Promise<ActionResult<void>>
 {
@@ -225,6 +319,17 @@ export async function actualizarFotoStaff(staffId: string, fotoUrl: unknown): Pr
   {
     const url = validarFotoUrl(fotoUrl);
     const { admin, negocioId } = await contextoDelDueno("Tenés que iniciar sesión para modificar el equipo.");
+    let anterior: string | null = null;
+
+    if (url === null)
+    {
+      const { data: staff } = await admin.from("staff")
+        .select("foto_url")
+        .eq("id", staffId).eq("negocio_id", negocioId)
+        .maybeSingle();
+
+      anterior = rutaFotoDelBucket((staff as unknown as { foto_url?: string | null } | null)?.foto_url ?? null);
+    }
 
     const { error } = await admin.from("staff").update({ foto_url: url })
       .eq("id", staffId).eq("negocio_id", negocioId);
@@ -232,6 +337,11 @@ export async function actualizarFotoStaff(staffId: string, fotoUrl: unknown): Pr
     if (error !== null)
     {
       throw new UnavailableError("No pudimos guardar la foto. Probá de nuevo.");
+    }
+
+    if (anterior !== null && anterior.startsWith(`staff/${staffId}/`))
+    {
+      await admin.storage.from("logos").remove([anterior]);
     }
 
     revalidatePath("/dashboard/staff");

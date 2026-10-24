@@ -6,7 +6,9 @@ import
   agregarStaff,
   cambiarEstadoStaff,
   eliminarStaff,
+  subirFotoStaff,
 } from "./actions";
+import { Clock, UserRound } from "lucide-react";
 import type { ActionResult } from "@/lib/actions/action-result";
 import ActionForm from "@/components/ui/action-form";
 import PageHeader from "@/components/ui/page-header";
@@ -99,11 +101,21 @@ async function guardarPerfil(
   return result.ok ? null : result.error;
 }
 
-async function guardarFoto(staffId: string, fotoUrl: string | null): Promise<ActionResult<void>>
+async function subirFoto(
+  staffId: string,
+  formData: FormData,
+): Promise<ActionResult<{ url: string }>>
 {
   "use server";
 
-  return actualizarFotoStaff(staffId, fotoUrl);
+  return subirFotoStaff(staffId, formData);
+}
+
+async function quitarFoto(staffId: string): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return actualizarFotoStaff(staffId, null);
 }
 
 export default async function StaffPage()
@@ -189,33 +201,75 @@ export default async function StaffPage()
               )}
             </div>
             <div className="mt-4 space-y-4 border-t border-line pt-4">
-              <h4 className="text-sm font-semibold text-ink">Perfil</h4>
-              <FotoStaffUploader
-                staffId={member.id}
-                nombre={member.nombre}
-                fotoUrl={member.foto_url ?? null}
-                action={guardarFoto.bind(null, member.id)}
-              />
-              <PerfilStaffForm
-                action={guardarPerfil.bind(null, member.id)}
-                descripcion={member.descripcion ?? null}
-                servicios={servicios}
-                seleccionados={asociaciones
-                  .filter((par) => par.staffId === member.id)
-                  .map((par) => par.servicioId)}
-              />
-            </div>
-            <div className="mt-4 space-y-2">
-              <h4 className="text-sm font-semibold text-ink">Horarios por día</h4>
-              <p className="text-xs text-muted-foreground">
-                Abrí cada día con el interruptor y elegí la hora con el reloj.
-                Podés agregar un segundo turno si corta al mediodía.
-              </p>
-              <EditorHorariosSemanales
-                inicial={member.horarios}
-                action={guardarHorarios.bind(null, member.id)}
-                submitLabel="Guardar horarios"
-              />
+              <section
+                aria-labelledby={`perfil-staff-${member.id}`}
+                className="rounded-lg border border-line bg-surface p-4 sm:p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full
+                      bg-info-soft text-primary"
+                  >
+                    <UserRound className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h4 id={`perfil-staff-${member.id}`} className="text-sm font-semibold text-ink">
+                      Perfil
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Foto, descripción y servicios que brinda.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-4">
+                  <FotoStaffUploader
+                    staffId={member.id}
+                    nombre={member.nombre}
+                    fotoUrl={member.foto_url ?? null}
+                    subir={subirFoto.bind(null, member.id)}
+                    quitar={quitarFoto.bind(null, member.id)}
+                  />
+                  <PerfilStaffForm
+                    action={guardarPerfil.bind(null, member.id)}
+                    descripcion={member.descripcion ?? null}
+                    servicios={servicios}
+                    seleccionados={asociaciones
+                      .filter((par) => par.staffId === member.id)
+                      .map((par) => par.servicioId)}
+                  />
+                </div>
+              </section>
+              <section
+                aria-labelledby={`horarios-staff-${member.id}`}
+                className="rounded-lg border border-line bg-surface p-4 sm:p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full
+                      bg-info-soft text-primary"
+                  >
+                    <Clock className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h4 id={`horarios-staff-${member.id}`} className="text-sm font-semibold text-ink">
+                      Horarios por día
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Abrí cada día con el interruptor y elegí la hora con el reloj.
+                      Podés agregar un segundo turno si corta al mediodía.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <EditorHorariosSemanales
+                    inicial={member.horarios}
+                    action={guardarHorarios.bind(null, member.id)}
+                    submitLabel="Guardar horarios"
+                  />
+                </div>
+              </section>
             </div>
           </div>
             ),

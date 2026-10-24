@@ -13,6 +13,7 @@ vi.mock("./actions", () =>
     actualizarHorariosStaff: vi.fn(),
     actualizarPerfilStaff: vi.fn(),
     actualizarFotoStaff: vi.fn(),
+    subirFotoStaff: vi.fn(),
     cambiarEstadoStaff: vi.fn(),
     eliminarStaff: vi.fn(),
   };
@@ -97,6 +98,22 @@ describe("StaffPage",
     expect(screen.getByRole("switch", { name: /Domingo abierto/ })).not.toBeChecked();
     expect(screen.getByRole("button", { name: /Copiar el lunes/ })).toBeDefined();
     expect(screen.getByText(/Lun 9 a 19/)).toBeDefined();
+  });
+
+  it("debería separar Perfil y Horarios en secciones propias",
+  async () =>
+  {
+    mockData.mockResolvedValueOnce({
+      data: dashboardBase([{ id: "s-1", nombre: "Diego", activo: true, horarios: { lun: "09:00-19:00" } }]),
+      error: null,
+      isDemo: false,
+    } as never);
+
+    render(await StaffPage());
+
+    expect(screen.getByRole("region", { name: "Perfil" })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Horarios por día" })).toBeDefined();
+    expect(screen.getByText("Foto, descripción y servicios que brinda.")).toBeDefined();
   });
 
   it("debería mostrar inactivos sin horarios",
