@@ -14,6 +14,7 @@ export interface SocialLoginButtonProps
   readonly label: string;
   readonly errorLabel?: string;
   readonly next?: string;
+  readonly clientId?: string;
 }
 
 /**
@@ -29,7 +30,7 @@ export default function SocialLoginButton(props: SocialLoginButtonProps)
   const nonceRef = useRef<string | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const clientId = props.clientId ?? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   const handleCredential = useCallback(async (response: GoogleCredentialResponse) =>
   {

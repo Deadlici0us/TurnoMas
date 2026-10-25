@@ -55,6 +55,7 @@ export default async function RegisterPage({
             <SocialLoginButton
               label={t("auth.continueWithGoogle")}
               errorLabel={t("auth.oauthError")}
+              clientId={process.env.GOOGLE_CLIENT_ID ?? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
             />
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

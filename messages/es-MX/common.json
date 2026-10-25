@@ -8,7 +8,7 @@
     "logoutCta": "Cerrar sesión",
     "continueWithGoogle": "Continuar con Google",
     "googleTitle": "Continúa con Google (recomendado)",
-    "googleHint": "Vas a ver un dominio de Supabase, nuestro proveedor de autenticación. Vuelves automáticamente a TurnoMas",
+    "googleHint": "Se abre el selector de Google. Vuelves automáticamente a TurnoMas",
     "useEmailInstead": "o usa email y contraseña",
     "orSeparator": "o",
     "oauthError": "No pudimos iniciar con Google. Intenta de nuevo",
