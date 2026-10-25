@@ -15,10 +15,8 @@ import type
   PortalTurno,
 } from "@/lib/portal/demo-business";
 import { retieneSlot } from "@/lib/reservas/disponibilidad";
-import { calendarService } from "@/lib/services/calendar";
 
 const FECHA_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const VENTANA_BLOQUEOS_MS = 7 * 86_400_000;
 
 /** Normaliza un JSONB de horarios a un registro seguro para la UI. */
 function asRecord(value: unknown): Record<string, unknown>
@@ -61,7 +59,7 @@ export default async function NuevoTurnoPage({
 })
 {
   const params = await searchParams;
-  const { data: dashboard, isDemo } = await getDashboardData();
+  const { data: dashboard } = await getDashboardData();
   const negocio = asRecord(dashboard.negocio);
   const clienteId = typeof params.clienteId === "string" ? params.clienteId : null;
   const clientes = dashboard.clientes as ClienteTurnoManual[];
@@ -111,30 +109,7 @@ export default async function NuevoTurnoPage({
       fin: typeof turno.fin === "string" ? turno.fin : null,
     }));
 
-  const negocioId = typeof negocio.id === "string" ? negocio.id : "";
-  let bloqueos: PortalBloqueo[] = [];
-
-  if (!isDemo && negocioId.length > 0)
-  {
-    try
-    {
-      const ahora = new Date();
-      const ocupacion = await calendarService.getBusyIntervalsForNegocio(
-        negocioId,
-        ahora,
-        new Date(ahora.getTime() + VENTANA_BLOQUEOS_MS),
-      );
-
-      bloqueos = ocupacion.map((bloqueo) => ({
-        inicio: bloqueo.start.toISOString(),
-        fin: bloqueo.end.toISOString(),
-      }));
-    }
-    catch
-    {
-      bloqueos = [];
-    }
-  }
+  const bloqueos: PortalBloqueo[] = [];
 
   return (
     <div>

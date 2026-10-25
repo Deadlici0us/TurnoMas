@@ -13,12 +13,10 @@ vi.mock("./actions", () =>
   return { register: vi.fn(async () => undefined) };
 });
 
-vi.mock("@/lib/supabase/client", () =>
+vi.mock("@/components/social-login-button", () =>
 {
   return {
-    getSupabaseBrowser: () => ({
-      auth: { signInWithOAuth: vi.fn(async () => ({ data: {}, error: null })) },
-    }),
+    default: ({ label }: { readonly label: string }) => <div aria-label={label} />,
   };
 });
 

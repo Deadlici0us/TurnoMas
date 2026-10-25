@@ -557,40 +557,6 @@ export async function desconectarMercadoPago(): Promise<void>
   revalidatePath("/dashboard/config");
 }
 
-/** Desconecta Google Calendar (los turnos dejan de inyectarse en GCal). */
-export async function desconectarGoogleCalendar(): Promise<void>
-{
-  await assertModoEditable();
-
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user === null)
-  {
-    throw new AuthError("Tenés que iniciar sesión para desconectar Google.");
-  }
-
-  const admin = getSupabaseAdmin();
-  const { data: negocio } = await admin.from("negocios").select("id")
-    .eq("duenio_id", user.id).single();
-
-  if (negocio === null)
-  {
-    throw new NotFoundError("No encontramos tu negocio.");
-  }
-
-  const { error } = await admin.from("negocio_secretos")
-    .update({ google_refresh_token: null, google_email: null, google_conectado_at: null })
-    .eq("negocio_id", negocio.id as string);
-
-  if (error !== null)
-  {
-    throw new UnavailableError("No pudimos desconectar Google. Probá de nuevo.");
-  }
-
-  revalidatePath("/dashboard/config");
-}
-
 /** Actualiza los horarios del negocio (techo amplio: cada profesional recorta el suyo). */
 export async function actualizarHorariosNegocio(horarios: unknown): Promise<void>
 {

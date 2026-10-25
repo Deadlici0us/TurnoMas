@@ -10,7 +10,7 @@ describe("buildCspPolicy",
   {
     const csp = buildCspPolicy("abc123");
 
-    expect(csp).toContain("script-src 'self' 'nonce-abc123'");
+    expect(csp).toContain("script-src 'self' 'nonce-abc123' https://accounts.google.com/gsi/client");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("base-uri 'self'");
     expect(csp).toContain("frame-ancestors 'self'");
@@ -23,7 +23,9 @@ describe("buildCspPolicy",
   {
     const csp = buildCspPolicy("abc123");
 
-    expect(csp).toContain("frame-src 'self' https://www.google.com https://maps.google.com");
+    expect(csp).toContain(
+      "frame-src 'self' https://www.google.com https://maps.google.com https://accounts.google.com/gsi/",
+    );
   });
 
   it("debería permitir unsafe-eval y omitir upgrade en desarrollo",

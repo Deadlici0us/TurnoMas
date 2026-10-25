@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET, POST } from "./route";
 import { bookingService } from "@/lib/services/booking";
-import { calendarService } from "@/lib/services/calendar";
-import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
 import { paymentService } from "@/lib/services/payment";
 import { subscriptionService } from "@/lib/services/subscription";
 import { MpHttpError } from "@/lib/payments/subscription";
@@ -47,16 +45,6 @@ vi.mock("@/lib/services/subscription", () =>
   };
 });
 
-vi.mock("@/lib/services/calendar-sync", () =>
-{
-  return { crearEventoGoogleParaTurno: vi.fn() };
-});
-
-vi.mock("@/lib/services/calendar", () =>
-{
-  return { calendarService: { deleteEventForNegocio: vi.fn() } };
-});
-
 const mockGetStatus = vi.mocked(paymentService.getPaymentStatus);
 const mockBusinessToken = vi.mocked(paymentService.getBusinessAccessToken);
 const mockListConnected = vi.mocked(paymentService.listConnectedBusinessTokens);
@@ -70,8 +58,6 @@ const mockByPaymentId = vi.mocked(bookingService.getBookingByPaymentId);
 const mockById = vi.mocked(bookingService.getBookingById);
 const mockConfirm = vi.mocked(bookingService.confirmBooking);
 const mockRelease = vi.mocked(bookingService.releaseBooking);
-const mockCrearEvento = vi.mocked(crearEventoGoogleParaTurno);
-const mockDeleteEvent = vi.mocked(calendarService.deleteEventForNegocio);
 
 /**
  * Request de webhook de pago de MercadoPago.
@@ -177,7 +163,6 @@ describe("POST /api/webhooks",
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
     mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
     mockConfirm.mockResolvedValueOnce(undefined);
-    mockCrearEvento.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(PAGO));
     const body = await response.json() as { success: boolean; status: string };
@@ -198,7 +183,6 @@ describe("POST /api/webhooks",
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
     mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
     mockConfirm.mockResolvedValueOnce(undefined);
-    mockCrearEvento.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(PAGO));
     const body = await response.json() as { success: boolean; status: string };
@@ -209,19 +193,17 @@ describe("POST /api/webhooks",
     expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
   });
 
-  it("debería confirmar y crear evento con pago aprobado",
+  it("debería confirmar con pago aprobado",
   async () =>
   {
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "approved", externalReference: "b-1" });
     mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
     mockConfirm.mockResolvedValueOnce(undefined);
-    mockCrearEvento.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(PAGO));
 
     expect(response.status).toBe(200);
     expect(mockConfirm).toHaveBeenCalledWith("b-1", "12345");
-    expect(mockCrearEvento).toHaveBeenCalledWith("b-1");
   });
 
   it("debería responder sinReserva sin referencia externa",
@@ -263,53 +245,32 @@ describe("POST /api/webhooks",
     expect(response.status).toBe(200);
     expect(body.turnoCerrado).toBe(true);
     expect(mockConfirm).not.toHaveBeenCalled();
-    expect(mockCrearEvento).not.toHaveBeenCalled();
   });
 
-  it("debería liberar y borrar evento con pago rechazado",
+  it("debería liberar con pago rechazado",
   async () =>
   {
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "rejected", externalReference: "b-1" });
     mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
     mockRelease.mockResolvedValueOnce(undefined);
-    mockById.mockResolvedValueOnce({ id: "b-1", negocio_id: "neg-1", google_calendar_event_id: "evt-1" });
-    mockDeleteEvent.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith(PAGO));
 
     expect(response.status).toBe(200);
     expect(mockRelease).toHaveBeenCalledWith("b-1");
-    expect(mockDeleteEvent).toHaveBeenCalledWith("neg-1", "evt-1");
   });
 
-  it("debería liberar sin evento Google cuando no hay ids",
+  it("debería liberar con pago cancelado",
   async () =>
   {
     mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "cancelled", externalReference: "b-1" });
     mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
     mockRelease.mockResolvedValueOnce(undefined);
-    mockById.mockResolvedValueOnce(null);
 
     const response = await POST(requestWith(PAGO));
 
     expect(response.status).toBe(200);
     expect(mockRelease).toHaveBeenCalledWith("b-1");
-    expect(mockDeleteEvent).not.toHaveBeenCalled();
-  });
-
-  it("debería liberar aunque el borrado en Google falle",
-  async () =>
-  {
-    mockGetStatus.mockResolvedValueOnce({ id: "12345", status: "rejected", externalReference: "b-1" });
-    mockById.mockResolvedValueOnce({ id: "b-1", estado: "pendiente" });
-    mockRelease.mockResolvedValueOnce(undefined);
-    mockById.mockRejectedValueOnce(new Error("db caída"));
-
-    const response = await POST(requestWith(PAGO));
-
-    expect(response.status).toBe(200);
-    expect(mockRelease).toHaveBeenCalledWith("b-1");
-    expect(mockDeleteEvent).not.toHaveBeenCalled();
   });
 
   it("debería ignorar estados intermedios sin mutar",
@@ -562,7 +523,6 @@ describe("POST /api/webhooks integración",
     mockGetStatus.mockResolvedValueOnce({ id: "999", status: "approved", externalReference: "book-int" });
     mockById.mockResolvedValueOnce({ id: "book-int", estado: "pendiente" });
     mockConfirm.mockResolvedValueOnce(undefined);
-    mockCrearEvento.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith({ type: "payment", data: { id: 999 } }));
     const body = await response.json() as { success: boolean };
@@ -570,7 +530,6 @@ describe("POST /api/webhooks integración",
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(mockConfirm).toHaveBeenCalledWith("book-int", "999");
-    expect(mockCrearEvento).toHaveBeenCalledWith("book-int");
   });
 
   it("no debería confirmar reserva con un cobro de suscripción (external_reference = negocio)",
@@ -592,6 +551,5 @@ describe("POST /api/webhooks integración",
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, sinReserva: true });
     expect(mockConfirm).not.toHaveBeenCalled();
-    expect(mockCrearEvento).not.toHaveBeenCalled();
   });
 });

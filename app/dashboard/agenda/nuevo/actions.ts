@@ -186,8 +186,8 @@ async function resolverCliente(
  * Crea un turno manual del negocio del dueño autenticado.
  *
  * Estado `confirmado` (sin seña) o `pagado` (seña cobrada en efectivo, se
- * calcula con la config del servicio). Bloquea solapamientos, sincroniza
- * Google Calendar y avisa por email si el cliente tiene uno (best-effort).
+ * calcula con la config del servicio). Bloquea solapamientos y avisa por
+ * email si el cliente tiene uno (best-effort).
  *
  * @param formData Campos del formulario de alta manual.
  * @return Clave civil `YYYY-MM-DD` del turno creado (para volver a la agenda).
@@ -276,10 +276,8 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
     staffNombre,
     clienteId,
     clienteNombre: datos.nombre,
-    whatsapp: datos.whatsapp,
     email: datos.email,
     inicio,
-    fin,
     turnoId,
     timeZone: negocio.timeZone,
     plantillaSubject: negocio.msg_confirmacion_subject,

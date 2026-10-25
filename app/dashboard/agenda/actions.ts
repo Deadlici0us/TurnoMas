@@ -9,7 +9,6 @@ import { AuthError } from "@/lib/errors/auth-error";
 import { ConflictError } from "@/lib/errors/conflict-error";
 import { NotFoundError } from "@/lib/errors/not-found-error";
 import { UnavailableError } from "@/lib/errors/unavailable-error";
-import { calendarService } from "@/lib/services/calendar";
 import { cancelarTurno, CancelacionError } from "@/lib/services/cancelacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -23,7 +22,6 @@ interface TurnoEditable
   readonly turno: {
     readonly estado: unknown;
     readonly cliente_id?: unknown;
-    readonly google_calendar_event_id?: unknown;
   } & Record<string, unknown>;
 }
 
@@ -62,8 +60,7 @@ async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise
 
   const negocioId = (negocio as { id: string }).id;
   const { data: turno } = await admin.from("turnos")
-    .select("id, estado, inicio, cliente_id, servicio_id, mp_payment_id," +
-      " google_calendar_event_id, sena_reembolsada")
+    .select("id, estado, inicio, cliente_id, servicio_id, mp_payment_id, sena_reembolsada")
     .eq("id", turnoId).eq("negocio_id", negocioId).single();
 
   if (turno === null)
@@ -76,43 +73,6 @@ async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise
   validarTransicionTurno(turnoRow.estado as EstadoTurno, nuevo);
 
   return { negocioId, turno: turnoRow };
-}
-
-/**
- * Sincroniza Google Calendar según el nuevo estado.
- *
- * @param nuevo Estado destino.
- * @param negocioId ID del negocio.
- * @param turno Turno actualizado.
- * @param turnoId ID del turno.
- */
-async function sincronizarGCal(
-  nuevo: EstadoTurno,
-  negocioId: string,
-  turno: Record<string, unknown>,
-  turnoId: string,
-): Promise<void>
-{
-  if (nuevo === "pagado")
-  {
-    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
-
-    await crearEventoGoogleParaTurno(turnoId);
-
-    return;
-  }
-
-  if (nuevo !== "cancelado")
-  {
-    return;
-  }
-
-  const gcalEventId = turno.google_calendar_event_id;
-
-  if (typeof gcalEventId === "string" && gcalEventId.length > 0)
-  {
-    await calendarService.deleteEventForNegocio(negocioId, gcalEventId);
-  }
 }
 
 /**
@@ -141,7 +101,7 @@ async function registrarAusencia(turno: Record<string, unknown>): Promise<void>
 /** Actualiza el estado de un turno del negocio del dueño autenticado. */
 export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno): Promise<void>
 {
-  const { negocioId, turno } = await exigirTurnoEditable(turnoId, nuevo);
+  const { turno } = await exigirTurnoEditable(turnoId, nuevo);
 
   if (nuevo === "cancelado")
   {
@@ -172,8 +132,6 @@ export async function actualizarEstadoTurno(turnoId: string, nuevo: EstadoTurno)
   {
     throw new UnavailableError("No pudimos actualizar el turno. Probá de nuevo.");
   }
-
-  await sincronizarGCal(nuevo, negocioId, turno, turnoId);
 
   if (nuevo === "ausente")
   {

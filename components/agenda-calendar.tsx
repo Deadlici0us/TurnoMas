@@ -6,7 +6,7 @@ import LeyendaEstados from "@/components/leyenda-estados";
 import AgendaCitasDia, { type CitaDia } from "@/components/agenda-citas-dia";
 import type { ActionResult } from "@/lib/actions/action-result";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { claseBadgePara, claseGrillaPara, EXTERNO_LEYENDA } from "@/lib/dashboard/estados-colores";
+import { claseBadgePara, claseGrillaPara } from "@/lib/dashboard/estados-colores";
 import
 {
   type VistaAgenda,
@@ -39,14 +39,6 @@ export interface CalendarTurno
   readonly estado: string;
   readonly titulo: string;
   readonly profesional: string;
-}
-
-export interface CalendarExterno
-{
-  readonly id: string;
-  readonly titulo: string;
-  readonly inicio: string;
-  readonly fin: string;
 }
 
 interface BloqueDia
@@ -85,7 +77,6 @@ interface AgendaCalendarProps
   readonly timeZone: string;
   readonly staff: ReadonlyArray<{ readonly id: string; readonly nombre: string }>;
   readonly turnos: readonly CalendarTurno[];
-  readonly externos: readonly CalendarExterno[];
   readonly citas: readonly CitaDia[];
   readonly onCambiarEstado: (turnoId: string, nuevo: EstadoTurno) => Promise<ActionResult<void> | void>;
   readonly vistaInicial?: unknown;
@@ -415,11 +406,6 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       considerar(t.inicio, t.fin);
     }
 
-    for (const e of props.externos)
-    {
-      considerar(e.inicio, e.fin);
-    }
-
     const horaDesde = Math.max(0, Math.min(baseDesde, Math.floor(min / 60)));
     const horaHasta = Math.min(24, Math.max(baseHasta, Math.ceil(max / 60)));
 
@@ -428,7 +414,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       horaHasta: Math.max(horaHasta, horaDesde + 4),
       cerrado: baseHorario !== null && !baseHorario.hayHorario,
     };
-  }, [turnosFiltrados, props.externos, props.timeZone, props.horariosNegocio, vista, dias, base]);
+  }, [turnosFiltrados, props.timeZone, props.horariosNegocio, vista, dias, base]);
 
   const horas = useMemo(
     () => Array.from({ length: rango.horaHasta - rango.horaDesde }, (_, i) => rango.horaDesde + i),
@@ -539,11 +525,6 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       });
     }
 
-    for (const e of props.externos)
-    {
-      empujar(`e-${e.id}`, e.inicio, e.fin, EXTERNO_LEYENDA.clase, `Google · ${e.titulo}`);
-    }
-
     return asignarCarriles(salida.map((bloque) => ({
       ...bloque,
       inicio: bloque.top,
@@ -562,16 +543,6 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
       if (!Number.isNaN(inicio.getTime()) && claveDiaEnZona(inicio, props.timeZone) === diaKey)
       {
         puntos.push({ key: `t-${t.id}`, clase: claseBadgePara(t.estado), titulo: t.titulo });
-      }
-    }
-
-    for (const e of props.externos)
-    {
-      const inicio = new Date(e.inicio);
-
-      if (!Number.isNaN(inicio.getTime()) && claveDiaEnZona(inicio, props.timeZone) === diaKey)
-      {
-        puntos.push({ key: `e-${e.id}`, clase: EXTERNO_LEYENDA.clase, titulo: `Google · ${e.titulo}` });
       }
     }
 
@@ -636,7 +607,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
           />
         </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <LeyendaEstados incluirExterno />
+          <LeyendaEstados />
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
@@ -796,7 +767,7 @@ export default function AgendaCalendar(props: AgendaCalendarProps)
                   })()
                 ))}
               </div>
-              {turnosFiltrados.length === 0 && props.externos.length === 0 ? (
+              {turnosFiltrados.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">Sin datos en este rango.</p>
               ) : null}
             </div>

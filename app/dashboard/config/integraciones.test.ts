@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import
 {
   confirmarEliminacionNegocio,
-  desconectarGoogleCalendar,
   desconectarMercadoPago,
   solicitarEliminacionNegocio,
 } from "./actions";
@@ -224,57 +223,6 @@ describe("desconectarMercadoPago",
 
     await expect(desconectarMercadoPago())
       .rejects.toThrow("No pudimos desconectar MercadoPago. Probá de nuevo.");
-  });
-});
-
-describe("desconectarGoogleCalendar",
-() =>
-{
-  it("debería nular los secretos de Google",
-  async () =>
-  {
-    sesionDueno();
-    const auditor: { updates?: unknown[] } = { updates: [] };
-    stubIntegraciones({ negocios: { id: "neg-1" } }, null, auditor);
-
-    await desconectarGoogleCalendar();
-
-    expect(auditor.updates).toEqual([{
-      google_refresh_token: null,
-      google_email: null,
-      google_conectado_at: null,
-    }]);
-  });
-
-  it("debería exigir sesión iniciada",
-  async () =>
-  {
-    mockAssert.mockResolvedValue(undefined);
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: null } }) },
-    } as never);
-
-    await expect(desconectarGoogleCalendar())
-      .rejects.toThrow("Tenés que iniciar sesión para desconectar Google.");
-  });
-
-  it("debería exigir negocio del dueño",
-  async () =>
-  {
-    sesionDueno();
-    stubIntegraciones({ negocios: null });
-
-    await expect(desconectarGoogleCalendar()).rejects.toThrow("No encontramos tu negocio.");
-  });
-
-  it("debería lanzar cuando el update falla",
-  async () =>
-  {
-    sesionDueno();
-    stubIntegraciones({ negocios: { id: "neg-1" } }, {});
-
-    await expect(desconectarGoogleCalendar())
-      .rejects.toThrow("No pudimos desconectar Google. Probá de nuevo.");
   });
 });
 

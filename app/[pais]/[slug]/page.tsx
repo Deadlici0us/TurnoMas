@@ -147,23 +147,6 @@ async function buildPortalBusiness(
 
   const negocioRow = negocio as unknown as Row;
 
-  // Ocupación del calendario del negocio (Google): fail-open, best-effort.
-  let bloqueos: Array<{ inicio: string; fin: string }> = [];
-
-  try
-  {
-    const { calendarService } = await import("@/lib/services/calendar");
-    const ahora = new Date();
-    const ocupacion = await calendarService.getBusyIntervalsForNegocio(
-      negocio.id as string, ahora, new Date(ahora.getTime() + 7 * 86_400_000));
-
-    bloqueos = ocupacion.map((b) => ({ inicio: b.start.toISOString(), fin: b.end.toISOString() }));
-  }
-  catch
-  {
-    bloqueos = [];
-  }
-
   return {
     nombre: asString(negocioRow.nombre),
     pais: asString(negocioRow.pais),
@@ -203,7 +186,7 @@ async function buildPortalBusiness(
       inicio: asString(t.inicio),
       fin: typeof t.fin === "string" ? t.fin : null,
     })),
-    bloqueos,
+    bloqueos: [],
   };
 }
 

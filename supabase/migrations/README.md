@@ -113,6 +113,7 @@ cp .env.example .env.local
 | Variable | Uso |
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | URL pública para links, callbacks y QStash. |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID público para Sign in with Google (GIS). |
 | `CANCELACION_SECRET` | Firma de links de cancelación; mínimo 32 caracteres. |
 | `ADMIN_EMAIL` | Email habilitado para `/admin/promociones`. |
 | `DEMO_DUENIO_ID` | UID legado del dueño demo; solo para compatibilidad. |
@@ -123,7 +124,6 @@ cp .env.example .env.local
 | --- | --- |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Emails transaccionales. |
 | `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` | Crons y tareas en background. |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Calendar. |
 | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | Suscripción SaaS de MercadoPago. |
 | `MP_CLIENT_ID`, `MP_CLIENT_SECRET` | OAuth de MercadoPago para señas. |
 | `MP_PLAN_ARS`, `MP_PLAN_USD`, `MP_MARGEN_RENOVACION_HORAS` | Precio y margen del plan. |
@@ -174,10 +174,6 @@ tengan datos de la demo legada. **No ejecutarlo en una base nueva.**
 - Callback OAuth de señas:
   `<app>/api/integrations/mercadopago/callback`.
 
-### Google Calendar
-
-- Callback OAuth: `<app>/api/integrations/google/callback`.
-
 ### Crons con QStash
 
 Programar llamadas `POST` a:
@@ -218,6 +214,12 @@ internacionales con `+` se guardan como E.164. Si detecta clientes duplicados
 por número, aborta la transacción para fusionarlos manualmente. Después de
 ejecutarlo, las filas nuevas y editadas quedan validadas por
 `clientes_whatsapp_canonico`.
+
+`supabase/remove-google-calendar.sql` elimina las columnas de la integración
+con Google Calendar en bases creadas antes de este cambio:
+`negocio_secretos.google_refresh_token`, `google_email`,
+`google_conectado_at` y `turnos.google_calendar_event_id`. Hacer backup antes
+de ejecutarlo.
 
 ## 10. Troubleshooting
 

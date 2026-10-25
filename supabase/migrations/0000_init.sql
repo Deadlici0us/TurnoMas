@@ -66,9 +66,6 @@ create table if not exists negocio_secretos (
   meta_access_token text null,
   whatsapp_phone_number_id text null,
   waba_id text null,
-  google_refresh_token text null,
-  google_email text null,
-  google_conectado_at timestamptz null,
   mercadopago_refresh_token text null,
   mercadopago_user_id text null,
   mp_conectado_at timestamptz null
@@ -148,7 +145,6 @@ create table if not exists turnos (
   sena_monto int null check (sena_monto is null or sena_monto >= 0),
   sena_porcentaje int null,
   mp_payment_id text null,
-  google_calendar_event_id text null,
   notificacion_enviada boolean not null default false,
   remarketing_enviado boolean not null default false,
   fotos jsonb null, -- galería "antes y después"

@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import NuevoTurnoPage from "./page";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import { calendarService } from "@/lib/services/calendar";
 
 vi.mock("./actions", () =>
 {
@@ -14,15 +13,6 @@ vi.mock("./actions", () =>
 vi.mock("@/lib/dashboard/queries", () =>
 {
   return { getDashboardData: vi.fn() };
-});
-
-vi.mock("@/lib/services/calendar", () =>
-{
-  return {
-    calendarService: {
-      getBusyIntervalsForNegocio: vi.fn(async () => []),
-    },
-  };
 });
 
 const mockData = vi.mocked(getDashboardData);
@@ -132,13 +122,4 @@ describe("NuevoTurnoPage",
     expect(screen.getByRole("button", { name: "Diego" })).toBeDefined();
   });
 
-  it("debería consultar los bloqueos del calendario en modo real",
-  async () =>
-  {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
-
-    render(await NuevoTurnoPage({ searchParams: Promise.resolve({}) }));
-
-    expect(vi.mocked(calendarService.getBusyIntervalsForNegocio)).toHaveBeenCalled();
-  });
 });

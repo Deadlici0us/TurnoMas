@@ -48,7 +48,6 @@
       "Cobro de señas vía MercadoPago",
       "Recordatorios automáticos por email",
       "Lista negra automática",
-      "Agenda sincronizada con Google Calendar",
       "Soporte prioritario"
     ],
     "cta": "Empezar prueba gratis"
@@ -108,11 +107,6 @@
     "whatsappError": "Poné un WhatsApp válido con código de área (ej: +54 9 11 1234-5678).",
     "whatsappGuardadoError": "No pudimos guardar tu WhatsApp. Probá de nuevo.",
     "guardarWhatsapp": "Guardar WhatsApp y continuar",
-    "step4Title": "4. Google Calendar",
-    "step4Desc": "Conectá tu agenda de Google para que los turnos se sincronicen solos y no te dupliquen reservas",
-    "connectGcal": "Conectar Google Calendar",
-    "skipGcal": "Conectar después",
-    "finish": "Terminar y ver mi agenda",
     "trialNote": "Tenés 14 días gratis. Después se bloquea si no activás el plan de 14.999 ARS/mes",
     "unexpectedError": "Ocurrió un error inesperado. Probá de nuevo."
   },

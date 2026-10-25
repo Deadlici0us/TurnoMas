@@ -116,7 +116,7 @@ describe("saveBusinessWhatsapp",
     const { update, eq } = stubWhatsappUpdate();
 
     await expect(saveBusinessWhatsapp(formularioWhatsapp("  +54 9 11 1234-5678  ")))
-      .rejects.toThrow("NEXT_REDIRECT:/onboarding?paso=4");
+      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
 
     expect(update).toHaveBeenCalledWith({ whatsapp: "+54 9 11 1234-5678" });
     expect(eq).toHaveBeenCalledWith("duenio_id", "user-1");

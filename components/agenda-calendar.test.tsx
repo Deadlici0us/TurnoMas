@@ -52,7 +52,6 @@ function propsBase(overrides: Record<string, unknown> = {})
     timeZone: ZONA,
     staff: STAFF,
     turnos: [turnoBase()],
-    externos: [{ id: "e-1", titulo: "Dentista", inicio: "2026-05-12T16:00:00-03:00", fin: "2026-05-12T17:00:00-03:00" }],
     citas: [citaBase()],
     onCambiarEstado: async () => {},
     vistaInicial: "dia",
@@ -71,7 +70,6 @@ describe("AgendaCalendar",
 
     expect(screen.getByText("Calendario")).toBeDefined();
     expect(screen.getByTitle("Juan · Corte · 10:00 · Diego")).toBeDefined();
-    expect(screen.getByTitle("Google · Dentista")).toBeDefined();
   });
 
   it("debería mostrar horario y profesional dentro del bloque del turno",

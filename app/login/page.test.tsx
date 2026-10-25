@@ -13,12 +13,10 @@ vi.mock("./actions", () =>
   return { login: vi.fn(async () => undefined) };
 });
 
-vi.mock("@/lib/supabase/client", () =>
+vi.mock("@/components/social-login-button", () =>
 {
   return {
-    getSupabaseBrowser: () => ({
-      auth: { signInWithOAuth: vi.fn(async () => ({ data: {}, error: null })) },
-    }),
+    default: ({ label }: { readonly label: string }) => <div aria-label={label} />,
   };
 });
 
@@ -78,7 +76,7 @@ describe("LoginPage",
     render(await LoginPage({ searchParams: params() }));
 
     expect(screen.getByText("auth.googleTitle")).toBeDefined();
-    expect(screen.getByRole("button", { name: "auth.continueWithGoogle" })).toBeDefined();
+    expect(screen.getByLabelText("auth.continueWithGoogle")).toBeDefined();
   });
 
   it("debería enlazar al registro",

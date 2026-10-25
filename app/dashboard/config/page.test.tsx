@@ -15,7 +15,6 @@ import
   actualizarPoliticaRecordatorios,
   actualizarPoliticaSena,
   actualizarTimezoneNegocio,
-  desconectarGoogleCalendar,
   desconectarMercadoPago,
 } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -39,7 +38,6 @@ vi.mock("./actions", () =>
     actualizarPoliticaSena: vi.fn(),
     actualizarTimezoneNegocio: vi.fn(),
     actualizarWhatsappNegocio: vi.fn(),
-    desconectarGoogleCalendar: vi.fn(),
     desconectarMercadoPago: vi.fn(),
     solicitarEliminacionNegocio: vi.fn(),
     confirmarEliminacionNegocio: vi.fn(),
@@ -133,7 +131,7 @@ describe("ConfigPage",
   it("debería mostrar solo General por defecto",
   async () =>
   {
-    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
 
     render(await ConfigPage());
 
@@ -175,7 +173,7 @@ describe("ConfigPage",
   it("debería mostrar Cobros con seña y conexiones",
   async () =>
   {
-    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
 
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
@@ -211,13 +209,12 @@ describe("ConfigPage",
   it("debería mostrar conexiones activas",
   async () =>
   {
-    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
 
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getByText("Listo ••••5678")).toBeDefined();
     expect(screen.getByRole("button", { name: "Desconectar" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Desconectar Google" })).toBeDefined();
   });
 
   it("debería mostrar conexiones pendientes sin secretos",
@@ -227,11 +224,9 @@ describe("ConfigPage",
 
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
-    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: "Conectar MercadoPago" }))
       .toHaveAttribute("href", "/api/integrations/mercadopago/authorize");
-    expect(screen.getByRole("link", { name: "Conectar Google" }))
-      .toHaveAttribute("href", "/api/integrations/google/authorize");
   });
 
   it("debería avisar conexión ok por ?mp=ok",
@@ -295,7 +290,7 @@ describe("ConfigPage",
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
     expect(screen.getByRole("heading", { name: "Configuración" })).toBeDefined();
-    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Tu link para compartir:")).toBeNull();
   });
 
@@ -359,7 +354,7 @@ describe("ConfigPage",
   async () =>
   {
     const user = userEvent.setup();
-    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678", google_refresh_token: "r" });
+    stubConfig(negocioBase(), { mercadopago_access_token: "APP_USR-12345678" });
 
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
@@ -372,9 +367,6 @@ describe("ConfigPage",
 
     await user.click(screen.getByRole("button", { name: "Desconectar" }));
     expect(vi.mocked(desconectarMercadoPago)).toHaveBeenCalledOnce();
-
-    await user.click(screen.getByRole("button", { name: "Desconectar Google" }));
-    expect(vi.mocked(desconectarGoogleCalendar)).toHaveBeenCalledOnce();
   });
 
   it("debería guardar las 4 plantillas de mensajes",
@@ -424,7 +416,7 @@ describe("ConfigPage",
 
     render(await ConfigPage({ searchParams: seccionParams("cobros") }));
 
-    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Falta conectar").length).toBeGreaterThanOrEqual(1);
   });
 
   it("debería mostrar las 4 plantillas de mensajes",

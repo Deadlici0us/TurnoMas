@@ -5,7 +5,6 @@ import userEvent from "@testing-library/user-event";
 import AgendaPage from "./page";
 import { actualizarEstadoTurno } from "./actions";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import { calendarService } from "@/lib/services/calendar";
 
 vi.mock("./actions", () =>
 {
@@ -22,18 +21,12 @@ vi.mock("@/lib/dashboard/queries", () =>
   return { getDashboardData: vi.fn() };
 });
 
-vi.mock("@/lib/services/calendar", () =>
-{
-  return { calendarService: { getExternalEventsForNegocio: vi.fn(async () => []) } };
-});
-
 vi.mock("next/navigation", () =>
 {
   return { usePathname: () => "/dashboard/agenda" };
 });
 
 const mockData = vi.mocked(getDashboardData);
-const mockExternos = vi.mocked(calendarService.getExternalEventsForNegocio);
 
 function turnoBase(overrides: Record<string, unknown> = {})
 {
@@ -168,42 +161,6 @@ describe("AgendaPage",
     expect(tarjetas).toHaveLength(2);
     expect(tarjetas[0]?.textContent).toContain("Manana");
     expect(tarjetas[1]?.textContent).toContain("Tarde");
-  });
-
-  it("debería mapear eventos externos de Google",
-  async () =>
-  {
-    mockExternos.mockResolvedValueOnce([{
-      id: "e-1",
-      titulo: "Dentista",
-      descripcion: null,
-      inicio: new Date("2026-10-06T16:00:00-03:00"),
-      fin: new Date("2026-10-06T17:00:00-03:00"),
-    }]);
-    mockData.mockResolvedValueOnce({
-      data: dashboardBase([turnoBase({ estado: "confirmado" })]),
-      error: null,
-      isDemo: false,
-    } as never);
-
-    render(await AgendaPage({ searchParams: Promise.resolve({ fecha: "2026-10-06" }) }));
-
-    expect(screen.getByTitle("Google · Dentista")).toBeDefined();
-  });
-
-  it("debería tolerar fallas de Google",
-  async () =>
-  {
-    mockExternos.mockRejectedValueOnce(new Error("gcal caído"));
-    mockData.mockResolvedValueOnce({
-      data: dashboardBase([turnoBase({ estado: "confirmado" })]),
-      error: null,
-      isDemo: false,
-    } as never);
-
-    render(await AgendaPage());
-
-    expect(screen.getByRole("heading", { name: "Agenda" })).toBeDefined();
   });
 
   it("debería calcular el fin con la duración del servicio",

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET, POST } from "./route";
-import { calendarService } from "@/lib/services/calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 vi.mock("@/lib/supabase/admin", () =>
@@ -9,13 +8,7 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-vi.mock("@/lib/services/calendar", () =>
-{
-  return { calendarService: { deleteEventForNegocio: vi.fn() } };
-});
-
 const mockAdmin = vi.mocked(getSupabaseAdmin);
-const mockDeleteEvent = vi.mocked(calendarService.deleteEventForNegocio);
 
 function requestWith(body: unknown, firma: string | null = null): Request
 {
@@ -42,7 +35,6 @@ function turnoVencido(minutosAtras: number, overrides: Record<string, unknown> =
     created_at: new Date(Date.now() - minutosAtras * 60_000).toISOString(),
     estado: "pendiente",
     sena_monto: 5000,
-    google_calendar_event_id: null,
     ...overrides,
   };
 }
@@ -225,32 +217,6 @@ describe("POST /api/cron/antifantasma",
     expect(updates).toEqual([{ estado: "cancelado" }]);
   });
 
-  it("debería borrar el evento Google al liberar",
-  async () =>
-  {
-    stubAntifantasma(turnoVencido(30, { google_calendar_event_id: "evt-1" }));
-    mockDeleteEvent.mockResolvedValueOnce(undefined);
-
-    const response = await POST(requestWith({ turnoId: "t-1" }));
-
-    expect(response.status).toBe(200);
-    expect(mockDeleteEvent).toHaveBeenCalledWith("neg-1", "evt-1");
-  });
-
-  it("debería liberar sin borrar evento sin negocio válido",
-  async () =>
-  {
-    stubAntifantasma(turnoVencido(30, { negocio_id: 123, google_calendar_event_id: "evt-1" }));
-    mockDeleteEvent.mockResolvedValueOnce(undefined);
-
-    const response = await POST(requestWith({ turnoId: "t-1" }));
-    const body = await response.json() as { liberado: boolean };
-
-    expect(response.status).toBe(200);
-    expect(body).toMatchObject({ liberado: true });
-    expect(mockDeleteEvent).not.toHaveBeenCalled();
-  });
-
   it("debería tolerar cuerpo ilegible como barrido",
   async () =>
   {
@@ -299,14 +265,12 @@ describe("POST /api/cron/antifantasma",
   async () =>
   {
     stubAntifantasma(turnoVencido(30), [], [], []);
-    mockDeleteEvent.mockResolvedValueOnce(undefined);
 
     const response = await POST(requestWith({ turnoId: "t-1" }));
     const body = await response.json() as { liberado: boolean; motivo: string };
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, liberado: false, motivo: "ya-procesado" });
-    expect(mockDeleteEvent).not.toHaveBeenCalled();
   });
 
   it("debería contar solo liberados reales en el barrido",
@@ -319,7 +283,6 @@ describe("POST /api/cron/antifantasma",
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ success: true, liberados: 0 });
-    expect(mockDeleteEvent).not.toHaveBeenCalled();
   });
 });
 

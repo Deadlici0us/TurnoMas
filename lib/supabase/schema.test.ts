@@ -51,7 +51,6 @@ describe("esquema Supabase",
     expect(MIGRATION).toContain("mercadopago_access_token");
     expect(MIGRATION).toContain("mercadopago_refresh_token");
     expect(MIGRATION).toContain("meta_access_token");
-    expect(MIGRATION).toContain("google_refresh_token");
     expect(MIGRATION).not.toMatch(/grant select on negocio_secretos/);
   });
 
@@ -95,8 +94,7 @@ describe("esquema Supabase",
   {
     for (const columna of [
       "resena_pedida", "sena_reembolsada", "sena_reembolsada_at",
-      "remarketing_manual_at", "google_calendar_event_id",
-      "email", "ausencias", "bloqueado",
+      "remarketing_manual_at", "email", "ausencias", "bloqueado",
     ])
     {
       expect(MIGRATION).toContain(columna);

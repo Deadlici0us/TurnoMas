@@ -2,8 +2,9 @@
  * Content-Security-Policy (defensa XSS con nonce por request).
  *
  * `script-src` usa un `nonce` por request (Next lo inyecta en sus scripts) y
- * permite sólo scripts propios. `style-src` deja `'unsafe-inline'` porque React
- * y Tailwind usan atributos/etiquetas de estilo inline. Función pura para TDD.
+ * permite scripts propios más el cliente de Google Identity Services.
+ * `style-src` deja `'unsafe-inline'` porque React y Tailwind usan
+ * atributos/etiquetas de estilo inline. Función pura para TDD.
  */
 
 /**
@@ -25,11 +26,11 @@ export function buildCspPolicy(nonce: string, isDev = false): string
 
   const directives = [
     "default-src 'self'",
-    `script-src ${scripts.join(" ")}`,
-    "style-src 'self' 'unsafe-inline'",
+    `script-src ${scripts.join(" ")} https://accounts.google.com/gsi/client`,
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "frame-src 'self' https://www.google.com https://maps.google.com",
+    "frame-src 'self' https://www.google.com https://maps.google.com https://accounts.google.com/gsi/",
     "connect-src 'self' https:",
     "object-src 'none'",
     "frame-ancestors 'self'",

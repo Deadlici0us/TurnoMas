@@ -131,15 +131,10 @@ async function aplicarResultadoPago(
   if (paymentStatus.status === "approved")
   {
     await bookingService.confirmBooking(bookingId, paymentId);
-
-    const { crearEventoGoogleParaTurno } = await import("@/lib/services/calendar-sync");
-
-    await crearEventoGoogleParaTurno(bookingId);
   }
   else if (paymentStatus.status === "rejected" || paymentStatus.status === "cancelled")
   {
     await bookingService.releaseBooking(bookingId);
-    await borrarEventoGoogle(bookingId);
   }
 
   return NextResponse.json({ success: true, status: paymentStatus.status });
@@ -340,32 +335,6 @@ async function handlePOST(request: Request)
     console.error("[webhooks] no se pudo procesar:", error instanceof Error ? error.message : error);
 
     return NextResponse.json({ error: "No se pudo procesar el webhook." }, { status: 500 });
-  }
-}
-
-/** Borra el evento inyectado al reservar (best-effort, nunca lanza). */
-async function borrarEventoGoogle(bookingId: string): Promise<void>
-{
-  try
-  {
-    const turno = await bookingService.getBookingById(bookingId) as {
-      negocio_id?: unknown; google_calendar_event_id?: unknown;
-    } | null;
-    const negocioId = turno?.negocio_id;
-    const eventId = turno?.google_calendar_event_id;
-
-    if (typeof negocioId !== "string" || typeof eventId !== "string" || eventId.length === 0)
-    {
-      return;
-    }
-
-    const { calendarService } = await import("@/lib/services/calendar");
-
-    await calendarService.deleteEventForNegocio(negocioId, eventId);
-  }
-  catch
-  {
-    // Best-effort: el turno ya se liberó aunque falle Google.
   }
 }
 

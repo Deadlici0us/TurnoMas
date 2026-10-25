@@ -11,7 +11,6 @@ const BENEFICIOS = [
   "Cobro de señas vía MercadoPago",
   "Recordatorios automáticos por email",
   "Lista negra automática",
-  "Agenda sincronizada con Google Calendar",
   "Soporte prioritario",
 ] as const;
 

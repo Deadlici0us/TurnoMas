@@ -176,14 +176,4 @@ describe("OnboardingWizard",
     }
   });
 
-  it("debería terminar en el dashboard desde el paso 4",
-  () =>
-  {
-    params("paso=4");
-
-    render(<OnboardingWizard />);
-
-    expect(screen.getByRole("link", { name: "onboarding.finish" }))
-      .toHaveAttribute("href", "/dashboard");
-  });
 });

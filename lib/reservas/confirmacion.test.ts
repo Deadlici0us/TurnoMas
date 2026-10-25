@@ -6,8 +6,6 @@ import
   formatearFechaEnZona,
   sincronizarTurnoConfirmado,
 } from "@/lib/reservas/confirmacion";
-import { calendarService } from "@/lib/services/calendar";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const { mockEmailSend } = vi.hoisted(() =>
 {
@@ -23,28 +21,6 @@ vi.mock("@/lib/ports/email", () =>
     },
   };
 });
-
-vi.mock("@/lib/supabase/admin", () =>
-{
-  return { getSupabaseAdmin: vi.fn() };
-});
-
-const mockAdmin = vi.mocked(getSupabaseAdmin);
-
-/**
- * Stub admin con update encadenable.
- *
- * @return Cliente admin mínimo.
- */
-function stubAdmin()
-{
-  const query: Record<string, unknown> = {};
-
-  query.eq = () => query;
-  query.then = (resolve: (value: unknown) => unknown) => resolve({ error: null });
-
-  return { from: () => ({ update: () => query }) } as never;
-}
 
 const PARAMS_BASE = {
   negocioId: "neg-1",
@@ -66,7 +42,6 @@ const PARAMS_BASE = {
 beforeEach(() =>
 {
   vi.clearAllMocks();
-  mockAdmin.mockReturnValue(stubAdmin());
 });
 
 afterEach(() =>
@@ -89,10 +64,9 @@ describe("formatearFechaEnZona",
 describe("sincronizarTurnoConfirmado",
 () =>
 {
-  it("debería crear el evento y reportar el email enviado",
+  it("debería reportar el email enviado",
   async () =>
   {
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue("evt-1");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     vi.stubEnv("CANCELACION_SECRET", "secreto-suficientemente-largo");
     mockEmailSend.mockResolvedValueOnce("email-1");
@@ -100,14 +74,12 @@ describe("sincronizarTurnoConfirmado",
     await expect(sincronizarTurnoConfirmado(PARAMS_BASE))
       .resolves.toEqual({ enviado: true, motivo: "enviado" });
 
-    expect(calendarService.createEventForNegocio).toHaveBeenCalled();
     expect(mockEmailSend).toHaveBeenCalledTimes(1);
   });
 
   it("debería usar el asunto default cuando no hay plantilla propia",
   async () =>
   {
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
     mockEmailSend.mockResolvedValueOnce("email-1");
 
     await sincronizarTurnoConfirmado(PARAMS_BASE);
@@ -139,8 +111,6 @@ describe("sincronizarTurnoConfirmado",
   it("debería no enviar email cuando el cliente no tiene",
   async () =>
   {
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
-
     await expect(sincronizarTurnoConfirmado({ ...PARAMS_BASE, email: null }))
       .resolves.toEqual({ enviado: false, motivo: "sin_email" });
 
@@ -151,7 +121,6 @@ describe("sincronizarTurnoConfirmado",
   async () =>
   {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.spyOn(calendarService, "createEventForNegocio").mockRejectedValueOnce(new Error("gcal caído"));
     mockEmailSend.mockRejectedValueOnce(new Error("email caído"));
 
     await expect(sincronizarTurnoConfirmado(PARAMS_BASE))

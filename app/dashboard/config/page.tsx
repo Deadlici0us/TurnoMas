@@ -15,7 +15,7 @@ import { actualizarDescripcionNegocio, actualizarGoogleMapsUrl, actualizarGoogle
   actualizarLogoNegocio, actualizarNombreNegocio,
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
-  actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
+  actualizarTimezoneNegocio, actualizarWhatsappNegocio,
   desconectarMercadoPago, subirLogoNegocio } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { readEnv } from "@/lib/env/env";
@@ -203,16 +203,6 @@ async function quitarTokenMp(): Promise<ActionResult<void>>
   });
 }
 
-async function quitarGoogle(): Promise<ActionResult<void>>
-{
-  "use server";
-
-  return runAction("quitarGoogle", async () =>
-  {
-    await desconectarGoogleCalendar();
-  });
-}
-
 async function guardarNombre(formData: FormData): Promise<ActionResult<void>>
 {
   "use server";
@@ -305,7 +295,7 @@ function normalizarConfigNegocio(negocio: NegocioConfigRow): {
 }
 
 /**
- * Carga las conexiones externas del negocio (MercadoPago y Google).
+ * Carga las conexiones externas del negocio (MercadoPago).
  *
  * @param negocioId ID crudo del negocio.
  * @return Tokens de conexión normalizados.
@@ -313,34 +303,31 @@ function normalizarConfigNegocio(negocio: NegocioConfigRow): {
 async function cargarConexiones(negocioId: unknown): Promise<{
   readonly mpToken: string | null;
   readonly mpConectadoAt: string | null;
-  readonly gcalConectado: boolean;
 }>
 {
   if (typeof negocioId !== "string")
   {
-    return { mpToken: null, mpConectadoAt: null, gcalConectado: false };
+    return { mpToken: null, mpConectadoAt: null };
   }
 
   try
   {
     const { data: secretos } = await getSupabaseAdmin().from("negocio_secretos")
-      .select("mercadopago_access_token, mp_conectado_at, google_refresh_token")
+      .select("mercadopago_access_token, mp_conectado_at")
       .eq("negocio_id", negocioId).single();
 
     const raw = (secretos as { mercadopago_access_token?: unknown } | null)
       ?.mercadopago_access_token;
     const conectadoRaw = (secretos as { mp_conectado_at?: unknown } | null)?.mp_conectado_at;
-    const gcalRaw = (secretos as { google_refresh_token?: unknown } | null)?.google_refresh_token;
 
     return {
       mpToken: typeof raw === "string" && raw.length > 0 ? raw : null,
       mpConectadoAt: typeof conectadoRaw === "string" ? conectadoRaw : null,
-      gcalConectado: typeof gcalRaw === "string" && gcalRaw.length > 0,
     };
   }
   catch
   {
-    return { mpToken: null, mpConectadoAt: null, gcalConectado: false };
+    return { mpToken: null, mpConectadoAt: null };
   }
 }
 
@@ -394,7 +381,6 @@ interface ContextoConfig
 {
   readonly mpToken: string | null;
   readonly mpConectadoAt: string | null;
-  readonly gcalConectado: boolean;
   readonly demo: boolean;
   readonly avisoMp: ReturnType<typeof mensajeMp>;
   readonly mpConectado: boolean;
@@ -419,9 +405,9 @@ async function cargarContextoConfig(
 ): Promise<ContextoConfig>
 {
   const conexiones = demo
-    ? { mpToken: null, mpConectadoAt: null, gcalConectado: false }
+    ? { mpToken: null, mpConectadoAt: null }
     : await cargarConexiones(negocioIdCrudo);
-  const { mpToken, mpConectadoAt, gcalConectado } = conexiones;
+  const { mpToken, mpConectadoAt } = conexiones;
   const avisoMp = mensajeMp(searchParams?.mp);
   const mpConectado = mpToken !== null;
 
@@ -439,7 +425,6 @@ async function cargarContextoConfig(
   return {
     mpToken,
     mpConectadoAt,
-    gcalConectado,
     demo,
     avisoMp,
     mpConectado,
@@ -540,7 +525,6 @@ export default async function ConfigPage(
   const {
     mpToken,
     mpConectadoAt,
-    gcalConectado,
     demo,
     avisoMp,
     mpConectado,
@@ -1017,34 +1001,6 @@ export default async function ConfigPage(
               ? "Listo: cuando te pagan, el turno se confirma solo."
               : "Sin conectar, las reservas con seña quedan esperando el pago."}
           </p>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3 p-4 border border-line rounded-lg bg-surface">
-            <div>
-              <div className="text-sm font-semibold text-ink">Google Calendar</div>
-              <div className="text-xs text-muted-foreground">Ver tus turnos en tu calendario</div>
-            </div>
-            <span className={`ui-badge ${gcalConectado ? "ui-badge-success" : "ui-badge-neutral"}`}>
-              {gcalConectado ? "Listo" : "Falta conectar"}
-            </span>
-          </div>
-          {gcalConectado ? (
-            <ActionForm action={quitarGoogle} successMessage="Cambios guardados.">
-              <button
-                type="submit"
-                className="ui-btn ui-btn-outline ui-btn-sm"
-              >
-                Desconectar Google
-              </button>
-            </ActionForm>
-          ) : (
-            <Link
-              href="/api/integrations/google/authorize"
-              className="ui-btn ui-btn-soft"
-            >
-              Conectar Google
-            </Link>
-          )}
         </div>
       </SeccionConfig>
       ) : null}

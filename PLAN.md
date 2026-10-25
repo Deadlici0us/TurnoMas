@@ -13,8 +13,7 @@ QSTASH_NEXT_SIGNING_KEY
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY 
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
+NEXT_PUBLIC_GOOGLE_CLIENT_ID
 MP_ACCESS_TOKEN
 MP_WEBHOOK_SECRET
 MP_CLIENT_ID
@@ -61,10 +60,10 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 
 ## 3. Entidades de Base de Datos (Supabase SQL)
 - `negocios`: Suscripciones B2B (`suscripcion_estado`, `suscripcion_mp_id`), Tokens de Meta (`meta_access_token`, `whatsapp_phone_number_id`, `waba_id`), Token de MP (`mercadopago_access_token`), config de lista negra.
-- `staff`: Profesionales del negocio, horarios disponibles (JSONB). El calendario Google es uno solo por negocio (ver Módulo 3).
+- `staff`: Profesionales del negocio y horarios disponibles (JSONB).
 - `servicios`: Duración, precio_base, precio_promocional (precio tachado), seña requerida.
 - `clientes`: CRM local, acumulación de ausencias, lista negra.
-- `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, rastreador de Google Calendar (`google_calendar_event_id`), tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
+- `turnos`: Estados (pendiente, confirmado, pagado, completado, cancelado, ausente) — `confirmado`=sin seña $0 cobrado, `pagado`=seña cobrada — tracking financiero, tracking de notificaciones (`notificacion_enviada`, `remarketing_enviado`), y galería de fotos (JSONB opcional).
 - **Seed Data (Población de datos):** Datos ficticios en memoria (`lib/seed/demo-rows.ts`) para la demo de solo lectura. No se persisten en Supabase; una base nueva solo necesita `supabase/migrations/0000_init.sql`.
 
 ## 4. Módulos del Sistema
@@ -91,8 +90,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 - **Checkout Flexible:** Captura de Nombre y WhatsApp. Si exige seña, redirección a MercadoPago. Si no, confirmación instantánea.
 
 ### Módulo 3: Panel de Control B2B (Dashboard)
-- **Agenda Multicalendario:** Vista semanal por profesional con código de colores según estado (confirmado, pagado, pendiente) + eventos del calendario Google del negocio.
-- **Sincronización Google Calendar:** Integración OAuth (un calendario por negocio) en dos direcciones: la app inyecta turnos (crea/borra con `google_calendar_event_id`) y lee ocupación (`freebusy`) para bloquear esos horarios en el portal. Los eventos de Google bloquean a todo el equipo.
+- **Agenda Multicalendario:** Vista semanal por profesional con código de colores según estado (confirmado, pagado, pendiente).
 - **Gestión de Servicios:** CRUD de servicios. Configuración individual de **duración estimada**. Toggles para cobro de seña, reembolsos automáticos y remarketing.
 - **Ofertas Flash:** Campo opcional para `precio_promocional` (Precio Tachado).
 - **Turnos Recurrentes:** Capacidad del administrador de agendar turnos manualmente y clonarlos hacia el futuro.
@@ -104,7 +102,7 @@ Se implementará una capa de i18n basada en diccionarios (`.json`) por default `
 
 ### Módulo 5: Automatizaciones y Notificaciones (Serverless Backend)
 *Lógica de Notificaciones en Cascada: El sistema usa Email por defecto; si el dueño conectó Meta API, suprime el email y envía por WhatsApp.*
-- **Emails (Resend):** Confirmación de reserva que incluye botón dinámico "Agregar a Google Calendar" (link format) y archivo `.ics` adjunto.
+- **Emails (Resend):** Confirmación de reserva por email.
 - **Escudo Anti-Fantasmas:** Endpoint llamado por QStash que elimina el turno y libera la agenda si una reserva con seña no registra pago en 15 minutos.
 - **Gestor de Reembolsos:** Si el cliente cancela dentro de la ventana permitida, el backend consume la API de MercadoPago para devolver el dinero automáticamente.
 - **Recordatorios (24hs antes):** Envío vía WhatsApp (Plantilla con botones SI/NO) o Email.

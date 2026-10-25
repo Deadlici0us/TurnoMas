@@ -20,8 +20,7 @@ const SECTIONS: readonly LegalSection[] = [
     title: "Descripción del servicio",
     paragraphs: [
       "TurnoMas es una plataforma de gestión de reservas para profesionales independientes. Permite " +
-        "publicar servicios, recibir reservas, cobrar señas, enviar recordatorios y sincronizar la agenda " +
-        "con Google Calendar.",
+        "publicar servicios, recibir reservas, cobrar señas y enviar recordatorios.",
       "TurnoMas no presta servicios profesionales de barbería, estética, salud ni de otra índole; el " +
         "negocio es responsable de los servicios que ofrece.",
     ],
@@ -54,15 +53,6 @@ const SECTIONS: readonly LegalSection[] = [
       "Las comisiones, contracargos, reembolsos y disputas se rigen por las condiciones de MercadoPago y " +
         "la legislación aplicable. TurnoMas puede suspender el cobro de señas si detecta fraude o uso " +
         "indebido.",
-    ],
-  },
-  {
-    title: "Google Calendar",
-    paragraphs: [
-      "La integración con Google Calendar es opcional. Al conectarla, autorizás a TurnoMas a leer " +
-        "disponibilidad y crear o actualizar eventos según tu configuración. Podés revocar el acceso " +
-        "desde tu cuenta de Google.",
-      "No somos responsables de interrupciones, cambios de API o limitaciones de Google.",
     ],
   },
   {

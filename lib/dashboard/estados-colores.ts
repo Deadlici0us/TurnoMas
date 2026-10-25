@@ -48,14 +48,6 @@ export const ETIQUETA_ESTADO: Record<EstadoTurno, string> =
   ausente: "Ausente",
 };
 
-/** Eventos externos de Google Calendar (no son turnos del negocio). */
-export const EXTERNO_LEYENDA =
-{
-  titulo: "Google",
-  descripcion: "Evento de tu Google Calendar (ocupa la agenda, no se cobra)",
-  clase: "border border-dashed border-[#abbccc] bg-[#f8faff] text-[#5c6b7a]",
-} as const;
-
 /** Leyenda completa en es-AR para agenda y pagos. */
 export const LEYENDA_ESTADOS: readonly LeyendaEstado[] =
 [

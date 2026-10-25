@@ -37,11 +37,6 @@
     "whatsappError": "Pon un WhatsApp válido con código de área (ej: +54 9 11 1234-5678).",
     "whatsappGuardadoError": "No pudimos guardar tu WhatsApp. Intenta de nuevo.",
     "guardarWhatsapp": "Guardar WhatsApp y continuar",
-    "step4Title": "4. Google Calendar",
-    "step4Desc": "Conecta tu agenda de Google para que los turnos se sincronicen solos",
-    "connectGcal": "Conectar Google Calendar",
-    "skipGcal": "Conectar después",
-    "finish": "Terminar y ver mi agenda",
     "trialNote": "Tienes 14 días gratis.",
     "unexpectedError": "Ocurrió un error inesperado. Intenta de nuevo."
   },

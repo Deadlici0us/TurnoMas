@@ -31,8 +31,6 @@ const SECTIONS: readonly LegalSection[] = [
         "negocio o el cliente final ingresan.",
       "Datos de pagos: estado de señas y suscripciones e identificadores de MercadoPago. No almacenamos " +
         "números de tarjeta ni códigos de seguridad.",
-      "Datos de Google Calendar: si conectás la integración, leemos tu disponibilidad y creamos o " +
-        "actualizamos eventos. No usamos estos datos para publicidad ni los vendemos.",
       "Datos técnicos: dirección IP, registros de acceso, tipo de dispositivo y cookies estrictamente " +
         "necesarias para mantener la sesión.",
     ],
@@ -41,8 +39,8 @@ const SECTIONS: readonly LegalSection[] = [
     title: "Para qué usamos los datos",
     paragraphs: [
       "Prestar el servicio, crear y administrar tu cuenta, gestionar reservas y disponibilidad, cobrar " +
-        "señas y suscripciones, enviar recordatorios y notificaciones, sincronizar Google Calendar, " +
-        "brindar soporte, prevenir fraudes y mejorar la plataforma.",
+        "señas y suscripciones, enviar recordatorios y notificaciones, brindar soporte, prevenir fraudes " +
+        "y mejorar la plataforma.",
       "La base legal es la ejecución del contrato, tu consentimiento, el interés legítimo en operar y " +
         "proteger el servicio, y el cumplimiento de obligaciones legales.",
     ],
@@ -50,8 +48,8 @@ const SECTIONS: readonly LegalSection[] = [
   {
     title: "Con quién compartimos datos",
     paragraphs: [
-      "Supabase (autenticación y base de datos), Vercel (alojamiento), Google (inicio de sesión y " +
-        "Calendar), MercadoPago (pagos) y Resend (emails transaccionales).",
+      "Supabase (autenticación y base de datos), Vercel (alojamiento), Google (inicio de sesión), " +
+        "MercadoPago (pagos) y Resend (emails transaccionales).",
       "Estos proveedores pueden procesar datos fuera de Argentina. Aplicamos medidas contractuales y " +
         "técnicas razonables para proteger la información.",
       "También podemos divulgar datos si la ley lo exige o para proteger derechos, seguridad e integridad " +
@@ -83,8 +81,6 @@ const SECTIONS: readonly LegalSection[] = [
         "datos, y revocar el consentimiento cuando corresponda.",
       "Escribinos a soporte@turnomas.com. También podés presentar una reclamación ante la Agencia de " +
         "Acceso a la Información Pública (AAIP) de Argentina.",
-      "Para Google Calendar, podés revocar el acceso desde la configuración de seguridad de tu cuenta de " +
-        "Google.",
     ],
   },
   {

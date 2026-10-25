@@ -20,7 +20,6 @@ import { horasRestantesPara, resolverRetencionHs, shouldAutoRefund } from "@/lib
 import type { RefundableEstado } from "@/lib/payments/refund-policy";
 import { validarTransicionTurno } from "@/lib/dashboard/estados";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { calendarService } from "./calendar";
 import { paymentService } from "./payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -68,7 +67,6 @@ interface TurnoCancelacion
   readonly cliente_id: string;
   readonly servicio_id: string | null;
   readonly mp_payment_id: string | null;
-  readonly google_calendar_event_id: string | null;
   readonly sena_reembolsada: boolean | null;
 }
 
@@ -340,8 +338,7 @@ export async function cancelarTurno(input: CancelarTurnoInput): Promise<Cancelar
 
   const admin = getSupabaseAdmin();
   const { data: turnoData, error: turnoError } = await admin.from("turnos")
-    .select("id, negocio_id, estado, inicio, cliente_id, servicio_id, mp_payment_id," +
-      " google_calendar_event_id, sena_reembolsada")
+    .select("id, negocio_id, estado, inicio, cliente_id, servicio_id, mp_payment_id, sena_reembolsada")
     .eq("id", input.turnoId).single();
 
   if (turnoError !== null && (turnoError as { code?: string }).code !== "PGRST116")
@@ -381,11 +378,6 @@ export async function cancelarTurno(input: CancelarTurnoInput): Promise<Cancelar
       "No pudimos cancelar el turno. Probá de nuevo.",
       500,
     );
-  }
-
-  if (typeof turno.google_calendar_event_id === "string" && turno.google_calendar_event_id.length > 0)
-  {
-    await calendarService.deleteEventForNegocio(turno.negocio_id, turno.google_calendar_event_id);
   }
 
   const resultado = {

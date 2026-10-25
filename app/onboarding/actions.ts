@@ -128,7 +128,7 @@ async function createBusinessInterno(formData: FormData): Promise<void>
 /**
  * Guarda el WhatsApp obligatorio del negocio (paso 3 del onboarding).
  * La línea queda visible en el portal y en la configuración del negocio;
- * sin un número válido no se avanza al paso 4.
+ * sin un número válido no se completa el onboarding.
  *
  * @param formData Formulario con el campo `whatsapp`.
  */
@@ -176,7 +176,7 @@ async function saveBusinessWhatsappInterno(formData: FormData): Promise<void>
     redirect("/onboarding?paso=3&error=guardado");
   }
 
-  redirect("/onboarding?paso=4");
+  redirect("/dashboard");
 }
 
 /** Alta del negocio con redirección ante errores inesperados. */

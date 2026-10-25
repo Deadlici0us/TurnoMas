@@ -43,7 +43,7 @@ export interface PortalTurno
   readonly fin: string | null;
 }
 
-/** Bloqueo del negocio (Google Calendar): ocupa a todo el equipo. */
+/** Bloqueo del negocio que ocupa a todo el equipo. */
 export interface PortalBloqueo
 {
   readonly inicio: string;

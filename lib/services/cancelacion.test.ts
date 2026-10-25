@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cancelarTurno } from "./cancelacion";
 import { paymentService } from "./payment";
-import { calendarService } from "./calendar";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 vi.mock("@/lib/supabase/admin", () =>
@@ -12,7 +11,7 @@ vi.mock("@/lib/supabase/admin", () =>
 
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
-/** Turno pagado con seña y evento Google. */
+/** Turno pagado con seña. */
 function turnoPagado(overrides: Record<string, unknown> = {})
 {
   return {
@@ -23,7 +22,6 @@ function turnoPagado(overrides: Record<string, unknown> = {})
     cliente_id: "cli-1",
     servicio_id: "serv-1",
     mp_payment_id: "pay-1",
-    google_calendar_event_id: "evt-1",
     sena_reembolsada: false,
     ...overrides,
   };
@@ -154,14 +152,11 @@ describe("cancelarTurno",
     stubAdmin({ turno: turnoPagado() });
     const refundSpy = vi.spyOn(paymentService, "refundForNegocio");
     refundSpy.mockResolvedValueOnce({ refundId: "refund-1" });
-    const deleteSpy = vi.spyOn(calendarService, "deleteEventForNegocio");
-    deleteSpy.mockResolvedValueOnce(undefined);
 
     const resultado = await cancelarTurno({ turnoId: "t-1", actor: "cliente" });
 
     expect(resultado).toMatchObject({ estado: "cancelado", reembolso: "devuelta" });
     expect(refundSpy).toHaveBeenCalledWith("neg-1", "pay-1", expect.stringContaining("t-1"));
-    expect(deleteSpy).toHaveBeenCalledWith("neg-1", "evt-1");
   });
 
   it("debería cancelar sin reembolso un confirmado (sin cobro online)",

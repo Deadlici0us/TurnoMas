@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
 import { assertModoEditable } from "@/lib/auth/demo-guard";
-import { calendarService } from "@/lib/services/calendar";
-import { crearEventoGoogleParaTurno } from "@/lib/services/calendar-sync";
 import { cancelarTurno, CancelacionError } from "@/lib/services/cancelacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -30,11 +28,6 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-vi.mock("@/lib/services/calendar-sync", () =>
-{
-  return { crearEventoGoogleParaTurno: vi.fn() };
-});
-
 vi.mock("@/lib/services/cancelacion", () =>
 {
   return {
@@ -58,10 +51,9 @@ const mockRevalidate = vi.mocked(revalidatePath);
 const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
-const mockCrearEvento = vi.mocked(crearEventoGoogleParaTurno);
 const mockCancelar = vi.mocked(cancelarTurno);
 
-/** Turno base pagado con seña y evento de Google. */
+/** Turno base pagado con seña. */
 function turnoPagado(overrides: Record<string, unknown> = {})
 {
   return {
@@ -71,7 +63,6 @@ function turnoPagado(overrides: Record<string, unknown> = {})
     cliente_id: "cli-1",
     servicio_id: "serv-1",
     mp_payment_id: "pay-1",
-    google_calendar_event_id: "evt-1",
     ...overrides,
   };
 }
@@ -222,32 +213,18 @@ describe("actualizarEstadoTurno guardas",
 describe("actualizarEstadoTurno transiciones",
 () =>
 {
-  it("debería completar sin GCal",
+  it("debería completar sin efectos externos",
   async () =>
   {
     sesionDueno();
     const updates: unknown[] = [];
     stubAgenda({ negocio: { id: "neg-1" }, turno: turnoPagado() }, null, updates);
-    const deleteSpy = vi.spyOn(calendarService, "deleteEventForNegocio");
 
     await actualizarEstadoTurno("t-1", "completado");
 
     expect(updates).toEqual([{ estado: "completado" }]);
-    expect(deleteSpy).not.toHaveBeenCalled();
-    expect(mockCrearEvento).not.toHaveBeenCalled();
     expect(mockRevalidate).toHaveBeenCalledWith("/dashboard/agenda");
     expect(mockRevalidate).toHaveBeenCalledWith("/dashboard");
-  });
-
-  it("debería crear el evento de Google al pasar a pagado",
-  async () =>
-  {
-    sesionDueno();
-    stubAgenda({ negocio: { id: "neg-1" }, turno: turnoPagado({ estado: "pendiente" }) });
-
-    await actualizarEstadoTurno("t-1", "pagado");
-
-    expect(mockCrearEvento).toHaveBeenCalledWith("t-1");
   });
 
   it("debería delegar la cancelación al servicio compartido (actor duenio)",

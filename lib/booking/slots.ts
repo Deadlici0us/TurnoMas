@@ -136,7 +136,7 @@ export function buildAvailableSlots(params: BuildAvailableSlotsParams): readonly
           turno.fin === undefined || turno.fin === null ? null : new Date(turno.fin),
           turno.duracionMin,
         )),
-      // Bloqueos del negocio (Google Calendar): aplican a todo el equipo.
+      // Bloqueos del negocio: aplican a todo el equipo.
       ...businessBlocked,
     ];
 

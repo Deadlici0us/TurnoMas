@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "./route";
-import { calendarService } from "@/lib/services/calendar";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -442,7 +441,6 @@ describe("POST /api/reservas",
         serviciosRows: [{ id: "serv-1", duracion_min: 30 }],
       },
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
 
     const response = await POST(requestWith({ ...BASE, inicio }));
     const body = await response.json() as { error: string };
@@ -468,7 +466,6 @@ describe("POST /api/reservas",
       },
       insertResults: { clientes: { data: null, error: { message: "dup" } } },
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
 
     const response = await POST(requestWith(BASE));
     const body = await response.json() as { error: string };
@@ -499,7 +496,6 @@ describe("POST /api/reservas",
       },
       inserts,
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
 
     const response = await POST(requestWith(BASE));
     const body = await response.json() as { error: string };
@@ -509,12 +505,10 @@ describe("POST /api/reservas",
     expect(inserts).toHaveLength(2);
   });
 
-  it("debería confirmar sin seña con email y evento Google",
+  it("debería confirmar sin seña con email",
   async () =>
   {
     flujoFeliz();
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue("evt-1");
     mockEmailSend.mockResolvedValue("email-1");
 
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
@@ -550,8 +544,6 @@ describe("POST /api/reservas",
       },
       inserts,
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
     const response = await POST(requestWith(BASE));
     const body = await response.json() as { success: boolean };
@@ -588,27 +580,10 @@ describe("POST /api/reservas",
     expect(mockEmailSend).not.toHaveBeenCalled();
   });
 
-  it("debería confirmar aunque Google falle (best-effort)",
-  async () =>
-  {
-    flujoFeliz();
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockRejectedValueOnce(new Error("gcal caído"));
-    mockEmailSend.mockResolvedValue("email-1");
-
-    const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
-    const body = await response.json() as { success: boolean };
-
-    expect(response.status).toBe(200);
-    expect(body.success).toBe(true);
-  });
-
   it("debería confirmar aunque el email falle (best-effort)",
   async () =>
   {
     flujoFeliz();
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
     mockEmailSend.mockRejectedValueOnce(new Error("resend caído"));
 
     const response = await POST(requestWith({ ...BASE, email: "cli@ejemplo.com" }));
@@ -653,8 +628,6 @@ describe("POST /api/reservas",
         serviciosRows: [{ id: "serv-1", duracion_min: 30 }],
       },
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-    vi.spyOn(calendarService, "createEventForNegocio").mockResolvedValue(null);
 
     const response = await POST(requestWith(BASE));
 
@@ -666,7 +639,6 @@ describe("POST /api/reservas",
   {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
     mockQstashSchedule.mockResolvedValue("job-1");
@@ -692,7 +664,6 @@ describe("POST /api/reservas",
   {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
     mockQstashSchedule.mockRejectedValueOnce(new Error("qstash caído"));
@@ -711,7 +682,6 @@ describe("POST /api/reservas",
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     vi.stubEnv("CANCELACION_SECRET", "secreto-test-cancelacion-largo");
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
     mockQstashSchedule.mockResolvedValue("job-1");
@@ -736,7 +706,6 @@ describe("POST /api/reservas",
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.turnomas.com");
     vi.stubEnv("CANCELACION_SECRET", "secreto-test-cancelacion-largo");
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockResolvedValue({ id: "pref-1", initPoint: "https://pay/x", amountCents: 5000 });
     mockQstashSchedule.mockResolvedValue("job-1");
@@ -754,7 +723,6 @@ describe("POST /api/reservas",
   async () =>
   {
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockRejectedValue(new Error("mp caído"));
 
@@ -774,7 +742,6 @@ describe("POST /api/reservas",
   {
     const { NegocioSinMpError } = await import("@/lib/payments/mp-token");
     flujoFeliz({ servicio: { sena_requerida: true, sena_porcentaje: 50 } });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockRejectedValue(new NegocioSinMpError());
 
@@ -865,7 +832,6 @@ describe("POST /api/reservas integración",
       },
       inserts,
     });
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
     const prefSpy = vi.spyOn(paymentService, "createDepositPreferenceForNegocio");
     prefSpy.mockResolvedValue({ id: "pref-int", initPoint: "https://pay/int", amountCents: 5000 });
     mockQstashSchedule.mockResolvedValue("job-int");

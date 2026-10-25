@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { claseBadgePara, claseGrillaPara, etiquetaEstadoPara, ETIQUETA_ESTADO, EXTERNO_LEYENDA, LEYENDA_ESTADOS } from "./estados-colores";
+import { claseBadgePara, claseGrillaPara, etiquetaEstadoPara, ETIQUETA_ESTADO, LEYENDA_ESTADOS } from "./estados-colores";
 
 describe("estados-colores",
 () =>
@@ -21,8 +21,6 @@ describe("estados-colores",
       expect(item.titulo.length).toBeGreaterThan(0);
       expect(item.descripcion.length).toBeGreaterThan(0);
     }
-
-    expect(EXTERNO_LEYENDA.titulo.length).toBeGreaterThan(0);
   });
 
   it("debería devolver clases conocidas y un fallback para estados raros",

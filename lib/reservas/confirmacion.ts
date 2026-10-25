@@ -1,9 +1,9 @@
 /**
- * Sincronización y aviso de un turno (App → Google Calendar + email).
+ * Aviso de un turno por email.
  *
  * Compartido por el flujo público (`POST /api/reservas`) y el alta manual del
- * dashboard. Best-effort: la reserva ya existe aunque falle Google o el email,
- * pero el resultado del envío se devuelve para que la UI no mienta al cliente.
+ * dashboard. Best-effort: la reserva ya existe aunque falle el email, pero el
+ * resultado del envío se devuelve para que la UI no mienta al cliente.
  */
 
 import { readEnv } from "@/lib/env/env";
@@ -15,8 +15,6 @@ import
   resolverPlantilla,
 } from "@/lib/notifications/custom-templates";
 import { ResendAdapter } from "@/lib/ports/email";
-import { buildTurnoEvent, calendarService } from "@/lib/services/calendar";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatearEnZona } from "@/lib/timezone/timezone";
 import { stripTrailingSlashes } from "@/lib/urls/stripTrailingSlashes";
 
@@ -39,10 +37,8 @@ export interface SincronizarTurnoConfirmadoParams
   readonly staffNombre: string;
   readonly clienteId: string;
   readonly clienteNombre: string;
-  readonly whatsapp: string;
   readonly email: string | null;
   readonly inicio: Date;
-  readonly fin: Date;
   readonly turnoId: string;
   readonly timeZone: string;
   readonly plantillaSubject: unknown;
@@ -167,7 +163,7 @@ export async function enviarEmailConfirmacion(
 }
 
 /**
- * Crea el evento en Google Calendar del negocio y envía la confirmación.
+ * Envía la confirmación del turno por email.
  *
  * @param params Datos del turno confirmado.
  * @return Resultado del envío del email.
@@ -176,38 +172,6 @@ export async function sincronizarTurnoConfirmado(
   params: SincronizarTurnoConfirmadoParams,
 ): Promise<ResultadoEnvioEmail>
 {
-  const admin = getSupabaseAdmin();
-
-  try
-  {
-    const gcalEventId = await calendarService.createEventForNegocio(params.negocioId, {
-      ...buildTurnoEvent({
-        negocio: params.negocioNombre,
-        servicio: params.servicioNombre,
-        profesional: params.staffNombre,
-        cliente: params.clienteNombre,
-        whatsapp: params.whatsapp,
-        inicio: params.inicio,
-        fin: params.fin,
-      }),
-      timeZone: params.timeZone,
-    });
-
-    if (gcalEventId !== null)
-    {
-      await admin.from("turnos").update({ google_calendar_event_id: gcalEventId })
-        .eq("id", params.turnoId);
-    }
-  }
-  catch (error)
-  {
-    console.error("[reservas] no se pudo sincronizar Google Calendar", {
-      turnoId: params.turnoId,
-      negocioId: params.negocioId,
-      detalle: error instanceof Error ? error.message : "error desconocido",
-    });
-  }
-
   if (params.email === null)
   {
     return { enviado: false, motivo: "sin_email" };

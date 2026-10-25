@@ -25,11 +25,6 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-vi.mock("@/lib/services/calendar", () =>
-{
-  return { calendarService: { getBusyIntervalsForNegocio: vi.fn(async () => []) } };
-});
-
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
@@ -187,15 +182,10 @@ describe("PortalPage supabase",
     expect(screen.getByText("Barbería")).toBeDefined();
   });
 
-  it("debería mostrar negocio con horarios, turnos y bloqueos",
+  it("debería mostrar negocio con horarios y turnos",
   async () =>
   {
     modoSupabase();
-    const { calendarService: calendario } = await import("@/lib/services/calendar");
-    vi.mocked(calendario.getBusyIntervalsForNegocio).mockResolvedValueOnce([{
-      start: new Date("2026-10-06T16:00:00-03:00"),
-      end: new Date("2026-10-06T17:00:00-03:00"),
-    }]);
     stubPortal(
       {
         id: "neg-1",
@@ -308,12 +298,10 @@ describe("PortalPage supabase",
     expect(screen.getByText("Reservas por TurnoMas")).toBeDefined();
   });
 
-  it("debería tolerar fallas de turnos y calendario",
+  it("debería tolerar fallas de turnos",
   async () =>
   {
     modoSupabase();
-    const { calendarService: calendario } = await import("@/lib/services/calendar");
-    vi.mocked(calendario.getBusyIntervalsForNegocio).mockRejectedValueOnce(new Error("gcal caído"));
     stubPortal({ id: "neg-1", nombre: "Barbería", pais: "ar", slug: "x" });
     mockAdmin.mockImplementation(() =>
     {

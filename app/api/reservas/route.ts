@@ -477,9 +477,8 @@ async function handlePOST(request: Request)
     }
     const servicioNombre = servicioRow.nombre ?? "tu servicio";
     const staffNombre = (staff as unknown as { nombre?: string }).nombre ?? "tu profesional";
-    // Sync App → GCal (best-effort) solo para turnos confirmados sin seña.
-    // El pendiente con seña NO impacta calendario: el evento se crea al
-    // acreditarse el pago (webhook o marca manual cash).
+    // Confirmación por email solo para turnos sin seña. El pendiente con seña
+    // recibe su email al acreditarse el pago.
     if (!conSena)
     {
       const resultadoEmail = await sincronizarTurnoConfirmado({
@@ -489,10 +488,8 @@ async function handlePOST(request: Request)
         staffNombre,
         clienteId,
         clienteNombre: nombre,
-        whatsapp,
         email,
         inicio,
-        fin,
         turnoId,
         timeZone,
         plantillaSubject: negocioRow?.msg_confirmacion_subject ?? null,

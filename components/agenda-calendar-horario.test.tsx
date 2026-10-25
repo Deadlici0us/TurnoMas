@@ -32,7 +32,6 @@ function propsBase(overrides: Record<string, unknown> = {})
     timeZone: ZONA,
     staff: [{ id: "staff-1", nombre: "Diego" }],
     turnos: [],
-    externos: [],
     citas: [],
     onCambiarEstado: async () => {},
     vistaInicial: "dia",

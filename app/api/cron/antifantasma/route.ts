@@ -21,29 +21,9 @@ const LIMITE_BARRIDO = 100;
 interface TurnoPendiente
 {
   readonly id: string;
-  readonly negocio_id: string;
   readonly created_at: string;
   readonly estado: string;
   readonly sena_monto: number | null;
-  readonly google_calendar_event_id: string | null;
-}
-
-/** Borra el evento inyectado al reservar (best-effort, nunca lanza). */
-async function borrarEventoGoogle(turno: TurnoPendiente): Promise<void>
-{
-  if (typeof turno.google_calendar_event_id !== "string" || turno.google_calendar_event_id.length === 0)
-  {
-    return;
-  }
-
-  if (typeof turno.negocio_id !== "string" || turno.negocio_id.length === 0)
-  {
-    return;
-  }
-
-  const { calendarService } = await import("@/lib/services/calendar");
-
-  await calendarService.deleteEventForNegocio(turno.negocio_id, turno.google_calendar_event_id);
 }
 
 function esPendienteConSena(turno: TurnoPendiente): boolean
@@ -115,7 +95,7 @@ async function liberarTurno(
 ): Promise<NextResponse>
 {
   const { data: turno } = await admin.from("turnos")
-    .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
+    .select("id, created_at, estado, sena_monto")
     .eq("id", turnoId).single();
 
   if (turno === null)
@@ -144,8 +124,6 @@ async function liberarTurno(
   {
     return NextResponse.json({ success: true, liberado: false, motivo: "ya-procesado" });
   }
-
-  await borrarEventoGoogle(pendiente);
 
   return NextResponse.json({ success: true, liberado: true });
 }
@@ -192,7 +170,7 @@ async function handlePOST(request: Request)
 
   const corte = new Date(ahora.getTime() - GRACIA_MINUTOS * 60_000).toISOString();
   const { data } = await admin.from("turnos")
-    .select("id, negocio_id, created_at, estado, sena_monto, google_calendar_event_id")
+    .select("id, created_at, estado, sena_monto")
     .eq("estado", "pendiente").not("sena_monto", "is", null).lt("created_at", corte)
     .limit(LIMITE_BARRIDO);
   const vencidos = ((data ?? []) as unknown as TurnoPendiente[])
@@ -205,7 +183,6 @@ async function handlePOST(request: Request)
     if (await cancelarSiPendiente(admin, turno.id))
     {
       liberados += 1;
-      await borrarEventoGoogle(turno);
     }
   }
 

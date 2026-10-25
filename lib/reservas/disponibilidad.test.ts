@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
-import { calendarService } from "@/lib/services/calendar";
 
 interface Filas
 {
@@ -60,27 +59,18 @@ function stubAdmin(filas: Filas = {}, opciones: StubOpciones = {})
 
 const INICIO = new Date("2026-10-06T13:00:00.000Z");
 
-afterEach(() =>
-{
-  vi.restoreAllMocks();
-});
-
 describe("estaOcupado",
 () =>
 {
   it("debería estar libre sin turnos ni eventos",
   async () =>
   {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-
     await expect(estaOcupado(stubAdmin(), "neg-1", "staff-1", INICIO, 30)).resolves.toBe(false);
   });
 
   it("debería estar ocupado si solapa un turno confirmado",
   async () =>
   {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-
     const admin = stubAdmin({
       turnos: [{
         inicio: INICIO.toISOString(),
@@ -97,8 +87,6 @@ describe("estaOcupado",
   it("debería usar el fin real del turno aunque el servicio dure menos",
   async () =>
   {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-
     const admin = stubAdmin({
       turnos: [{
         inicio: INICIO.toISOString(),
@@ -117,8 +105,6 @@ describe("estaOcupado",
   it("debería considerar un turno en curso iniciado antes de ahora",
   async () =>
   {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-
     const ahora = Date.now();
     const inicioTurno = new Date(ahora - 20 * 60_000);
     const finTurno = new Date(ahora + 25 * 60_000);
@@ -140,8 +126,6 @@ describe("estaOcupado",
   it("debería ignorar turnos cancelados y pendientes vencidos",
   async () =>
   {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([]);
-
     const admin = stubAdmin({
       turnos: [
         { inicio: INICIO.toISOString(), servicio_id: "serv-1", estado: "cancelado",
@@ -153,15 +137,5 @@ describe("estaOcupado",
     });
 
     await expect(estaOcupado(admin, "neg-1", "staff-1", INICIO, 30)).resolves.toBe(false);
-  });
-
-  it("debería estar ocupado por un evento de Google",
-  async () =>
-  {
-    vi.spyOn(calendarService, "getBusyIntervalsForNegocio").mockResolvedValue([
-      { start: INICIO, end: new Date(INICIO.getTime() + 30 * 60_000) },
-    ]);
-
-    await expect(estaOcupado(stubAdmin(), "neg-1", "staff-1", INICIO, 30)).resolves.toBe(true);
   });
 });

@@ -3,12 +3,10 @@
  *
  * Comparte el cálculo entre el flujo público (`POST /api/reservas`) y el
  * alta manual del dashboard: un pendiente retiene su lugar durante la
- * gracia de pago, confirmado/pagado siempre bloquean, y los eventos ajenos
- * del Google Calendar del negocio también ocupan (fail-open).
+ * gracia de pago y confirmado/pagado siempre bloquean.
  */
 
 import { getTurnoBlockedInterval, isSlotAvailable } from "@/lib/availability/availability";
-import { calendarService } from "@/lib/services/calendar";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Ventana de gracia en la que un pendiente retiene su slot. */
@@ -73,20 +71,8 @@ export function filtrarBloqueos(
     });
 }
 
-/** Inicio del día local (ventana para freebusy de Google). */
-export function inicioDelDia(fecha: Date): Date
-{
-  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
-}
-
-/** Fin del día local (ventana para freebusy de Google). */
-export function finDelDia(fecha: Date): Date
-{
-  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 0, 0, 0, 0);
-}
-
 /**
- * Verifica que el slot siga libre en agenda y Google.
+ * Verifica que el slot siga libre en agenda.
  *
  * @param admin Cliente admin de Supabase.
  * @param negocioId ID del negocio.
@@ -121,8 +107,6 @@ export async function estaOcupado(
     duracionMin,
     ahoraMs,
   );
-  const ocupadoGoogle = await calendarService.getBusyIntervalsForNegocio(
-    negocioId, inicioDelDia(inicio), finDelDia(inicio));
 
-  return !isSlotAvailable(inicio, duracionMin, [...bloqueos, ...ocupadoGoogle]);
+  return !isSlotAvailable(inicio, duracionMin, bloqueos);
 }

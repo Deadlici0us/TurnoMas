@@ -16,13 +16,4 @@ describe("LeyendaEstados",
     expect(leyenda.children).toHaveLength(LEYENDA_ESTADOS.length);
     expect(screen.getByText(LEYENDA_ESTADOS[0]?.titulo ?? "")).toBeDefined();
   });
-
-  it("debería agregar el estado externo cuando se pide",
-  () =>
-  {
-    render(<LeyendaEstados incluirExterno />);
-    const leyenda = screen.getByLabelText("Significado de los colores");
-
-    expect(leyenda.children).toHaveLength(LEYENDA_ESTADOS.length + 1);
-  });
 });

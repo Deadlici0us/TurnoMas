@@ -18,7 +18,7 @@ function pasoInicial(params: URLSearchParams): number
 {
   const crudo = Number(params.get("paso"));
 
-  if (!Number.isInteger(crudo) || crudo < 1 || crudo > 4)
+  if (!Number.isInteger(crudo) || crudo < 1 || crudo > 3)
   {
     return 1;
   }
@@ -33,7 +33,6 @@ export default function OnboardingWizard()
   const [nombre, setNombre] = useState("Barbería Diego");
   const [pais, setPais] = useState(DEFAULT_COUNTRY);
   const [paso, setPaso] = useState(() => pasoInicial(params));
-  const [gcalConectado, setGcalConectado] = useState(false);
 
   const mpOk = params.get("mp") === "ok";
   const errorPaso3 = params.get("error");
@@ -70,8 +69,8 @@ export default function OnboardingWizard()
           <h1 className="ui-page-title">{t("onboarding.title")}</h1>
           <p className="ui-page-subtitle mx-auto">{t("onboarding.subtitle")}</p>
         </div>
-        <ol className="grid grid-cols-4 gap-2" aria-label="Progreso del onboarding">
-          {[1, 2, 3, 4].map((n) => (
+        <ol className="grid grid-cols-3 gap-2" aria-label="Progreso del onboarding">
+          {[1, 2, 3].map((n) => (
             <li
               key={n}
               className={`h-1.5 rounded-full transition-colors duration-300
@@ -214,28 +213,9 @@ export default function OnboardingWizard()
                 ←
               </button>
             </form>
-          </section>
-        )}
-
-        {paso === 4 && (
-          <section className="space-y-4">
-            <h2 className="ui-section-title">{t("onboarding.step4Title")}</h2>
-            <p className="text-sm text-muted-foreground">{t("onboarding.step4Desc")}</p>
-            <button
-              onClick={() => setGcalConectado(true)}
-              className="ui-btn ui-btn-primary w-full"
-            >
-              {gcalConectado ? "✓ " : ""}{t("onboarding.connectGcal")}
-            </button>
             <p className="ui-alert ui-alert-info text-xs">
               {t("onboarding.trialNote")}
             </p>
-            <Link href="/dashboard" className="ui-btn ui-btn-primary w-full">
-              {t("onboarding.finish")}
-            </Link>
-            <button onClick={() => setPaso(3)} className="ui-btn ui-btn-outline w-full">
-              ←
-            </button>
           </section>
         )}
       </div>
