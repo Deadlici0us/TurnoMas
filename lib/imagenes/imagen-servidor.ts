@@ -1,5 +1,5 @@
 /**
- * Normalización de la foto de perfil del profesional en el servidor.
+ * Normalización de imágenes en el servidor.
  *
  * El cliente ya entrega un JPEG recortado; el servidor vuelve a validar
  * formato y dimensiones y reencodea para descartar metadatos o contenido
@@ -9,12 +9,12 @@
 import sharp from "sharp";
 
 import {
-  FOTO_CALIDAD_JPEG,
-  FOTO_LADO_MAXIMO,
-  FOTO_LADO_MINIMO,
-  FOTO_LADO_SALIDA,
-  MENSAJES_FOTO,
-} from "./foto-limites";
+  IMAGEN_CALIDAD_JPEG,
+  IMAGEN_LADO_MAXIMO,
+  IMAGEN_LADO_MINIMO,
+  IMAGEN_LADO_SALIDA,
+  MENSAJES_IMAGEN,
+} from "./imagen-limites";
 
 /** Marca de las URLs públicas del bucket `logos`. */
 const MARCA_BUCKET_LOGOS = "/storage/v1/object/public/logos/";
@@ -31,10 +31,10 @@ export function esJpeg(buffer: Buffer): boolean
 /**
  * Extrae la ruta interna del bucket `logos` desde una URL pública.
  *
- * @param url URL pública guardada en `staff.foto_url`.
+ * @param url URL pública guardada en la base.
  * @return Ruta relativa o null si la URL no pertenece al bucket.
  */
-export function rutaFotoDelBucket(url: string | null): string | null
+export function rutaDelBucketLogos(url: string | null): string | null
 {
   if (url === null)
   {
@@ -64,14 +64,14 @@ export function rutaFotoDelBucket(url: string | null): string | null
 /** Valida dimensiones reales del JPEG recibido. */
 function validarDimensiones(ancho: number, alto: number): void
 {
-  if (ancho < FOTO_LADO_MINIMO || alto < FOTO_LADO_MINIMO)
+  if (ancho < IMAGEN_LADO_MINIMO || alto < IMAGEN_LADO_MINIMO)
   {
-    throw new RangeError(MENSAJES_FOTO.minimo);
+    throw new RangeError(MENSAJES_IMAGEN.minimo);
   }
 
-  if (ancho > FOTO_LADO_MAXIMO || alto > FOTO_LADO_MAXIMO)
+  if (ancho > IMAGEN_LADO_MAXIMO || alto > IMAGEN_LADO_MAXIMO)
   {
-    throw new RangeError(MENSAJES_FOTO.maximo);
+    throw new RangeError(MENSAJES_IMAGEN.maximo);
   }
 }
 
@@ -81,36 +81,36 @@ function validarDimensiones(ancho: number, alto: number): void
  * @param buffer Contenido binario recibido desde el cliente.
  * @return JPEG normalizado listo para subir a Storage.
  */
-export async function normalizarFotoPerfil(buffer: Buffer): Promise<Buffer>
+export async function normalizarImagenCuadrada(buffer: Buffer): Promise<Buffer>
 {
   if (!esJpeg(buffer))
   {
-    throw new RangeError(MENSAJES_FOTO.servidor);
+    throw new RangeError(MENSAJES_IMAGEN.servidor);
   }
 
   try
   {
     const imagen = sharp(buffer, {
       failOn: "error",
-      limitInputPixels: FOTO_LADO_MAXIMO * FOTO_LADO_MAXIMO,
+      limitInputPixels: IMAGEN_LADO_MAXIMO * IMAGEN_LADO_MAXIMO,
     });
     const metadata = await imagen.metadata();
 
     if (metadata.format !== "jpeg")
     {
-      throw new RangeError(MENSAJES_FOTO.servidor);
+      throw new RangeError(MENSAJES_IMAGEN.servidor);
     }
 
     validarDimensiones(metadata.width ?? 0, metadata.height ?? 0);
 
     return await imagen
       .rotate()
-      .resize(FOTO_LADO_SALIDA, FOTO_LADO_SALIDA, {
+      .resize(IMAGEN_LADO_SALIDA, IMAGEN_LADO_SALIDA, {
         fit: "cover",
         position: "centre",
       })
       .flatten({ background: "#ffffff" })
-      .jpeg({ quality: Math.round(FOTO_CALIDAD_JPEG * 100), mozjpeg: true })
+      .jpeg({ quality: Math.round(IMAGEN_CALIDAD_JPEG * 100), mozjpeg: true })
       .toBuffer();
   }
   catch (error)
@@ -120,6 +120,6 @@ export async function normalizarFotoPerfil(buffer: Buffer): Promise<Buffer>
       throw error;
     }
 
-    throw new RangeError(MENSAJES_FOTO.invalida);
+    throw new RangeError(MENSAJES_IMAGEN.invalida);
   }
 }

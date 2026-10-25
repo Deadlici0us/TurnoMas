@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   calcularRecorteCuadrado,
-  convertirFotoPerfil,
-  validarArchivoFoto,
-} from "./foto-cliente";
-import { FOTO_LADO_SALIDA } from "./foto-limites";
+  convertirImagenCuadrada,
+  validarArchivoImagen,
+} from "./imagen-cliente";
+import { IMAGEN_LADO_SALIDA } from "./imagen-limites";
 
 /** Crea un archivo de prueba con el tipo y tamaño indicados. */
 function archivo(nombre: string, tipo: string, bytes = 16): File
@@ -34,39 +34,40 @@ describe("calcularRecorteCuadrado",
     expect(calcularRecorteCuadrado(800, 1200)).toEqual({ sx: 0, sy: 200, lado: 800 });
   });
 
-  it("debería dejar intacta una imagen cuadrada", () =>
+  it("debería dejar intacta una imagen cuadrada",
+  () =>
   {
     expect(calcularRecorteCuadrado(600, 600)).toEqual({ sx: 0, sy: 0, lado: 600 });
   });
 });
 
-describe("validarArchivoFoto",
+describe("validarArchivoImagen",
 () =>
 {
   it("debería aceptar JPG, PNG y WebP",
   () =>
   {
-    expect(() => validarArchivoFoto(archivo("foto.jpg", "image/jpeg"))).not.toThrow();
-    expect(() => validarArchivoFoto(archivo("foto.png", "image/png"))).not.toThrow();
-    expect(() => validarArchivoFoto(archivo("foto.webp", "image/webp"))).not.toThrow();
+    expect(() => validarArchivoImagen(archivo("foto.jpg", "image/jpeg"))).not.toThrow();
+    expect(() => validarArchivoImagen(archivo("foto.png", "image/png"))).not.toThrow();
+    expect(() => validarArchivoImagen(archivo("foto.webp", "image/webp"))).not.toThrow();
   });
 
   it("debería rechazar archivos que no son imagen",
   () =>
   {
-    expect(() => validarArchivoFoto(archivo("doc.pdf", "application/pdf")))
+    expect(() => validarArchivoImagen(archivo("doc.pdf", "application/pdf")))
       .toThrow(/JPG, PNG o WebP/);
   });
 
   it("debería rechazar archivos de más de 8 MB",
   () =>
   {
-    expect(() => validarArchivoFoto(archivo("foto.jpg", "image/jpeg", 9 * 1024 * 1024)))
+    expect(() => validarArchivoImagen(archivo("foto.jpg", "image/jpeg", 9 * 1024 * 1024)))
       .toThrow(/8 MB/);
   });
 });
 
-describe("convertirFotoPerfil",
+describe("convertirImagenCuadrada",
 () =>
 {
   /** Prepara canvas y decodificación simulados para el entorno jsdom. */
@@ -102,11 +103,11 @@ describe("convertirFotoPerfil",
   {
     const { drawImage } = prepararNavegador(1000, 600);
 
-    const blob = await convertirFotoPerfil(archivo("foto.jpg", "image/jpeg"));
+    const blob = await convertirImagenCuadrada(archivo("foto.jpg", "image/jpeg"));
 
     expect(blob.type).toBe("image/jpeg");
     expect(drawImage).toHaveBeenCalledWith(
-      expect.anything(), 200, 0, 600, 600, 0, 0, FOTO_LADO_SALIDA, FOTO_LADO_SALIDA,
+      expect.anything(), 200, 0, 600, 600, 0, 0, IMAGEN_LADO_SALIDA, IMAGEN_LADO_SALIDA,
     );
   });
 
@@ -115,7 +116,7 @@ describe("convertirFotoPerfil",
   {
     prepararNavegador(120, 120);
 
-    await expect(convertirFotoPerfil(archivo("foto.jpg", "image/jpeg")))
+    await expect(convertirImagenCuadrada(archivo("foto.jpg", "image/jpeg")))
       .rejects.toThrow(/al menos 200/);
   });
 
@@ -124,7 +125,7 @@ describe("convertirFotoPerfil",
   {
     prepararNavegador(9000, 300);
 
-    await expect(convertirFotoPerfil(archivo("foto.jpg", "image/jpeg")))
+    await expect(convertirImagenCuadrada(archivo("foto.jpg", "image/jpeg")))
       .rejects.toThrow(/más de 8000/);
   });
 
@@ -136,7 +137,7 @@ describe("convertirFotoPerfil",
       throw new Error("decode error");
     }));
 
-    await expect(convertirFotoPerfil(archivo("foto.jpg", "image/jpeg")))
+    await expect(convertirImagenCuadrada(archivo("foto.jpg", "image/jpeg")))
       .rejects.toThrow(/No pudimos procesar/);
   });
 });

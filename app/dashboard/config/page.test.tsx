@@ -43,6 +43,7 @@ vi.mock("./actions", () =>
     desconectarMercadoPago: vi.fn(),
     solicitarEliminacionNegocio: vi.fn(),
     confirmarEliminacionNegocio: vi.fn(),
+    subirLogoNegocio: vi.fn(),
   };
 });
 

@@ -1,8 +1,8 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
-import { esJpeg, normalizarFotoPerfil, rutaFotoDelBucket } from "./foto";
-import { FOTO_LADO_SALIDA } from "./foto-limites";
+import { esJpeg, normalizarImagenCuadrada, rutaDelBucketLogos } from "./imagen-servidor";
+import { IMAGEN_LADO_SALIDA } from "./imagen-limites";
 
 /** Genera un JPEG sólido de las dimensiones indicadas. */
 async function jpegDe(ancho: number, alto: number): Promise<Buffer>
@@ -17,31 +17,31 @@ async function jpegDe(ancho: number, alto: number): Promise<Buffer>
   }).jpeg().toBuffer();
 }
 
-describe("normalizarFotoPerfil",
+describe("normalizarImagenCuadrada",
 () =>
 {
   it("debería convertir la imagen a JPEG cuadrado de 512x512",
   async () =>
   {
-    const salida = await normalizarFotoPerfil(await jpegDe(1200, 800));
+    const salida = await normalizarImagenCuadrada(await jpegDe(1200, 800));
     const meta = await sharp(salida).metadata();
 
     expect(meta.format).toBe("jpeg");
-    expect(meta.width).toBe(FOTO_LADO_SALIDA);
-    expect(meta.height).toBe(FOTO_LADO_SALIDA);
+    expect(meta.width).toBe(IMAGEN_LADO_SALIDA);
+    expect(meta.height).toBe(IMAGEN_LADO_SALIDA);
   });
 
   it("debería rechazar imágenes menores a 200x200",
   async () =>
   {
-    await expect(normalizarFotoPerfil(await jpegDe(120, 120)))
+    await expect(normalizarImagenCuadrada(await jpegDe(120, 120)))
       .rejects.toThrow(/al menos 200/);
   });
 
   it("debería rechazar imágenes que superan el lado máximo",
   async () =>
   {
-    await expect(normalizarFotoPerfil(await jpegDe(8001, 200)))
+    await expect(normalizarImagenCuadrada(await jpegDe(8001, 200)))
       .rejects.toThrow(/más de 8000/);
   });
 
@@ -57,13 +57,13 @@ describe("normalizarFotoPerfil",
       },
     }).png().toBuffer();
 
-    await expect(normalizarFotoPerfil(png)).rejects.toThrow(/JPEG/);
+    await expect(normalizarImagenCuadrada(png)).rejects.toThrow(/JPEG/);
   });
 
   it("debería rechazar archivos corruptos",
   async () =>
   {
-    await expect(normalizarFotoPerfil(Buffer.from("no es una imagen")))
+    await expect(normalizarImagenCuadrada(Buffer.from("no es una imagen")))
       .rejects.toThrow(/JPEG/);
   });
 });
@@ -84,21 +84,22 @@ describe("esJpeg",
   });
 });
 
-describe("rutaFotoDelBucket",
+describe("rutaDelBucketLogos",
 () =>
 {
   it("debería extraer la ruta pública del bucket logos",
   () =>
   {
-    expect(rutaFotoDelBucket(
+    expect(rutaDelBucketLogos(
       "https://proyecto.supabase.co/storage/v1/object/public/logos/staff/s1/foto.jpg",
     )).toBe("staff/s1/foto.jpg");
   });
 
-  it("debería devolver null para URLs externas o inválidas", () =>
+  it("debería devolver null para URLs externas o inválidas",
+  () =>
   {
-    expect(rutaFotoDelBucket("https://cdn.test/foto.jpg")).toBeNull();
-    expect(rutaFotoDelBucket("no-es-url")).toBeNull();
-    expect(rutaFotoDelBucket(null)).toBeNull();
+    expect(rutaDelBucketLogos("https://cdn.test/foto.jpg")).toBeNull();
+    expect(rutaDelBucketLogos("no-es-url")).toBeNull();
+    expect(rutaDelBucketLogos(null)).toBeNull();
   });
 });

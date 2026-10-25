@@ -2,19 +2,19 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import FotoStaffUploader from "./foto-staff-uploader";
-import { convertirFotoPerfil } from "@/lib/staff/foto-cliente";
+import { convertirImagenCuadrada } from "@/lib/imagenes/imagen-cliente";
 
-vi.mock("@/lib/staff/foto-cliente", async (importOriginal) =>
+vi.mock("@/lib/imagenes/imagen-cliente", async (importOriginal) =>
 {
-  const actual = await importOriginal<typeof import("@/lib/staff/foto-cliente")>();
+  const actual = await importOriginal<typeof import("@/lib/imagenes/imagen-cliente")>();
 
   return {
     ...actual,
-    convertirFotoPerfil: vi.fn(async () => new Blob(["jpeg"], { type: "image/jpeg" })),
+    convertirImagenCuadrada: vi.fn(async () => new Blob(["jpeg"], { type: "image/jpeg" })),
   };
 });
 
-const mockConvertir = vi.mocked(convertirFotoPerfil);
+const mockConvertir = vi.mocked(convertirImagenCuadrada);
 
 function archivo(nombre: string, tipo: string, bytes = 16): File
 {

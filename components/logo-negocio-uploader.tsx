@@ -4,38 +4,45 @@ import { useRef, useState } from "react";
 
 import type { ActionResult } from "@/lib/actions/action-result";
 import { inicialesDe } from "@/components/ui/avatar";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
-
-const BUCKET = "logos";
-const MAX_BYTES = 5 * 1024 * 1024;
+import { convertirImagenCuadrada, validarArchivoImagen } from "@/lib/imagenes/imagen-cliente";
+import {
+  IMAGEN_ACCEPT,
+  IMAGEN_LADO_MAXIMO,
+  IMAGEN_LADO_MINIMO,
+  IMAGEN_LADO_SALIDA,
+  IMAGEN_PESO_MAXIMO_BYTES,
+  MENSAJES_IMAGEN,
+} from "@/lib/imagenes/imagen-limites";
 
 interface LogoNegocioUploaderProps
 {
-  readonly negocioId: string;
   readonly nombre: string;
   readonly logoUrl: string | null;
-  /** Server Action que persiste la URL pública (o null al quitar). */
-  readonly action: (url: string | null) => Promise<ActionResult<unknown> | void>;
+  /** Server Action que recibe el JPEG convertido y devuelve la URL pública. */
+  readonly subir: (formData: FormData) => Promise<ActionResult<{ url: string }>>;
+  /** Server Action que quita el logo actual. */
+  readonly quitar: () => Promise<ActionResult<void>>;
 }
 
 /**
  * Carga el logo del negocio al bucket público `logos`.
  *
- * Sube directo desde el navegador (RLS: el dueño autenticado escribe en
- * `logos`) y luego persiste la URL pública con la Server Action. Logo
- * opcional: sin imagen se muestran las iniciales.
+ * El navegador recorta y comprime la imagen a un JPEG 512×512 antes de
+ * enviarla. El servidor vuelve a validar y normalizar antes de guardarla.
+ * Sin imagen se muestran las iniciales.
  */
 export default function LogoNegocioUploader(
-  { negocioId, nombre, logoUrl, action }: LogoNegocioUploaderProps,
+  { nombre, logoUrl, subir, quitar }: LogoNegocioUploaderProps,
 )
 {
   const [preview, setPreview] = useState<string | null>(logoUrl);
+  const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  /** Valida, sube la imagen y persiste la URL pública. */
-  async function subir(event: React.ChangeEvent<HTMLInputElement>): Promise<void>
+  /** Valida, convierte y sube la imagen, y persiste la URL pública. */
+  async function cargar(event: React.ChangeEvent<HTMLInputElement>): Promise<void>
   {
     const file = event.target.files?.[0];
 
@@ -44,49 +51,37 @@ export default function LogoNegocioUploader(
       return;
     }
 
-    if (!file.type.startsWith("image/"))
-    {
-      setError("Elegí una imagen (JPG, PNG o WebP).");
-      return;
-    }
-
-    if (file.size > MAX_BYTES)
-    {
-      setError("La imagen no puede superar los 5 MB.");
-      return;
-    }
-
-    setSubiendo(true);
+    setNombreArchivo(file.name);
     setError(null);
 
     try
     {
-      const supabase = getSupabaseBrowser();
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const path = `negocio/${negocioId}/${Date.now()}.${extension}`;
-      const { error: subidaError } = await supabase.storage.from(BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: true });
+      validarArchivoImagen(file);
+      setSubiendo(true);
 
-      if (subidaError !== null)
-      {
-        throw new Error(subidaError.message);
-      }
+      const jpeg = await convertirImagenCuadrada(file);
+      const formData = new FormData();
 
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      formData.set("archivo", jpeg, "logo.jpg");
 
-      const result = await action(data.publicUrl);
+      const result = await subir(formData);
 
-      if (result !== undefined && !result.ok)
+      if (!result.ok)
       {
         setError(result.error);
+
         return;
       }
 
-      setPreview(data.publicUrl);
+      setPreview(result.data.url);
     }
-    catch
+    catch (errorCapturado)
     {
-      setError("No pudimos subir el logo. Probá de nuevo.");
+      setError(
+        errorCapturado instanceof Error && errorCapturado.message.length > 0
+          ? errorCapturado.message
+          : MENSAJES_IMAGEN.invalida,
+      );
     }
     finally
     {
@@ -100,22 +95,24 @@ export default function LogoNegocioUploader(
   }
 
   /** Quita el logo del negocio. */
-  async function quitar(): Promise<void>
+  async function quitarLogo(): Promise<void>
   {
     setSubiendo(true);
     setError(null);
 
     try
     {
-      const result = await action(null);
+      const result = await quitar();
 
-      if (result !== undefined && !result.ok)
+      if (!result.ok)
       {
         setError(result.error);
+
         return;
       }
 
       setPreview(null);
+      setNombreArchivo(null);
     }
     catch
     {
@@ -127,33 +124,61 @@ export default function LogoNegocioUploader(
     }
   }
 
+  const textoArchivo = nombreArchivo ?? "Sin archivo seleccionado";
+  const ayudaId = "logo-ayuda";
+
   return (
     <div className="space-y-2">
       <span className="block text-sm font-semibold text-ink">Logo de tu negocio</span>
       <div className="flex items-center gap-3">
         {preview !== null ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={nombre} className="size-16 rounded-2xl object-cover" />
+          <img src={preview} alt={nombre} className="size-16 shrink-0 rounded-2xl object-cover" />
         ) : (
-          <span className="flex size-16 items-center justify-center rounded-full bg-info-soft
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-info-soft
             font-heading font-bold text-[#0b6e93]">{inicialesDe(nombre)}</span>
         )}
-        <div className="space-y-1">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            aria-label="Logo del negocio"
-            disabled={subiendo}
-            onChange={(event) => { void subir(event); }}
-            className="block text-xs text-ink file:mr-3 file:rounded-full file:border-0
-              file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white
-              hover:file:bg-primary-hover disabled:opacity-60"
-          />
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={IMAGEN_ACCEPT}
+              aria-label="Logo del negocio"
+              disabled={subiendo}
+              onChange={(event) => { void cargar(event); }}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={subiendo}
+              aria-describedby={ayudaId}
+              className="ui-btn ui-btn-outline ui-btn-sm"
+            >
+              {subiendo ? (
+                <>
+                  <span className="ui-spinner" aria-hidden="true" />
+                  Subiendo...
+                </>
+              ) : "Elegir imagen"}
+            </button>
+            <span
+              className="block max-w-56 truncate text-xs text-muted-foreground"
+              title={textoArchivo}
+            >
+              {textoArchivo}
+            </span>
+          </div>
+          <p id={ayudaId} className="text-xs text-muted-foreground">
+            JPG, PNG o WebP. Mínimo {IMAGEN_LADO_MINIMO}×{IMAGEN_LADO_MINIMO} px, máximo{" "}
+            {IMAGEN_LADO_MAXIMO}×{IMAGEN_LADO_MAXIMO} px y {IMAGEN_PESO_MAXIMO_BYTES / (1024 * 1024)} MB.
+            Se guarda como JPEG {IMAGEN_LADO_SALIDA}×{IMAGEN_LADO_SALIDA}.
+          </p>
           {preview !== null ? (
             <button
               type="button"
-              onClick={() => { void quitar(); }}
+              onClick={() => { void quitarLogo(); }}
               disabled={subiendo}
               className="text-xs font-semibold text-danger hover:text-danger disabled:opacity-60"
             >

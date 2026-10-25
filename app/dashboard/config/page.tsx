@@ -16,7 +16,7 @@ import { actualizarDescripcionNegocio, actualizarGoogleMapsUrl, actualizarGoogle
   actualizarPlantillaMensaje, actualizarPoliticaListaNegra, actualizarPoliticaRemarketing,
   actualizarPoliticaResenas, actualizarPoliticaRecordatorios, actualizarPoliticaSena,
   actualizarTimezoneNegocio, actualizarWhatsappNegocio, desconectarGoogleCalendar,
-  desconectarMercadoPago } from "./actions";
+  desconectarMercadoPago, subirLogoNegocio } from "./actions";
 import type { PenalidadListaNegra } from "./actions";
 import { readEnv } from "@/lib/env/env";
 import { getDashboardData } from "@/lib/dashboard/queries";
@@ -149,13 +149,20 @@ async function guardarDescripcion(formData: FormData): Promise<ActionResult<void
   });
 }
 
-async function guardarLogo(url: string | null): Promise<ActionResult<void>>
+async function subirLogo(formData: FormData): Promise<ActionResult<{ url: string }>>
 {
   "use server";
 
-  return runAction("guardarLogo", async () =>
+  return runAction("subirLogo", async () => subirLogoNegocio(formData));
+}
+
+async function quitarLogo(): Promise<ActionResult<void>>
+{
+  "use server";
+
+  return runAction("quitarLogo", async () =>
   {
-    await actualizarLogoNegocio(url);
+    await actualizarLogoNegocio(null);
   });
 }
 
@@ -385,7 +392,6 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
 
 interface ContextoConfig
 {
-  readonly negocioIdTexto: string;
   readonly mpToken: string | null;
   readonly mpConectadoAt: string | null;
   readonly gcalConectado: boolean;
@@ -412,7 +418,6 @@ async function cargarContextoConfig(
   demo: boolean,
 ): Promise<ContextoConfig>
 {
-  const negocioIdTexto = typeof negocioIdCrudo === "string" ? negocioIdCrudo : "";
   const conexiones = demo
     ? { mpToken: null, mpConectadoAt: null, gcalConectado: false }
     : await cargarConexiones(negocioIdCrudo);
@@ -432,7 +437,6 @@ async function cargarContextoConfig(
   });
 
   return {
-    negocioIdTexto,
     mpToken,
     mpConectadoAt,
     gcalConectado,
@@ -534,7 +538,6 @@ export default async function ConfigPage(
 
   const negocioId = (dashboard.negocio as { id?: unknown }).id;
   const {
-    negocioIdTexto,
     mpToken,
     mpConectadoAt,
     gcalConectado,
@@ -559,102 +562,112 @@ export default async function ConfigPage(
         titulo="Tu negocio"
         ayuda="Cómo se llama, en qué ciudad mostramos tus turnos y tu link para compartir."
       >
-        <ActionForm action={guardarNombre} successMessage="Cambios guardados." className="space-y-3">
-          <label className="block text-sm font-semibold text-ink">
-            {"¿Cómo se llama tu negocio?"}
-            <input
-              type="text"
-              name="nombre"
-              required
-              minLength={2}
-              maxLength={80}
-              placeholder="Ej: Barbería Diego"
-              defaultValue={negocio.nombre ?? ""}
-              className="ui-input"
-            />
-          </label>
-          <p className="text-xs text-muted-foreground">Tu link para compartir no cambia cuando cambiás el nombre.</p>
-          <button
-            type="submit"
-            className="ui-btn ui-btn-primary"
-          >
-            Guardar nombre
-          </button>
-        </ActionForm>
-        <LogoNegocioUploader
-          negocioId={negocioIdTexto}
-          nombre={negocio.nombre ?? ""}
-          logoUrl={negocio.logo_url ?? null}
-          action={guardarLogo}
-        />
-        <ActionForm action={guardarDescripcion} successMessage="Cambios guardados." className="space-y-3">
-          <label className="block text-sm font-semibold text-ink">
-            {"Descripción breve de tu negocio"}
-            <span className="block text-xs font-normal text-muted-foreground">
-              Se muestra debajo del nombre en tu página de reservas.
-            </span>
-            <textarea
-              name="descripcion"
-              rows={2}
-              maxLength={300}
-              defaultValue={negocio.descripcion ?? ""}
-              placeholder="Ej: Barbería de barrio con turnos sin esperas."
-              className="ui-textarea"
-            />
-          </label>
-          <button
-            type="submit"
-            className="ui-btn ui-btn-primary"
-          >
-            Guardar descripción
-          </button>
-        </ActionForm>
-        <ActionForm action={guardarTimezone} successMessage="Cambios guardados." className="space-y-3">
-          <label className="block text-sm font-semibold text-ink">
-            {"¿En qué ciudad mostramos tus turnos?"}
-            <select
-              name="timezone"
-              defaultValue={timezoneActual}
-              className="ui-select"
+        <div className="rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <ActionForm action={guardarNombre} successMessage="Cambios guardados." className="space-y-3">
+            <label className="block text-sm font-semibold text-ink">
+              {"¿Cómo se llama tu negocio?"}
+              <input
+                type="text"
+                name="nombre"
+                required
+                minLength={2}
+                maxLength={80}
+                placeholder="Ej: Barbería Diego"
+                defaultValue={negocio.nombre ?? ""}
+                className="ui-input"
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">Tu link para compartir no cambia cuando cambiás el nombre.</p>
+            <button
+              type="submit"
+              className="ui-btn ui-btn-primary"
             >
-              {TIMEZONES_SOPORTADAS.map((zona) => (
-                <option key={zona} value={zona} className="bg-white text-ink">
-                  {etiquetaZonaHoraria(zona)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="text-xs text-muted-foreground">
-            Si elegís mal la ciudad, los turnos se ven corridos. La mayoría ya viene bien.
-          </p>
-          <button
-            type="submit"
-            className="ui-btn ui-btn-primary"
-          >
-            Guardar ciudad
-          </button>
-        </ActionForm>
-        <ActionForm action={guardarMaps} successMessage="Cambios guardados." className="space-y-3">
-          <label className="block text-sm font-semibold text-ink">
-            {"Link de Google Maps de tu negocio"}
-            <span className="block text-xs font-normal text-muted-foreground">
-              Si lo cargamos, mostramos un pequeño mapa del local en tu página de reservas.
-            </span>
-            <input
-              type="url"
-              name="mapsUrl"
-              defaultValue={negocio.google_maps_url ?? ""}
-              placeholder="https://maps.app.goo.gl/..."
-              className="ui-input"
-            />
-          </label>
-          <button
-            type="submit"
-            className="ui-btn ui-btn-primary"
-          >
-            Guardar ubicación
-          </button>
-        </ActionForm>
+              Guardar nombre
+            </button>
+          </ActionForm>
+        </div>
+        <div className="rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <LogoNegocioUploader
+            nombre={negocio.nombre ?? ""}
+            logoUrl={negocio.logo_url ?? null}
+            subir={subirLogo}
+            quitar={quitarLogo}
+          />
+        </div>
+        <div className="rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <ActionForm action={guardarDescripcion} successMessage="Cambios guardados." className="space-y-3">
+            <label className="block text-sm font-semibold text-ink">
+              {"Descripción breve de tu negocio"}
+              <span className="block text-xs font-normal text-muted-foreground">
+                Se muestra debajo del nombre en tu página de reservas.
+              </span>
+              <textarea
+                name="descripcion"
+                rows={2}
+                maxLength={300}
+                defaultValue={negocio.descripcion ?? ""}
+                placeholder="Ej: Barbería de barrio con turnos sin esperas."
+                className="ui-textarea"
+              />
+            </label>
+            <button
+              type="submit"
+              className="ui-btn ui-btn-primary"
+            >
+              Guardar descripción
+            </button>
+          </ActionForm>
+        </div>
+        <div className="rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <ActionForm action={guardarTimezone} successMessage="Cambios guardados." className="space-y-3">
+            <label className="block text-sm font-semibold text-ink">
+              {"¿En qué ciudad mostramos tus turnos?"}
+              <select
+                name="timezone"
+                defaultValue={timezoneActual}
+                className="ui-select"
+              >
+                {TIMEZONES_SOPORTADAS.map((zona) => (
+                  <option key={zona} value={zona} className="bg-white text-ink">
+                    {etiquetaZonaHoraria(zona)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Si elegís mal la ciudad, los turnos se ven corridos. La mayoría ya viene bien.
+            </p>
+            <button
+              type="submit"
+              className="ui-btn ui-btn-primary"
+            >
+              Guardar ciudad
+            </button>
+          </ActionForm>
+        </div>
+        <div className="rounded-lg border border-line bg-surface p-4 sm:p-5">
+          <ActionForm action={guardarMaps} successMessage="Cambios guardados." className="space-y-3">
+            <label className="block text-sm font-semibold text-ink">
+              {"Link de Google Maps de tu negocio"}
+              <span className="block text-xs font-normal text-muted-foreground">
+                Si lo cargamos, mostramos un pequeño mapa del local en tu página de reservas.
+              </span>
+              <input
+                type="url"
+                name="mapsUrl"
+                defaultValue={negocio.google_maps_url ?? ""}
+                placeholder="https://maps.app.goo.gl/..."
+                className="ui-input"
+              />
+            </label>
+            <button
+              type="submit"
+              className="ui-btn ui-btn-primary"
+            >
+              Guardar ubicación
+            </button>
+          </ActionForm>
+        </div>
         {typeof negocio.pais === "string" && typeof negocio.slug === "string" ? (
           <p className="text-sm text-muted-foreground">
             {"Tu link para compartir: "}

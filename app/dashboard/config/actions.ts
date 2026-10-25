@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
+import { IMAGEN_PESO_MAXIMO_SALIDA_BYTES, MENSAJES_IMAGEN } from "@/lib/imagenes/imagen-limites";
+import { esJpeg, normalizarImagenCuadrada, rutaDelBucketLogos } from "@/lib/imagenes/imagen-servidor";
 import { validarDescripcionNegocio, validarNombreNegocio } from "@/lib/negocios/validation";
 import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
 import { validarTimezone } from "@/lib/timezone/timezone";
@@ -315,10 +317,97 @@ export async function actualizarDescripcionNegocio(descripcion: string | null): 
 }
 
 /**
+ * Recibe el JPEG convertido por el navegador, lo normaliza y lo guarda.
+ *
+ * El cliente ya recorta a 512×512, pero el servidor vuelve a validar los
+ * magic bytes, el peso y las dimensiones antes de reencodear y subir.
+ */
+export async function subirLogoNegocio(formData: FormData): Promise<{ readonly url: string }>
+{
+  const archivo = formData.get("archivo");
+
+  if (typeof archivo === "string" || archivo === null)
+  {
+    throw new RangeError(MENSAJES_IMAGEN.falta);
+  }
+
+  if (archivo.type !== "image/jpeg")
+  {
+    throw new RangeError(MENSAJES_IMAGEN.servidor);
+  }
+
+  if (archivo.size > IMAGEN_PESO_MAXIMO_SALIDA_BYTES)
+  {
+    throw new RangeError(MENSAJES_IMAGEN.salida);
+  }
+
+  await assertModoEditable();
+
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    throw new AuthError("Tenés que iniciar sesión para cambiar el logo.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const negocioId = await getNegocioIdDelDueno(admin, user.id);
+  const buffer = Buffer.from(await archivo.arrayBuffer());
+
+  if (!esJpeg(buffer))
+  {
+    throw new RangeError(MENSAJES_IMAGEN.servidor);
+  }
+
+  const { data: actual, error: lecturaError } = await admin.from("negocios")
+    .select("logo_url").eq("id", negocioId).maybeSingle();
+
+  if (lecturaError !== null)
+  {
+    throw new UnavailableError("No pudimos guardar el logo. Probá de nuevo.");
+  }
+
+  const normalizada = await normalizarImagenCuadrada(buffer);
+  const path = `negocio/${negocioId}/${Date.now()}.jpg`;
+  const { error: subidaError } = await admin.storage.from("logos")
+    .upload(path, normalizada, { contentType: "image/jpeg", upsert: false });
+
+  if (subidaError !== null)
+  {
+    throw new UnavailableError("No pudimos subir el logo. Probá de nuevo.");
+  }
+
+  const { data: publicData } = admin.storage.from("logos").getPublicUrl(path);
+  const { error: guardadoError } = await admin.from("negocios")
+    .update({ logo_url: publicData.publicUrl }).eq("id", negocioId);
+
+  if (guardadoError !== null)
+  {
+    await admin.storage.from("logos").remove([path]);
+
+    throw new UnavailableError("No pudimos guardar el logo. Probá de nuevo.");
+  }
+
+  const anterior = rutaDelBucketLogos(
+    (actual as { logo_url?: string | null } | null)?.logo_url ?? null,
+  );
+
+  if (anterior !== null && anterior.startsWith(`negocio/${negocioId}/`))
+  {
+    await admin.storage.from("logos").remove([anterior]);
+  }
+
+  revalidatePath("/dashboard/config");
+
+  return { url: publicData.publicUrl };
+}
+
+/**
  * Guarda (o quita) el logo del negocio.
  *
- * El archivo se sube desde el navegador al bucket público `logos`; acá solo
- * se persiste la URL pública saneada.
+ * Se usa para quitar el logo actual. La subida de imágenes nuevas pasa por
+ * `subirLogoNegocio`, que estandariza el archivo en el servidor.
  */
 export async function actualizarLogoNegocio(url: string | null): Promise<void>
 {

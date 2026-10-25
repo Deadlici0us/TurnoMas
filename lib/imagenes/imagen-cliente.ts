@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  FOTO_CALIDAD_JPEG,
-  FOTO_LADO_MAXIMO,
-  FOTO_LADO_MINIMO,
-  FOTO_LADO_SALIDA,
-  FOTO_PESO_MAXIMO_BYTES,
-  FOTO_PESO_MAXIMO_SALIDA_BYTES,
-  FOTO_TIPOS_ACEPTADOS,
-  MENSAJES_FOTO,
-} from "./foto-limites";
+  IMAGEN_CALIDAD_JPEG,
+  IMAGEN_LADO_MAXIMO,
+  IMAGEN_LADO_MINIMO,
+  IMAGEN_LADO_SALIDA,
+  IMAGEN_PESO_MAXIMO_BYTES,
+  IMAGEN_PESO_MAXIMO_SALIDA_BYTES,
+  IMAGEN_TIPOS_ACEPTADOS,
+  MENSAJES_IMAGEN,
+} from "./imagen-limites";
 
 /** Coordenadas del recorte cuadrado centrado de una imagen. */
 export interface RecorteCuadrado
@@ -38,35 +38,35 @@ export function calcularRecorteCuadrado(ancho: number, alto: number): RecorteCua
 }
 
 /** Valida tipo y peso del archivo elegido por el usuario. */
-export function validarArchivoFoto(file: File): void
+export function validarArchivoImagen(file: File): void
 {
-  if (!FOTO_TIPOS_ACEPTADOS.includes(file.type as (typeof FOTO_TIPOS_ACEPTADOS)[number]))
+  if (!IMAGEN_TIPOS_ACEPTADOS.includes(file.type as (typeof IMAGEN_TIPOS_ACEPTADOS)[number]))
   {
-    throw new RangeError(MENSAJES_FOTO.tipo);
+    throw new RangeError(MENSAJES_IMAGEN.tipo);
   }
 
   if (file.size === 0)
   {
-    throw new RangeError(MENSAJES_FOTO.invalida);
+    throw new RangeError(MENSAJES_IMAGEN.invalida);
   }
 
-  if (file.size > FOTO_PESO_MAXIMO_BYTES)
+  if (file.size > IMAGEN_PESO_MAXIMO_BYTES)
   {
-    throw new RangeError(MENSAJES_FOTO.peso);
+    throw new RangeError(MENSAJES_IMAGEN.peso);
   }
 }
 
 /** Valida las dimensiones reales ya decodificadas. */
 function validarDimensiones(ancho: number, alto: number): void
 {
-  if (ancho < FOTO_LADO_MINIMO || alto < FOTO_LADO_MINIMO)
+  if (ancho < IMAGEN_LADO_MINIMO || alto < IMAGEN_LADO_MINIMO)
   {
-    throw new RangeError(MENSAJES_FOTO.minimo);
+    throw new RangeError(MENSAJES_IMAGEN.minimo);
   }
 
-  if (ancho > FOTO_LADO_MAXIMO || alto > FOTO_LADO_MAXIMO)
+  if (ancho > IMAGEN_LADO_MAXIMO || alto > IMAGEN_LADO_MAXIMO)
   {
-    throw new RangeError(MENSAJES_FOTO.maximo);
+    throw new RangeError(MENSAJES_IMAGEN.maximo);
   }
 }
 
@@ -76,9 +76,9 @@ function validarDimensiones(ancho: number, alto: number): void
  * La orientación EXIF se respeta con `imageOrientation: "from-image"`.
  * La transparencia se aplana sobre blanco antes de exportar como JPEG.
  */
-export async function convertirFotoPerfil(file: File): Promise<Blob>
+export async function convertirImagenCuadrada(file: File): Promise<Blob>
 {
-  validarArchivoFoto(file);
+  validarArchivoImagen(file);
 
   let bitmap: ImageBitmap;
 
@@ -88,7 +88,7 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
   }
   catch
   {
-    throw new RangeError(MENSAJES_FOTO.invalida);
+    throw new RangeError(MENSAJES_IMAGEN.invalida);
   }
 
   try
@@ -98,18 +98,18 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
     const recorte = calcularRecorteCuadrado(bitmap.width, bitmap.height);
     const canvas = document.createElement("canvas");
 
-    canvas.width = FOTO_LADO_SALIDA;
-    canvas.height = FOTO_LADO_SALIDA;
+    canvas.width = IMAGEN_LADO_SALIDA;
+    canvas.height = IMAGEN_LADO_SALIDA;
 
     const contexto = canvas.getContext("2d");
 
     if (contexto === null)
     {
-      throw new RangeError(MENSAJES_FOTO.invalida);
+      throw new RangeError(MENSAJES_IMAGEN.invalida);
     }
 
     contexto.fillStyle = "#ffffff";
-    contexto.fillRect(0, 0, FOTO_LADO_SALIDA, FOTO_LADO_SALIDA);
+    contexto.fillRect(0, 0, IMAGEN_LADO_SALIDA, IMAGEN_LADO_SALIDA);
     contexto.imageSmoothingEnabled = true;
     contexto.imageSmoothingQuality = "high";
     contexto.drawImage(
@@ -120,8 +120,8 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
       recorte.lado,
       0,
       0,
-      FOTO_LADO_SALIDA,
-      FOTO_LADO_SALIDA,
+      IMAGEN_LADO_SALIDA,
+      IMAGEN_LADO_SALIDA,
     );
 
     const jpeg = await new Promise<Blob>((resolve, reject) =>
@@ -131,7 +131,7 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
         {
           if (blob === null)
           {
-            reject(new RangeError(MENSAJES_FOTO.invalida));
+            reject(new RangeError(MENSAJES_IMAGEN.invalida));
 
             return;
           }
@@ -139,13 +139,13 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
           resolve(blob);
         },
         "image/jpeg",
-        FOTO_CALIDAD_JPEG,
+        IMAGEN_CALIDAD_JPEG,
       );
     });
 
-    if (jpeg.size > FOTO_PESO_MAXIMO_SALIDA_BYTES)
+    if (jpeg.size > IMAGEN_PESO_MAXIMO_SALIDA_BYTES)
     {
-      throw new RangeError(MENSAJES_FOTO.salida);
+      throw new RangeError(MENSAJES_IMAGEN.salida);
     }
 
     return jpeg;
@@ -157,7 +157,7 @@ export async function convertirFotoPerfil(file: File): Promise<Blob>
       throw error;
     }
 
-    throw new RangeError(MENSAJES_FOTO.invalida);
+    throw new RangeError(MENSAJES_IMAGEN.invalida);
   }
   finally
   {

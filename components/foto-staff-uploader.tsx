@@ -4,15 +4,15 @@ import { useRef, useState } from "react";
 
 import type { ActionResult } from "@/lib/actions/action-result";
 import { inicialesDe } from "@/components/ui/avatar";
-import { convertirFotoPerfil, validarArchivoFoto } from "@/lib/staff/foto-cliente";
+import { convertirImagenCuadrada, validarArchivoImagen } from "@/lib/imagenes/imagen-cliente";
 import {
-  FOTO_ACCEPT,
-  FOTO_LADO_MAXIMO,
-  FOTO_LADO_MINIMO,
-  FOTO_LADO_SALIDA,
-  FOTO_PESO_MAXIMO_BYTES,
-  MENSAJES_FOTO,
-} from "@/lib/staff/foto-limites";
+  IMAGEN_ACCEPT,
+  IMAGEN_LADO_MAXIMO,
+  IMAGEN_LADO_MINIMO,
+  IMAGEN_LADO_SALIDA,
+  IMAGEN_PESO_MAXIMO_BYTES,
+  MENSAJES_IMAGEN,
+} from "@/lib/imagenes/imagen-limites";
 
 interface FotoStaffUploaderProps
 {
@@ -57,10 +57,10 @@ export default function FotoStaffUploader(
 
     try
     {
-      validarArchivoFoto(file);
+      validarArchivoImagen(file);
       setSubiendo(true);
 
-      const jpeg = await convertirFotoPerfil(file);
+      const jpeg = await convertirImagenCuadrada(file);
       const formData = new FormData();
 
       formData.set("archivo", jpeg, `foto-${staffId}.jpg`);
@@ -81,7 +81,7 @@ export default function FotoStaffUploader(
       setError(
         errorCapturado instanceof Error && errorCapturado.message.length > 0
           ? errorCapturado.message
-          : MENSAJES_FOTO.invalida,
+          : MENSAJES_IMAGEN.invalida,
       );
     }
     finally
@@ -143,7 +143,7 @@ export default function FotoStaffUploader(
             <input
               ref={inputRef}
               type="file"
-              accept={FOTO_ACCEPT}
+              accept={IMAGEN_ACCEPT}
               aria-label={`Foto de ${nombre}`}
               disabled={subiendo}
               onChange={(event) => { void cargar(event); }}
@@ -171,9 +171,9 @@ export default function FotoStaffUploader(
             </span>
           </div>
           <p id={ayudaId} className="text-xs text-muted-foreground">
-            JPG, PNG o WebP. Mínimo {FOTO_LADO_MINIMO}×{FOTO_LADO_MINIMO} px, máximo{" "}
-            {FOTO_LADO_MAXIMO}×{FOTO_LADO_MAXIMO} px y {FOTO_PESO_MAXIMO_BYTES / (1024 * 1024)} MB.
-            Se guarda como JPEG {FOTO_LADO_SALIDA}×{FOTO_LADO_SALIDA}.
+            JPG, PNG o WebP. Mínimo {IMAGEN_LADO_MINIMO}×{IMAGEN_LADO_MINIMO} px, máximo{" "}
+            {IMAGEN_LADO_MAXIMO}×{IMAGEN_LADO_MAXIMO} px y {IMAGEN_PESO_MAXIMO_BYTES / (1024 * 1024)} MB.
+            Se guarda como JPEG {IMAGEN_LADO_SALIDA}×{IMAGEN_LADO_SALIDA}.
           </p>
           {preview !== null ? (
             <button
