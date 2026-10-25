@@ -2,10 +2,8 @@
  * Estado de sesión para el header global (Módulo 1).
  *
  * Función pura `resolveSessionState` para TDD; `getSessionState`
- * resuelve en el servidor leyendo la cookie demo y Supabase Auth.
+ * resuelve en el servidor leyendo Supabase Auth.
  */
-
-import { cookies } from "next/headers";
 
 import { getSupabaseServer } from "@/lib/supabase/server";
 
@@ -14,28 +12,17 @@ export type SessionState = "authenticated" | "guest";
 export interface SessionInput
 {
   readonly userId: string | null;
-  readonly demoCookie: string | undefined;
 }
 
 /**
- * Determina si hay sesión activa por usuario Supabase o cookie demo.
+ * Determina si hay sesión activa por usuario Supabase.
  *
- * @param input userId de Supabase y valor de la cookie `session`.
- * @return "authenticated" si hay usuario o cookie demo, "guest" si no.
+ * @param input userId de Supabase.
+ * @return "authenticated" si hay usuario, "guest" si no.
  */
 export function resolveSessionState(input: SessionInput): SessionState
 {
-  if (input.userId !== null)
-  {
-    return "authenticated";
-  }
-
-  if (input.demoCookie === "demo")
-  {
-    return "authenticated";
-  }
-
-  return "guest";
+  return input.userId !== null ? "authenticated" : "guest";
 }
 
 /**
@@ -45,26 +32,15 @@ export function resolveSessionState(input: SessionInput): SessionState
  */
 export async function getSessionState(): Promise<SessionState>
 {
-  let demoCookie: string | undefined;
-
-  try
-  {
-    demoCookie = (await cookies()).get("session")?.value;
-  }
-  catch
-  {
-    demoCookie = undefined;
-  }
-
   try
   {
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
-    return resolveSessionState({ userId: user?.id ?? null, demoCookie });
+    return resolveSessionState({ userId: user?.id ?? null });
   }
   catch
   {
-    return resolveSessionState({ userId: null, demoCookie });
+    return resolveSessionState({ userId: null });
   }
 }

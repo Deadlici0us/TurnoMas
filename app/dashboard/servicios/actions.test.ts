@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cambiarEstadoServicio, eliminarServicio, guardarServicio } from "./actions";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -12,10 +11,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -33,7 +28,6 @@ vi.mock("@/lib/dashboard/negocio", () =>
 });
 
 const mockRevalidate = vi.mocked(revalidatePath);
-const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockNegocio = vi.mocked(getNegocioIdDelDueno);
@@ -64,7 +58,6 @@ function formularioValido(): FormData
 /** Sesión de dueño autenticado con negocio resuelto. */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -218,14 +211,6 @@ describe("guardarServicio",
       .rejects.toThrow("No pudimos guardar el servicio. Probá de nuevo.");
   });
 
-  it("debería bloquear en modo demo",
-  async () =>
-  {
-    mockAssert.mockRejectedValueOnce(new Error("La cuenta demo es de solo lectura."));
-
-    await expect(guardarServicio(null, formularioValido()))
-      .rejects.toThrow("La cuenta demo es de solo lectura.");
-  });
 
   it("debería exigir MercadoPago conectado para activar seña",
   async () =>
@@ -266,7 +251,6 @@ describe("guardarServicio",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -312,7 +296,6 @@ describe("eliminarServicio",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -350,7 +333,6 @@ describe("cambiarEstadoServicio",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);

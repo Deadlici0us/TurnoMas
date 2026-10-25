@@ -126,7 +126,7 @@ describe("POST /api/cron/antifantasma",
     }
   });
 
-  it("debería responder sin base en modo demo",
+  it("debería responder sin base disponible",
   async () =>
   {
     vi.stubEnv("QSTASH_CURRENT_SIGNING_KEY", "");

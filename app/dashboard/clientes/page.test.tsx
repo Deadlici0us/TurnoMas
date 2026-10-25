@@ -74,7 +74,7 @@ describe("ClientesPage",
   it("debería mostrar stats y filas",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await ClientesPage({ searchParams: params() }));
 
@@ -87,7 +87,7 @@ describe("ClientesPage",
   it("debería ofrecer agregar un turno con los datos del cliente",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await ClientesPage({ searchParams: params() }));
 
@@ -102,7 +102,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ bloqueado: true })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -117,7 +116,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ ausencias: 3 })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -134,7 +132,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", bloqueado: true }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params(undefined, "activos") }));
@@ -152,7 +149,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", bloqueado: true }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params(undefined, "lista-negra") }));
@@ -170,7 +166,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+5491199999999" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     const { unmount } = render(await ClientesPage({ searchParams: params("ana") }));
@@ -185,7 +180,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+5491199999999" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params("9999") }));
@@ -203,7 +197,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+5491199999999" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -220,7 +213,7 @@ describe("ClientesPage",
   it("debería enlazar el nombre a la ficha del cliente",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await ClientesPage({ searchParams: params() }));
 
@@ -236,7 +229,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ email: "juan@ejemplo.com" })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -253,7 +245,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+549110000002", email: "ana@ejemplo.com" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     const { unmount } = render(await ClientesPage({ searchParams: params("juan@ejemplo.com") }));
@@ -272,7 +263,6 @@ describe("ClientesPage",
         clienteBase({ id: "cli-2", nombre: "Ana", whatsapp: "+549110000002" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params("11 15 1234 5678") }));
@@ -283,7 +273,7 @@ describe("ClientesPage",
 
   it("debería ofrecer un link explícito a la ficha", async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await ClientesPage({ searchParams: params() }));
 
@@ -299,7 +289,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ nombre: "Juan" })]),
       error: null,
-      isDemo: false,
     } as never);
 
     const { unmount } = render(await ClientesPage({ searchParams: params("zzz") }));
@@ -310,7 +299,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -331,7 +319,6 @@ describe("ClientesPage",
         estado: "completado",
       }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -352,7 +339,6 @@ describe("ClientesPage",
         negocio: { id: "neg-1", nombre: "Barbería" },
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -384,7 +370,6 @@ describe("ClientesPage",
         },
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));
@@ -398,7 +383,6 @@ describe("ClientesPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase(),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClientesPage({ searchParams: params() }));

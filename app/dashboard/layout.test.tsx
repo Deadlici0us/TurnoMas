@@ -25,12 +25,11 @@ vi.mock("@/app/login/actions", () =>
 const mockData = vi.mocked(getDashboardData);
 
 /** Dashboard con el negocio dado. */
-function stubDashboard(negocio: Record<string, unknown>, isDemo = false): void
+function stubDashboard(negocio: Record<string, unknown>): void
 {
   mockData.mockResolvedValueOnce({
     data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
-    isDemo,
   } as never);
 }
 
@@ -69,20 +68,4 @@ describe("DashboardLayout",
       expect(screen.getByText("contenido")).toBeDefined();
     });
 
-    it("no debería mostrar paywall ni acciones editables en la demo",
-    async () =>
-    {
-      stubDashboard({
-        created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
-        pais: "ar",
-        suscripcion_estado: null,
-        suscripcion_mp_id: null,
-      }, true);
-
-      render(await DashboardLayout({ children: <div>contenido</div> }));
-
-      expect(screen.queryByRole("dialog")).toBeNull();
-      expect(screen.getByText(/cuenta demo: es de solo lectura/)).toBeDefined();
-      expect(screen.queryByText(/podés crear, editar y eliminar datos/)).toBeNull();
-    });
   });

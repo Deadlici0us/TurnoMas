@@ -41,7 +41,7 @@ function quitarQuince(nacional: string): string | null
   }
 
   // Números viejos del CRM que quedaron cortos (7 dígitos de abonado).
-  // Se conservan para no romper reservas ni datos de demo existentes.
+  // Se conservan para no romper reservas ni datos existentes.
   if (nacional.length === LARGO_LEGACY_AR)
   {
     return nacional;

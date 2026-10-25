@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 
 import type { ActionResult } from "@/lib/actions/action-result";
 import { runAction } from "@/lib/actions/run-action";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { AuthError } from "@/lib/errors/auth-error";
 import { ConflictError } from "@/lib/errors/conflict-error";
@@ -29,7 +28,6 @@ const ESTADOS_PROXIMOS = ["pendiente", "confirmado", "pagado"] as const;
 /** Resuelve el negocio del dueño autenticado o falla con un error de negocio. */
 async function contextoDelDueno(mensajeSesion: string)
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

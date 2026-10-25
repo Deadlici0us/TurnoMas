@@ -2,7 +2,6 @@ import sharp from "sharp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { subirLogoNegocio } from "./actions";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -13,10 +12,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -34,7 +29,6 @@ vi.mock("@/lib/dashboard/negocio", () =>
 });
 
 const mockRevalidate = vi.mocked(revalidatePath);
-const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockNegocio = vi.mocked(getNegocioIdDelDueno);
@@ -127,7 +121,6 @@ function stubAdmin(options: StubOptions = {}): Capturas
 /** Sesión de dueño autenticado con negocio resuelto. */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -137,7 +130,6 @@ function sesionDueno(): void
 /** Sesión sin usuario autenticado. */
 function sinSesion(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: null } }) },
   } as never);

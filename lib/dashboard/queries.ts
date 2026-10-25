@@ -1,10 +1,9 @@
 "use server";
 
-import { leerSesionDemo } from "@/lib/auth/demo-session";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { buildDemoSeed } from "@/lib/seed/demo-rows";
+import { redirect } from "next/navigation";
 
-const DEMO_DUENIO_ID = "demo-duenio";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseServer } from "@/lib/supabase/server";
 
 /** Par profesional ↔ servicio en camelCase para la UI. */
 interface AsociacionStaffServicio
@@ -23,35 +22,25 @@ function asociacionesDeFilas(
     .map((fila) => ({ staffId: fila.staff_id as string, servicioId: fila.servicio_id as string }));
 }
 
-/** Datos del seed demo en memoria (sin tocar la base). */
-function datosDemo()
-{
-  const seed = buildDemoSeed(DEMO_DUENIO_ID);
-
-  return {
-    negocio: seed.negocio,
-    staff: seed.staff,
-    servicios: seed.servicios,
-    asociaciones: asociacionesDeFilas(seed.staffServicios),
-    clientes: seed.clientes,
-    turnos: seed.turnos,
-  };
-}
-
-/** Datos del dashboard: negocio + staff + servicios + clientes + turnos + `isDemo`. */
+/** Datos del dashboard: negocio + staff + servicios + clientes + turnos. */
 export async function getDashboardData()
 {
-  const { esDemo, userId, email: userEmail } = await leerSesionDemo();
+  let supabase: Awaited<ReturnType<typeof getSupabaseServer>>;
 
-  // Demo temporal o build sin sesión: seed en memoria, nunca DB.
-  if (esDemo || userId === null)
+  try
   {
-    return {
-      data: datosDemo(),
-      error: null as string | null,
-      isDemo: true,
-      userEmail,
-    };
+    supabase = await getSupabaseServer();
+  }
+  catch
+  {
+    redirect("/login");
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === null)
+  {
+    redirect("/login");
   }
 
   const admin = getSupabaseAdmin();
@@ -59,18 +48,17 @@ export async function getDashboardData()
   const { data: negocio, error: negocioError } = await admin
     .from("negocios")
     .select("*")
-    .eq("duenio_id", userId)
+    .eq("duenio_id", user.id)
     .single();
 
   if (negocioError !== null || negocio === null)
   {
-    // Dueño sin negocio aún (post-register): seed en memoria para no romper UI.
-    return {
-      data: datosDemo(),
-      error: null as string | null,
-      isDemo: false,
-      userEmail,
-    };
+    if (negocioError === null || negocioError.code === "PGRST116")
+    {
+      redirect("/onboarding");
+    }
+
+    throw new Error("No pudimos cargar tu negocio. Probá de nuevo.");
   }
 
   const [
@@ -97,8 +85,7 @@ export async function getDashboardData()
       turnos: turnos ?? [],
     },
     error: null as string | null,
-    isDemo: false,
-    userEmail,
+    userEmail: user.email ?? null,
   };
 }
 

@@ -1,6 +1,5 @@
 import { getDashboardData } from "@/lib/dashboard/queries";
 import DashboardSidebar from "@/components/dashboard-sidebar";
-import DemoReadonlyBanner from "@/components/demo-readonly-banner";
 import PaywallPlanVencido from "@/components/paywall-plan-vencido";
 import { logout } from "@/app/login/actions";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -9,19 +8,19 @@ import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate
 import { resolverPlanPais } from "@/lib/payments/subscription";
 import { contarResenasPendientes } from "@/lib/resenas/queries";
 
-/** Shell del dashboard: banner demo, navegación lateral y paywall si venció el plan. */
+/** Shell del dashboard: navegación lateral y paywall si venció el plan. */
 export default async function DashboardLayout({
   children,
 }: {
   readonly children: React.ReactNode;
 })
 {
-  const { data: dashboard, isDemo, userEmail } = await getDashboardData();
+  const { data: dashboard, userEmail } = await getDashboardData();
   const candidatos = candidatosDesdeDashboard(dashboard);
   const negocioId = typeof (dashboard.negocio as { id?: unknown })?.id === "string"
     ? (dashboard.negocio as { id: string }).id
     : null;
-  const resenasPendientes = isDemo || negocioId === null
+  const resenasPendientes = negocioId === null
     ? 0
     : await contarResenasPendientes(negocioId);
   const negocio = dashboard.negocio as {
@@ -34,7 +33,7 @@ export default async function DashboardLayout({
     suscripcion_cancelada_en?: unknown;
     suscripcion_mp_status?: unknown;
   };
-  const bloqueado = !isDemo && getNegocioSubscriptionStatus({
+  const bloqueado = getNegocioSubscriptionStatus({
     created_at: typeof negocio.created_at === "string" ? negocio.created_at : null,
     suscripcion_estado:
       typeof negocio.suscripcion_estado === "string" ? negocio.suscripcion_estado : null,
@@ -63,7 +62,6 @@ export default async function DashboardLayout({
         />
         <div className="min-w-0 flex-1">
           <div className="mx-auto max-w-[1230px] px-4 pt-16 pb-6 sm:px-6 lg:px-8 lg:py-8">
-            {isDemo ? <DemoReadonlyBanner accionBloqueada={false} /> : null}
             <main className="animate-fade-in">{children}</main>
           </div>
         </div>

@@ -48,7 +48,6 @@ describe("ServiciosPage",
     mockData.mockResolvedValueOnce({
       data: { negocio: { id: "neg-1" }, staff: [], servicios: [], clientes: [], turnos: [] },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());
@@ -71,7 +70,6 @@ describe("ServiciosPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());
@@ -100,7 +98,6 @@ describe("ServiciosPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());
@@ -124,7 +121,6 @@ describe("ServiciosPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());
@@ -144,7 +140,6 @@ describe("ServiciosPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());
@@ -168,7 +163,6 @@ describe("ServiciosPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ServiciosPage());

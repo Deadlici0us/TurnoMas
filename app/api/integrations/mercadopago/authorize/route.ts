@@ -1,14 +1,12 @@
 /**
  * Inicio del OAuth de MercadoPago: redirige al consentimiento del vendedor
  * para cobrar señas delegadas. El `state` lleva el negocio.id.
- * La demo nunca conecta cuentas reales (403).
  */
 
 import { NextResponse } from "next/server";
 
 import { withApiHandler } from "@/lib/api/with-api-handler";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { buildMpAuthorizeUrl, buildMpCallbackUrl, codificarMpState, sanearNext } from "@/lib/payments/mp-oauth";
 import { readEnv } from "@/lib/env/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -16,18 +14,6 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 async function handleGET(request: Request)
 {
-  try
-  {
-    await assertModoEditable();
-  }
-  catch (error)
-  {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-      { status: 403 },
-    );
-  }
-
   const clientId = readEnv("MP_CLIENT_ID");
 
   if (clientId === null)
@@ -72,18 +58,6 @@ async function handleGET(request: Request)
     if (user === null)
     {
       return NextResponse.redirect(new URL("/login?next=/dashboard/config", request.url));
-    }
-
-    try
-    {
-      assertDuenoEditable({ userId: user.id, email: user.email ?? null });
-    }
-    catch (error)
-    {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-        { status: 403 },
-      );
     }
 
     const admin = getSupabaseAdmin();

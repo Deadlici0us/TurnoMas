@@ -1,13 +1,11 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { withRedirectAction } from "@/lib/actions/with-redirect-action";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-/** Registra al profesional: Supabase Auth en Vercel, demo local sin secrets. */
+/** Registra al profesional con Supabase Auth. */
 async function registerInterno(formData: FormData): Promise<void>
 {
   const businessCrudo = formData.get("business");
@@ -20,13 +18,6 @@ async function registerInterno(formData: FormData): Promise<void>
   if (business.length < 2 || email.length === 0 || password.length < 6)
   {
     redirect("/register?error=datos");
-  }
-
-  if (resolveAuthMode() === "demo")
-  {
-    (await cookies()).set("session", "demo", { path: "/", maxAge: 60 * 60 * 24 * 7 });
-
-    redirect("/onboarding");
   }
 
   const supabase = await getSupabaseServer();

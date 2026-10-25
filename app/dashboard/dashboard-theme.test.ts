@@ -35,8 +35,6 @@ const COMPONENTES = [
   "agenda-calendar.tsx",
   "agenda-citas-dia.tsx",
   "leyenda-estados.tsx",
-  "demo-editable-banner.tsx",
-  "demo-readonly-banner.tsx",
   "formulario-servicio.tsx",
   "campos-servicio.tsx",
   "copiar-comprobante.tsx",

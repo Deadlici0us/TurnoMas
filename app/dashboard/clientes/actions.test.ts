@@ -7,7 +7,6 @@ import {
   crearCliente,
   eliminarCliente,
 } from "./actions";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -18,10 +17,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -39,7 +34,6 @@ vi.mock("@/lib/dashboard/negocio", () =>
 });
 
 const mockRevalidate = vi.mocked(revalidatePath);
-const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockNegocio = vi.mocked(getNegocioIdDelDueno);
@@ -47,7 +41,6 @@ const mockNegocio = vi.mocked(getNegocioIdDelDueno);
 /** Sesión de dueño autenticado con negocio resuelto. */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -223,7 +216,6 @@ describe("crearCliente",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);

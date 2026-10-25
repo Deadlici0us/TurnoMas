@@ -18,7 +18,6 @@ import { NegocioSinMpError } from "@/lib/payments/mp-token";
 import { QStashAdapter } from "@/lib/ports/jobs";
 import { enviarEmailReservaPendiente, sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
-import { esNegocioDemo } from "@/lib/portal/demo-business";
 import { paymentService } from "@/lib/services/payment";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -371,7 +370,7 @@ function respuestaErrorReserva(error: unknown): NextResponse
 
   if (mensaje.includes("Supabase"))
   {
-    return NextResponse.json({ error: "Reserva no disponible en modo demo." }, { status: 503 });
+    return NextResponse.json({ error: "Reserva no disponible temporalmente." }, { status: 503 });
   }
 
   return NextResponse.json({ error: "No pudimos guardar tu reserva. Probá de nuevo." }, { status: 500 });
@@ -387,12 +386,6 @@ async function handlePOST(request: Request)
   }
 
   const { pais, slug, staffId, servicioId, nombre, whatsapp, email, inicio } = lectura.validada;
-
-  // La demo es solo para visualizar: se simula el éxito sin tocar la base.
-  if (esNegocioDemo(pais, slug))
-  {
-    return NextResponse.json({ success: true, demo: true, turnoId: null });
-  }
 
   try
   {

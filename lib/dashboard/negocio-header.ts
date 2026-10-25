@@ -1,18 +1,12 @@
 /**
  * Identidad del negocio para el header global (avatar + nombre).
  *
- * Consulta liviana: solo `nombre` y `logo_url`. En modo demo (sin sesión
- * Supabase) devuelve el negocio del seed; en producción, la fila del dueño.
+ * Consulta liviana: solo `nombre` y `logo_url` del negocio del dueño.
  */
 
-import { tieneCookieDemo } from "@/lib/auth/demo-cookie";
-import { isDemoOwner } from "@/lib/auth/demo-guard";
-import { buildDemoSeed } from "@/lib/seed/demo-rows";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { sanitizeUrlExterna } from "@/lib/validation/url";
-
-const DEMO_DUENIO_ID = "demo-duenio";
 
 export interface NegocioHeader
 {
@@ -20,25 +14,19 @@ export interface NegocioHeader
   readonly logoUrl: string | null;
 }
 
-/** Nombre del negocio demo (mismo que el seed). */
-function negocioDemo(): NegocioHeader
-{
-  return { nombre: buildDemoSeed(DEMO_DUENIO_ID).negocio.nombre, logoUrl: null };
-}
-
-/** Lee usuario y email de la sesión Supabase sin lanzar si falta config. */
-async function leerSesion(): Promise<{ userId: string | null; email: string | null }>
+/** Lee el usuario de la sesión Supabase sin lanzar si falta config. */
+async function leerSesion(): Promise<{ userId: string | null }>
 {
   try
   {
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
-    return { userId: user?.id ?? null, email: user?.email ?? null };
+    return { userId: user?.id ?? null };
   }
   catch
   {
-    return { userId: null, email: null };
+    return { userId: null };
   }
 }
 
@@ -78,16 +66,11 @@ async function consultarNegocio(userId: string): Promise<NegocioHeader | null>
  */
 export async function getNegocioHeader(): Promise<NegocioHeader | null>
 {
-  if (await tieneCookieDemo())
-  {
-    return negocioDemo();
-  }
+  const { userId } = await leerSesion();
 
-  const { userId, email } = await leerSesion();
-
-  if (userId === null || isDemoOwner({ userId, email }))
+  if (userId === null)
   {
-    return negocioDemo();
+    return null;
   }
 
   return consultarNegocio(userId);

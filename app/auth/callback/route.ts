@@ -9,7 +9,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { resolvePostOAuthPath, sanitizeNextPath } from "@/lib/auth/oauth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -25,11 +24,6 @@ export async function GET(request: NextRequest)
   const url = new URL(request.url);
   const next = sanitizeNextPath(url.searchParams.get("next"));
   const oauthError = new URL("/login?error=oauth", url.origin);
-
-  if (resolveAuthMode() === "demo")
-  {
-    return NextResponse.redirect(new URL(next ?? "/dashboard", url.origin));
-  }
 
   const code = url.searchParams.get("code");
 

@@ -98,7 +98,6 @@ describe("ClienteDetallePage",
         },
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClienteDetallePage({ params: params() }));
@@ -119,7 +118,6 @@ describe("ClienteDetallePage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ email: "juan@ejemplo.com" })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClienteDetallePage({ params: params() }));
@@ -139,7 +137,6 @@ describe("ClienteDetallePage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([clienteBase({ bloqueado: true })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClienteDetallePage({ params: params() }));
@@ -153,7 +150,6 @@ describe("ClienteDetallePage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase(),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClienteDetallePage({ params: params() }));
@@ -167,7 +163,6 @@ describe("ClienteDetallePage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase(),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await ClienteDetallePage({ params: params() }));
@@ -183,7 +178,6 @@ describe("ClienteDetallePage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase(),
       error: null,
-      isDemo: false,
     } as never);
 
     await expect(ClienteDetallePage({ params: params("inexistente") })).rejects.toThrow("NEXT_NOT_FOUND");

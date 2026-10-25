@@ -14,7 +14,7 @@ describe("parseReservaBody", () =>
     const futuro = new Date(Date.now() + 60 * 60_000).toISOString();
     const result = parseReservaBody({
       pais: "AR",
-      slug: "Demo",
+      slug: "barberia",
       staffId: "staff-1",
       servicioId: "serv-1",
       inicio: futuro,
@@ -24,7 +24,7 @@ describe("parseReservaBody", () =>
     });
 
     expect(result.pais).toBe("ar");
-    expect(result.slug).toBe("demo");
+    expect(result.slug).toBe("barberia");
     expect(result.nombre).toBe("Juan Pérez");
   });
 
@@ -34,7 +34,7 @@ describe("parseReservaBody", () =>
 
     expect(() => parseReservaBody({
       pais: "AR",
-      slug: "demo",
+      slug: "barberia",
       staffId: "s",
       servicioId: "v",
       inicio: futuro,
@@ -50,7 +50,7 @@ describe("parseReservaBody", () =>
     const email = `${"a".repeat(64)}@${"b".repeat(60)}.com`;
     const result = parseReservaBody({
       pais: "AR",
-      slug: "demo",
+      slug: "barberia",
       staffId: "s",
       servicioId: "v",
       inicio: futuro,
@@ -68,7 +68,7 @@ describe("parseReservaBody", () =>
 
     expect(() => parseReservaBody({
       pais: "AR",
-      slug: "demo",
+      slug: "barberia",
       staffId: "s",
       servicioId: "v",
       inicio: futuro,

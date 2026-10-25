@@ -44,26 +44,12 @@ beforeEach(() =>
 describe("getNegocioHeader",
 () =>
 {
-  it("debería devolver el negocio demo sin usuario Supabase",
+  it("debería devolver null sin usuario Supabase",
   async () =>
   {
     mockServer.mockRejectedValueOnce(new Error("sin configurar"));
 
-    await expect(getNegocioHeader()).resolves.toEqual({
-      nombre: "Negocio Demo",
-      logoUrl: null,
-    });
-  });
-
-  it("debería devolver el negocio demo para el dueño demo",
-  async () =>
-  {
-    stubUser({ id: "u-demo", email: "demo@turnomas.com" });
-
-    const result = await getNegocioHeader();
-
-    expect(result?.nombre).toBe("Negocio Demo");
-    expect(result?.logoUrl).toBeNull();
+    await expect(getNegocioHeader()).resolves.toBeNull();
   });
 
   it("debería devolver nombre y logo del negocio real",

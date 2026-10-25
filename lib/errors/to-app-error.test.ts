@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_READONLY_MESSAGE } from "@/lib/auth/demo-guard";
 import { ConflictError } from "./conflict-error";
-import { DemoReadonlyError } from "./demo-readonly-error";
 import { ForbiddenError } from "./forbidden-error";
 import { NotFoundError } from "./not-found-error";
 import { toAppError } from "./to-app-error";
@@ -70,14 +68,6 @@ describe("toAppError",
     expect(error.message).toBe("El nombre es muy corto");
   });
 
-  it("debería reconocer el mensaje de la cuenta demo",
-  () =>
-  {
-    const error = toAppError(new Error(DEMO_READONLY_MESSAGE));
-
-    expect(error).toBeInstanceOf(DemoReadonlyError);
-    expect(error.code).toBe("DEMO_READONLY");
-  });
 
   it("debería reconocer errores de sesión de Supabase",
   () =>

@@ -131,24 +131,6 @@ beforeEach(() =>
   vi.clearAllMocks();
 });
 
-describe("PortalPage demo",
-() =>
-{
-  it("debería mostrar el negocio demo",
-  async () =>
-  {
-    render(await PortalPage({ params: params("ar", "negocio-demo") }));
-
-    expect(screen.getByText("Negocio Demo")).toBeDefined();
-    expect(screen.getByText("Reservas por TurnoMas")).toBeDefined();
-  });
-
-  it("debería responder 404 con slug desconocido",
-  async () =>
-  {
-    await expect(PortalPage({ params: params("ar", "otra") })).rejects.toThrow("NEXT_NOT_FOUND");
-  });
-});
 
 describe("PortalPage supabase",
 () =>

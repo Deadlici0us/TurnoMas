@@ -33,7 +33,7 @@ beforeEach(() =>
 describe("LoginPage",
 () =>
 {
-  it("debería mostrar el formulario sin social en modo demo",
+  it("debería mostrar el formulario sin social sin Supabase configurado",
   async () =>
   {
     render(await LoginPage({ searchParams: params() }));
@@ -67,7 +67,7 @@ describe("LoginPage",
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("debería mostrar login social en modo supabase",
+  it("debería mostrar login social con Supabase configurado",
   async () =>
   {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");

@@ -3,7 +3,7 @@
 import { formatearARS } from "@/lib/dashboard/moneda";
 import { formatearDiaLargoYMes } from "@/lib/format/fecha";
 import type { DiaDisponible } from "@/lib/booking/slots";
-import type { PortalServicio, PortalStaff } from "@/lib/portal/demo-business";
+import type { PortalServicio, PortalStaff } from "@/lib/portal/types";
 import { tieneSenaEfectiva } from "@/lib/reservas/montos";
 
 interface PasoProfesionalProps

@@ -1,8 +1,6 @@
-import { DEMO_READONLY_MESSAGE } from "@/lib/auth/demo-guard";
 import { AppError } from "./app-error";
 import { AuthError } from "./auth-error";
 import { ConflictError } from "./conflict-error";
-import { DemoReadonlyError } from "./demo-readonly-error";
 import { ForbiddenError } from "./forbidden-error";
 import { NotFoundError } from "./not-found-error";
 import { UnexpectedError } from "./unexpected-error";
@@ -53,11 +51,6 @@ export function toAppError(error: unknown): AppError
   if (error instanceof AppError)
   {
     return error;
-  }
-
-  if (error instanceof Error && error.message === DEMO_READONLY_MESSAGE)
-  {
-    return new DemoReadonlyError(DEMO_READONLY_MESSAGE);
   }
 
   if (error instanceof RangeError)

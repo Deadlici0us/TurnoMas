@@ -44,7 +44,7 @@ describe("PagosPage",
   it("debería mostrar pendiente a cobrar y filas",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await PagosPage());
 
@@ -64,7 +64,6 @@ describe("PagosPage",
         turnoBase({ id: "t-3", estado: "pagado", monto_total: 8000, sena_monto: 8000 }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -86,7 +85,6 @@ describe("PagosPage",
         }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -111,7 +109,6 @@ describe("PagosPage",
         ],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -131,7 +128,6 @@ describe("PagosPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -147,7 +143,6 @@ describe("PagosPage",
         turnoBase({ id: "t-1", estado: "pagado", mp_payment_id: "1234567890" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -165,7 +160,6 @@ describe("PagosPage",
         turnoBase({ id: "t-1", estado: "pendiente", mp_payment_id: null }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -174,7 +168,7 @@ describe("PagosPage",
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
-  it("debería mostrar guion cuando el turno no trae la clave (seed demo)",
+  it("debería mostrar guion cuando el turno no trae la clave",
   async () =>
   {
     const turnoSinClave = turnoBase({ id: "t-1", estado: "pendiente" });
@@ -183,7 +177,6 @@ describe("PagosPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoSinClave]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -200,7 +193,6 @@ describe("PagosPage",
         turnoBase({ id: "t-1", inicio: "2026-10-05T14:07:00.000Z", estado: "pendiente" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -222,7 +214,6 @@ describe("PagosPage",
         }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -239,7 +230,6 @@ describe("PagosPage",
         turnoBase({ id: "t-1", estado: "pendiente", updated_at: "2026-10-05T15:07:09.000Z" }),
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());
@@ -264,7 +254,6 @@ describe("PagosPage",
         ],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await PagosPage());

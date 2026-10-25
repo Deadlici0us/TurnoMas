@@ -1,16 +1,10 @@
 /**
- * Modo de autenticación (Módulo 1): Supabase Auth en Vercel con secrets,
- * modo demo local sin secrets para build y tests.
+ * Resultado del onboarding: slug, URL pública y conexiones pendientes.
  *
- * Funciones puras para facilitar TDD; las Server Actions las usan
- * para decidir si llaman a Supabase o resuelven en memoria.
+ * Funciones puras para facilitar TDD y reutilización en Server Actions.
  */
 
-import type { EnvRecord } from "@/lib/env/env";
-import { isSupabaseConfigured } from "@/lib/env/env";
 import { buildBusinessUrl, slugifyBusinessName } from "@/lib/onboarding/slug";
-
-export type AuthMode = "supabase" | "demo";
 
 export interface OnboardingResult
 {
@@ -19,12 +13,6 @@ export interface OnboardingResult
   readonly url: string;
   readonly mercadoPagoConectado: boolean;
   readonly whatsappConectado: boolean;
-}
-
-/** Resuelve el modo de auth según secrets disponibles (sin exponer valores). */
-export function resolveAuthMode(env: EnvRecord = process.env): AuthMode
-{
-  return isSupabaseConfigured(env) ? "supabase" : "demo";
 }
 
 /** Construye el resultado del onboarding: slug, URL y conexiones pendientes. */

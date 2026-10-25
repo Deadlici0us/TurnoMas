@@ -20,7 +20,7 @@ export const MARGEN_RENOVACION_HORAS_DEFAULT = 24;
 const MS_PER_DAY = 86_400_000;
 const MS_PER_HOUR = 3_600_000;
 
-export type SubscriptionStatus = "demo" | "trial" | "active" | "past_due" | "blocked";
+export type SubscriptionStatus = "trial" | "active" | "past_due" | "blocked";
 
 export interface SubscriptionInput
 {

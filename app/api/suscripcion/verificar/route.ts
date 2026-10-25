@@ -11,7 +11,6 @@ import { NextResponse } from "next/server";
 
 import { withApiHandler } from "@/lib/api/with-api-handler";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -28,20 +27,6 @@ interface FilaVerificacion
   readonly suscripcion_estado?: unknown;
   readonly suscripcion_vence_en?: unknown;
   readonly suscripcion_cancelada_en?: unknown;
-}
-
-/**
- * Construye la respuesta 403 de modo demo de solo lectura.
- *
- * @param error Error lanzado por los guardas de modo editable.
- * @return Respuesta HTTP 403 con el mensaje del guarda.
- */
-function errorSoloLectura(error: unknown): NextResponse
-{
-  return NextResponse.json(
-    { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-    { status: 403 },
-  );
 }
 
 /**
@@ -99,15 +84,6 @@ async function handlePOST()
 {
   try
   {
-    await assertModoEditable();
-  }
-  catch (error)
-  {
-    return errorSoloLectura(error);
-  }
-
-  try
-  {
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -117,15 +93,6 @@ async function handlePOST()
         { error: "Tenés que iniciar sesión para verificar el pago." },
         { status: 401 },
       );
-    }
-
-    try
-    {
-      assertDuenoEditable({ userId: user.id, email: user.email ?? null });
-    }
-    catch (error)
-    {
-      return errorSoloLectura(error);
     }
 
     const admin = getSupabaseAdmin();

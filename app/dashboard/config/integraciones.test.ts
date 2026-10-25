@@ -6,7 +6,6 @@ import
   desconectarMercadoPago,
   solicitarEliminacionNegocio,
 } from "./actions";
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import
 {
@@ -22,10 +21,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -57,8 +52,6 @@ vi.mock("@/lib/ports/email", () =>
   };
 });
 
-const mockAssert = vi.mocked(assertModoEditable);
-const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockNegocio = vi.mocked(getNegocioIdDelDueno);
@@ -68,7 +61,6 @@ const SECRETO_TEST = "secreto-eliminacion-test-1234567890";
 /** Sesión de dueño con email (flujo de eliminación). */
 function sesionDuenoConEmail(signOut = vi.fn(async () => ({}))): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: {
       getUser: async () => ({ data: { user: { id: "user-1", email: "dueno@ejemplo.com" } } }),
@@ -81,7 +73,6 @@ function sesionDuenoConEmail(signOut = vi.fn(async () => ({}))): void
 /** Sesión de dueño sin email (user mínimo). */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -180,24 +171,10 @@ describe("desconectarMercadoPago",
     expect(auditor.updates ?? []).toHaveLength(0);
   });
 
-  it("debería bloquear al dueño demo",
-  async () =>
-  {
-    sesionDueno();
-    mockAssertDueno.mockImplementationOnce(() =>
-    {
-      throw new Error("La cuenta demo es de solo lectura.");
-    });
-    stubIntegraciones({ negocios: { id: "neg-1" } });
-
-    await expect(desconectarMercadoPago())
-      .rejects.toThrow("La cuenta demo es de solo lectura.");
-  });
 
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -351,7 +328,6 @@ describe("confirmarEliminacionNegocio",
   async () =>
   {
     vi.stubEnv("ELIMINACION_SECRET", SECRETO_TEST);
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -365,7 +341,6 @@ describe("confirmarEliminacionNegocio",
   async () =>
   {
     vi.stubEnv("ELIMINACION_SECRET", SECRETO_TEST);
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: {
         getUser: async () => ({ data: { user: { id: "user-1", email: "otro@ejemplo.com" } } }),

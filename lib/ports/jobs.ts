@@ -1,6 +1,6 @@
 /**
  * Puerto IBackgroundJobs (PLAN.md 2.1): QStash en Vercel, fake en memoria
- * para tests y modo demo local.
+ * para tests y entornos locales.
  */
 
 import { readEnv } from "@/lib/env/env";

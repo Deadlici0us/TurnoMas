@@ -16,7 +16,6 @@ export interface SiteHeaderNavProps
   readonly menuLabel: string;
   readonly billingLabel: string;
   readonly accountLabel: string;
-  readonly mostrarFacturacion?: boolean;
   readonly logoutAction: () => void | Promise<void>;
 }
 
@@ -59,7 +58,6 @@ export default function SiteHeaderNav(props: SiteHeaderNavProps)
               logoutAction={props.logoutAction}
               menuLabel={props.menuLabel}
               billingLabel={props.billingLabel}
-              mostrarFacturacion={props.mostrarFacturacion}
               logoutLabel={props.logoutLabel}
             />
           ) : (

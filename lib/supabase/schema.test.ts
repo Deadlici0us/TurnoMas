@@ -8,10 +8,6 @@ const MIGRATION = readFileSync(
   join(REPO_ROOT, "supabase", "migrations", "0000_init.sql"),
   "utf8",
 );
-const CLEANUP = readFileSync(
-  join(REPO_ROOT, "supabase", "cleanup-demo.sql"),
-  "utf8",
-);
 
 /**
  * Contrato código ↔ base de datos: lo que `app/onboarding/actions.ts`
@@ -220,12 +216,4 @@ describe("esquema Supabase",
     expect(MIGRATION).toContain("storage_owner_delete");
   });
 
-  it("debería limpiar la demo legada en orden seguro de FKs",
-  () =>
-  {
-    expect(CLEANUP).toContain("delete from public.turnos");
-    expect(CLEANUP).toContain("delete from public.staff_servicios");
-    expect(CLEANUP).toContain("delete from public.negocios");
-    expect(CLEANUP).toContain("d0e6b000-0000-4000-8000-000000000001");
-  });
 });

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { AuthError } from "@/lib/errors/auth-error";
 import { NotFoundError } from "@/lib/errors/not-found-error";
 import { ValidationError } from "@/lib/errors/validation-error";
@@ -15,7 +14,6 @@ async function negocioDelDueno(): Promise<{
   id: string; email: string; pais: string | null; mpId: string | null; venceEn: string | null;
 }>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,7 +23,6 @@ async function negocioDelDueno(): Promise<{
     throw new AuthError("Tenés que iniciar sesión para gestionar tu plan.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   if (typeof user.email !== "string" || user.email.trim().length === 0)
   {

@@ -2,10 +2,8 @@ import { notFound } from "next/navigation";
 
 import BookingFlow from "@/components/booking-flow";
 import PortalMapa from "@/components/portal-mapa";
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
-import { esNegocioDemo, getDemoBusiness } from "@/lib/portal/demo-business";
-import type { PortalBusiness } from "@/lib/portal/demo-business";
 import { resolverUbicacionMaps } from "@/lib/portal/google-maps";
+import type { PortalBusiness } from "@/lib/portal/types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolverTimezoneNegocio } from "@/lib/timezone/timezone";
@@ -194,12 +192,7 @@ export default async function PortalPage({ params }: { readonly params: Promise<
 {
   const { pais, slug } = await params;
 
-  const demo = esNegocioDemo(pais, slug);
-  const business = demo
-    ? getDemoBusiness(pais, slug)
-    : resolveAuthMode() === "demo"
-      ? null
-      : await getSupabaseBusiness(pais, slug);
+  const business = await getSupabaseBusiness(pais, slug);
 
   if (business === null)
   {
@@ -223,7 +216,6 @@ export default async function PortalPage({ params }: { readonly params: Promise<
           turnos={business.turnos}
           bloqueos={business.bloqueos}
           horariosNegocio={business.horarios}
-          demo={demo}
         />
         {ubicacion !== null ? (
           <div className="mt-4">

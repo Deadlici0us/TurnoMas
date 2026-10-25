@@ -63,12 +63,12 @@ describe("POST /api/cron/resenas",
     }
   });
 
-  it("debería responder sin base en modo demo",
+  it("debería responder sin base disponible",
   async () =>
   {
     vi.stubEnv("QSTASH_CURRENT_SIGNING_KEY", "");
     vi.stubEnv("QSTASH_NEXT_SIGNING_KEY", "");
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://demo.test");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://test.local");
 
     try
     {

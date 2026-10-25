@@ -72,7 +72,7 @@ describe("AgendaPage",
   it("debería mostrar pendiente con marcar seña y cancelar",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
 
@@ -90,7 +90,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ estado: "confirmado" })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -109,7 +108,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ estado: "completado" })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -125,7 +123,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage());
@@ -151,7 +148,6 @@ describe("AgendaPage",
         ],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -169,7 +165,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ estado: "confirmado", fin: null })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ fecha: "2026-10-06" }) }));
@@ -186,7 +181,6 @@ describe("AgendaPage",
         clientes: [{ id: "cli-1", nombre: "Juan" }],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -211,7 +205,6 @@ describe("AgendaPage",
         },
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -225,7 +218,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ sena_porcentaje: null })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -240,7 +232,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ sena_monto: null, sena_porcentaje: null })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -254,7 +245,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([turnoBase({ sena_reembolsada: true })]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));
@@ -270,7 +260,6 @@ describe("AgendaPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase(),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await AgendaPage({ searchParams: Promise.resolve({ vista: "dia", fecha: "2026-10-06" }) }));

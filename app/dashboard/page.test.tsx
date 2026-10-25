@@ -87,7 +87,7 @@ describe("DashboardPage",
     const { getNegocioSubscriptionStatus } =
       await import("@/lib/onboarding/subscription-gate");
     vi.mocked(getNegocioSubscriptionStatus).mockReturnValueOnce("past_due" as never);
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
     mockStats.mockResolvedValueOnce(STATS);
 
     render(await DashboardPage());
@@ -103,7 +103,6 @@ describe("DashboardPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase({ servicios: [{ id: "serv-1", nombre: "Corte", sena_requerida: true }] }),
       error: null,
-      isDemo: false,
     } as never);
     mockStats.mockResolvedValueOnce(STATS);
 
@@ -116,7 +115,7 @@ describe("DashboardPage",
   it("debería mostrar nombre, 4 indicadores y próximos turnos",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
     mockStats.mockResolvedValueOnce(STATS);
 
     render(await DashboardPage());
@@ -158,7 +157,6 @@ describe("DashboardPage",
         }],
       }),
       error: null,
-      isDemo: false,
     } as never);
     mockStats.mockResolvedValueOnce({ ...STATS, totalIngresos: 0 });
 
@@ -195,7 +193,6 @@ describe("DashboardPage",
         ],
       }),
       error: null,
-      isDemo: false,
     } as never);
     mockStats.mockResolvedValueOnce(STATS);
 

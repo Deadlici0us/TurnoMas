@@ -2,14 +2,12 @@
  * Callback del OAuth de MercadoPago: canjea `code` por `access_token`
  * (+ `refresh_token`) y lo guarda en `negocio_secretos` (server-only).
  * Valida que el `state` pertenezca al dueño autenticado antes de guardar.
- * La demo nunca guarda tokens reales.
  */
 
 import { NextResponse } from "next/server";
 
 import { withApiHandler } from "@/lib/api/with-api-handler";
 
-import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { readEnv } from "@/lib/env/env";
 import { buildMpCallbackUrl, decodificarMpState, exchangeMpCodeForTokens } from "@/lib/payments/mp-oauth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -86,11 +84,6 @@ async function handleGET(request: Request)
     if (negocio === null)
     {
       return redirectDestino(request.url, destino, { mp: "error" });
-    }
-
-    if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
-    {
-      return redirectDestino(request.url, destino, { mp: "demo" });
     }
 
     const tokens = await exchangeMpCodeForTokens({

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { crearTurnoManual } from "./actions";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { sincronizarTurnoConfirmado } from "@/lib/reservas/confirmacion";
 import { estaOcupado } from "@/lib/reservas/disponibilidad";
@@ -13,10 +12,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/dashboard/negocio", () =>
 {
@@ -43,7 +38,6 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-const mockAssert = vi.mocked(assertModoEditable);
 const mockNegocioId = vi.mocked(getNegocioIdDelDueno);
 const mockOcupado = vi.mocked(estaOcupado);
 const mockSincronizar = vi.mocked(sincronizarTurnoConfirmado);
@@ -164,7 +158,6 @@ function formDataTurno(overrides: Record<string, string> = {}): FormData
 /** Sesión de dueño autenticado con negocio resuelto. */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -184,7 +177,6 @@ describe("crearTurnoManual",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -193,13 +185,6 @@ describe("crearTurnoManual",
       .rejects.toThrow("Tenés que iniciar sesión para cargar un turno.");
   });
 
-  it("debería bloquear la cuenta demo",
-  async () =>
-  {
-    mockAssert.mockRejectedValue(new Error("La cuenta demo es de solo lectura."));
-
-    await expect(crearTurnoManual(formDataTurno())).rejects.toThrow("solo lectura");
-  });
 
   it("debería crear un cliente nuevo y un turno confirmado",
   async () =>

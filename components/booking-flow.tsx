@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import { useBookingSelection } from "@/components/booking/use-booking-selection";
 import { PasoHorario, PasoProfesional, PasoServicio } from "@/components/booking-steps";
-import { formatearARS } from "@/lib/dashboard/moneda";
 import { formatearDiaYMes } from "@/lib/format/fecha";
 import type
 {
@@ -14,8 +13,7 @@ import type
   PortalServicio,
   PortalStaff,
   PortalTurno,
-} from "@/lib/portal/demo-business";
-import { tieneSenaEfectiva } from "@/lib/reservas/montos";
+} from "@/lib/portal/types";
 import { esEmailValido } from "@/lib/validation/email";
 
 interface BookingFlowProps
@@ -31,8 +29,6 @@ interface BookingFlowProps
   readonly turnos: readonly PortalTurno[];
   readonly bloqueos: readonly PortalBloqueo[];
   readonly horariosNegocio?: Record<string, unknown> | null;
-  /** Demo de solo lectura: simula la reserva sin llamar al backend. */
-  readonly demo?: boolean;
 }
 
 function formatSlot(date: Date): string
@@ -121,7 +117,6 @@ interface ConfirmadoBookingProps
   readonly slot: Date;
   readonly email: string;
   readonly emailEnviado: boolean;
-  readonly demo: boolean;
 }
 
 /**
@@ -151,29 +146,17 @@ function renderConfirmado(props: ConfirmadoBookingProps): ReactNode
       <p className="text-sm text-muted-foreground">
         {props.servicio.nombre} con {props.profesionalNombre} · {formatSlot(props.slot)}
       </p>
-      {!props.demo && props.emailEnviado ? (
+      {props.emailEnviado ? (
         <p className="text-sm text-muted-foreground">
           Te enviamos la confirmación a {props.email}. Guardá ese mail: es tu comprobante y tiene
           el link para cancelar.
         </p>
-      ) : null}
-      {!props.demo && !props.emailEnviado ? (
+      ) : (
         <p className="ui-alert ui-alert-warning text-xs">
           No pudimos enviar el email de confirmación. Guardá una captura de esta pantalla para
           tener los datos.
         </p>
-      ) : null}
-      {props.demo ? (
-        <p className="ui-alert ui-alert-info text-xs">
-          Estás viendo la demo: esta reserva es simulada y no se guardó en la base de datos.
-        </p>
-      ) : null}
-      {!props.demo && tieneSenaEfectiva(props.servicio.senaRequerida, props.servicio.senaPorcentaje) ? (
-        <p className="ui-alert ui-alert-warning text-xs">
-          En esta demo no se realiza el cobro. En producción serías redirigido a MercadoPago
-          para pagar la seña del {props.servicio.senaPorcentaje}% ({formatearARS(props.servicio.precioBase)}).
-        </p>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -271,7 +254,7 @@ function renderDatos(props: DatosBookingProps): ReactNode
 
 export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, negocioDescripcion = null,
   pais, slug, staff, servicios, asociaciones, turnos,
-  bloqueos, horariosNegocio = null, demo = false }: BookingFlowProps)
+  bloqueos, horariosNegocio = null }: BookingFlowProps)
 {
   const seleccion = useBookingSelection({
     staff,
@@ -346,13 +329,6 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       return;
     }
 
-    if (demo)
-    {
-      setError(null);
-      setConfirmado(true);
-      return;
-    }
-
     setEnviando(true);
     setError(null);
 
@@ -414,7 +390,6 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
       slot: new Date(slotISO),
       email: email.trim(),
       emailEnviado,
-      demo,
     });
   }
 

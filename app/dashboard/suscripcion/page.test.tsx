@@ -32,21 +32,20 @@ const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
 const mockListarPagos = vi.mocked(subscriptionService.listarPagos);
 
 /** Negocio con estado de suscripción dado. */
-function stubFacturacion(negocio: unknown, demo = false): Record<string, unknown>
+function stubFacturacion(negocio: unknown): Record<string, unknown>
 {
   const fila = { id: "neg-1", ...(negocio as Record<string, unknown>) };
 
   mockServer.mockResolvedValue({
     auth: {
       getUser: async () => ({
-        data: { user: demo ? { id: "demo-id", email: "demo@turnomas.com" } : { id: "u-1", email: "a@b.com" } },
+        data: { user: { id: "u-1", email: "a@b.com" } },
       }),
     },
   } as never);
   mockData.mockResolvedValueOnce({
     data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
-    isDemo: demo,
   } as never);
 
   return fila;
@@ -144,21 +143,6 @@ describe("SuscripcionPage",
     expect(screen.getByText("Completá el pago en el aviso para reactivar tu plan.")).toBeDefined();
   });
 
-  it("debería mostrar que la demo no tiene suscripción",
-  async () =>
-  {
-    stubFacturacion({
-      created_at: "2026-01-01T00:00:00Z",
-      suscripcion_estado: "active",
-      suscripcion_mp_id: "pre-1",
-    }, true);
-
-    render(await SuscripcionPage());
-
-    expect(screen.queryByRole("button", { name: "Cancelar plan" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "La demo no tiene suscripción" })).toBeDefined();
-    expect(screen.getByText(/no tiene plan, pagos ni débito automático/)).toBeDefined();
-  });
 
   it("debería avisar retorno de MercadoPago con suscripcion=ok",
   async () =>
@@ -171,7 +155,6 @@ describe("SuscripcionPage",
     mockData.mockResolvedValue({
       data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await SuscripcionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
@@ -192,7 +175,6 @@ describe("SuscripcionPage",
     mockData.mockResolvedValue({
       data: { negocio: fila, staff: [], servicios: [], clientes: [], turnos: [] },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await SuscripcionPage({
@@ -222,7 +204,6 @@ describe("SuscripcionPage",
         turnos: [],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await SuscripcionPage({ searchParams: Promise.resolve({ suscripcion: "ok" }) }));
@@ -321,20 +302,6 @@ describe("SuscripcionPage",
     expect(screen.getByText("Todavía no hay pagos registrados.")).toBeDefined();
   });
 
-  it("no debería consultar pagos en la demo",
-  async () =>
-  {
-    stubFacturacion({
-      created_at: "2026-01-01T00:00:00Z",
-      suscripcion_estado: "active",
-      suscripcion_mp_id: "pre-1",
-    }, true);
-
-    render(await SuscripcionPage());
-
-    expect(mockListarPagos).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "La demo no tiene suscripción" })).toBeDefined();
-  });
 
   it("debería mostrar los días restantes de un plan activo",
   async () =>

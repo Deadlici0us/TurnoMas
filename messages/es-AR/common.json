@@ -66,12 +66,6 @@
     "registerCta": "Empezar prueba gratis",
     "toRegister": "¿No tenés cuenta? Registrate gratis",
     "toLogin": "¿Ya tenés cuenta? Iniciá sesión",
-    "demoTitle": "Cuenta demo para probar",
-    "demoSubtitle": "Copiá estos datos e ingresalos arriba para explorar la agenda completa",
-    "demoEmail": "Usuario",
-    "demoPassword": "Contraseña",
-    "copy": "Copiar",
-    "copied": "¡Copiado!",
     "invalidCredentials": "Revisá tu email y contraseña e intentá de nuevo",
     "invalidData": "Completá todos los datos para continuar",
     "registerError": "No pudimos crear tu cuenta. Probá con otro email",
@@ -118,9 +112,6 @@
     "absenceRate": "Inasistencias (%)",
     "resultPrefix": "Perdés aproximadamente",
     "resultSuffix": "por mes"
-  },
-  "demo": {
-    "note": "Usuario: demo@turnomas.com | Contraseña: demo123"
   },
   "footer": {
     "rights": "Todos los derechos reservados",

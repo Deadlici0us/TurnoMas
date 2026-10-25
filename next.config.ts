@@ -2,21 +2,6 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
-  async redirects()
-  {
-    return [
-      {
-        source: "/demo",
-        destination: "/login",
-        permanent: false,
-      },
-      {
-        source: "/ar/barberia-diego",
-        destination: "/ar/negocio-demo",
-        permanent: false,
-      },
-    ];
-  },
   async headers()
   {
     return [

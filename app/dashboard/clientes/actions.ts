@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { normalizarWhatsappCliente } from "@/lib/clientes/whatsapp";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { AuthError } from "@/lib/errors/auth-error";
@@ -15,7 +14,6 @@ import { normalizarEmailCliente } from "@/lib/validation/email";
 
 async function exigirDueno(): Promise<{ admin: ReturnType<typeof getSupabaseAdmin>; negocioId: string }>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +41,7 @@ function exigirNombre(valor: FormDataEntryValue | null): string
   return nombre;
 }
 
-/** Crea un cliente del negocio del dueño autenticado (demo incluida). */
+/** Crea un cliente del negocio del dueño autenticado. */
 export async function crearCliente(formData: FormData): Promise<void>
 {
   const nombre = exigirNombre(formData.get("nombre"));

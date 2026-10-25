@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
-vi.mock("@/lib/auth/auth-mode", () => ({ resolveAuthMode: vi.fn(() => "demo") }));
 vi.mock("@/lib/supabase/proxy-client", () => ({ createSupabaseProxyClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: vi.fn() }));
 vi.mock("@/lib/services/subscription", () => ({
@@ -9,12 +8,10 @@ vi.mock("@/lib/services/subscription", () => ({
 }));
 
 import { resolveAccess } from "./access";
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { createSupabaseProxyClient } from "@/lib/supabase/proxy-client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { subscriptionService } from "@/lib/services/subscription";
 
-const mockMode = vi.mocked(resolveAuthMode);
 const mockProxy = vi.mocked(createSupabaseProxyClient);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockVerificar = vi.mocked(subscriptionService.verificarPreapproval);
@@ -22,13 +19,13 @@ const mockVerificar = vi.mocked(subscriptionService.verificarPreapproval);
 const HEADERS = new Headers();
 
 /** Stub del cliente de proxy con (o sin) usuario autenticado. */
-function stubProxy(userId: string | null, email: string | null = null): void
+function stubProxy(userId: string | null): void
 {
   mockProxy.mockReturnValue({
     supabase: {
       auth: {
         getUser: async () => ({
-          data: { user: userId === null ? null : { id: userId, email } },
+          data: { user: userId === null ? null : { id: userId } },
         }),
       },
     },
@@ -53,62 +50,26 @@ function stubNegocio(row: Record<string, unknown> | null): void
 beforeEach(() =>
 {
   vi.clearAllMocks();
-  mockMode.mockReturnValue("demo");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
   stubProxy(null);
   stubNegocio(null);
 });
 
-describe("resolveAccess (demo)",
+describe("resolveAccess",
 () =>
 {
-  it("debería ser invitado sin la cookie demo",
-  async () =>
+  it("debería ser invitado sin Supabase configurado", async () =>
   {
-    const request = new NextRequest("http://localhost/");
-    const { snapshot } = await resolveAccess(request, HEADERS);
-
-    expect(snapshot).toEqual({ session: "guest", subscription: "trial", hasBusiness: false });
-  });
-
-  it("debería ser logueado en prueba con la cookie demo",
-  async () =>
-  {
-    const request = new NextRequest("http://localhost/", { headers: { cookie: "session=demo" } });
-    const { snapshot } = await resolveAccess(request, HEADERS);
-
-    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
-  });
-});
-
-describe("resolveAccess (supabase)",
-() =>
-{
-  beforeEach(() => mockMode.mockReturnValue("supabase"));
-
-  it("debería servir la demo con la cookie aunque Supabase esté configurado",
-  async () =>
-  {
-    const request = new NextRequest("http://localhost/", { headers: { cookie: "session=demo" } });
-    const { snapshot } = await resolveAccess(request, HEADERS);
-
-    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
-    expect(mockProxy).not.toHaveBeenCalled();
-    expect(mockAdmin).not.toHaveBeenCalled();
-  });
-
-  it("debería reconocer al dueño demo de Supabase sin consultar suscripción",
-  async () =>
-  {
-    stubProxy("user-demo", "demo@turnomas.com");
+    vi.unstubAllEnvs();
 
     const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
 
-    expect(snapshot).toEqual({ session: "authenticated", subscription: "demo", hasBusiness: true });
-    expect(mockAdmin).not.toHaveBeenCalled();
+    expect(snapshot).toEqual({ session: "guest", subscription: "trial", hasBusiness: false });
+    expect(mockProxy).not.toHaveBeenCalled();
   });
 
-  it("debería ser invitado sin usuario",
-  async () =>
+  it("debería ser invitado sin usuario", async () =>
   {
     stubProxy(null);
     const { snapshot } = await resolveAccess(new NextRequest("http://localhost/"), HEADERS);
@@ -116,8 +77,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot).toEqual({ session: "guest", subscription: "trial", hasBusiness: false });
   });
 
-  it("debería resolver bloqueo del negocio vencido",
-  async () =>
+  it("debería resolver bloqueo del negocio vencido", async () =>
   {
     stubProxy("user-1");
     stubNegocio({
@@ -131,8 +91,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot).toEqual({ session: "authenticated", subscription: "blocked", hasBusiness: true });
   });
 
-  it("debería resolver negocio activo",
-  async () =>
+  it("debería resolver negocio activo", async () =>
   {
     stubProxy("user-1");
     stubNegocio({
@@ -146,8 +105,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot).toEqual({ session: "authenticated", subscription: "active", hasBusiness: true });
   });
 
-  it("debería marcar sin negocio al dueño recién logueado",
-  async () =>
+  it("debería marcar sin negocio al dueño recién logueado", async () =>
   {
     stubProxy("user-2");
     stubNegocio(null);
@@ -156,8 +114,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot).toEqual({ session: "authenticated", subscription: "trial", hasBusiness: false });
   });
 
-  it("no debería romper si el admin no está configurado",
-  async () =>
+  it("no debería romper si el admin no está configurado", async () =>
   {
     stubProxy("user-3");
     mockAdmin.mockImplementation(() =>
@@ -169,8 +126,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot).toEqual({ session: "authenticated", subscription: "trial", hasBusiness: false });
   });
 
-  it("debería rescatar en línea cuando MP confirma authorized",
-  async () =>
+  it("debería rescatar en línea cuando MP confirma authorized", async () =>
   {
     stubProxy("user-1");
     stubNegocio({
@@ -192,8 +148,7 @@ describe("resolveAccess (supabase)",
     expect(mockVerificar).toHaveBeenCalledWith("neg-1", "mp-1");
   });
 
-  it("debería mantener bloqueado si MP no responde",
-  async () =>
+  it("debería mantener bloqueado si MP no responde", async () =>
   {
     stubProxy("user-1");
     stubNegocio({
@@ -214,8 +169,7 @@ describe("resolveAccess (supabase)",
     expect(snapshot.subscription).toBe("blocked");
   });
 
-  it("no debería reverificar si la verificación es reciente",
-  async () =>
+  it("no debería reverificar si la verificación es reciente", async () =>
   {
     stubProxy("user-1");
     stubNegocio({

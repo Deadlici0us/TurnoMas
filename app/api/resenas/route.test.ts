@@ -26,7 +26,7 @@ describe("POST /api/resenas",
     expect(body.error).toBe("Elegí de 1 a 5 estrellas.");
   });
 
-  it("debería responder sin base en modo demo",
+  it("debería responder sin base disponible",
   async () =>
   {
     const response = await POST(post({ turnoId: "t-1", estrellas: 5 }));

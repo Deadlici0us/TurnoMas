@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { actualizarEstadoTurno } from "./actions";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { cancelarTurno, CancelacionError } from "@/lib/services/cancelacion";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -13,10 +12,6 @@ vi.mock("next/cache", () =>
   return { revalidatePath: vi.fn() };
 });
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -48,7 +43,6 @@ vi.mock("@/lib/services/cancelacion", () =>
 });
 
 const mockRevalidate = vi.mocked(revalidatePath);
-const mockAssert = vi.mocked(assertModoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockCancelar = vi.mocked(cancelarTurno);
@@ -133,7 +127,6 @@ function stubAgenda(tablas: AgendaTablas, updateError: { message: string } | nul
 /** Sesión de dueño autenticado. */
 function sesionDueno(): void
 {
-  mockAssert.mockResolvedValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1" } } }) },
   } as never);
@@ -160,7 +153,6 @@ describe("actualizarEstadoTurno guardas",
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssert.mockResolvedValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);

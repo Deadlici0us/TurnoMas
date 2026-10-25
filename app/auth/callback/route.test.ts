@@ -24,7 +24,7 @@ function callbackUrl(params: string): string
   return params.length > 0 ? `${URL_BASE}?${params}` : URL_BASE;
 }
 
-/** Activa el modo Supabase (no demo). */
+/** Configura Supabase en el entorno. */
 function modoSupabase(): void
 {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
@@ -77,30 +77,8 @@ beforeEach(() =>
 describe("GET /auth/callback",
 () =>
 {
-  it("debería respetar next en modo demo",
-  async () =>
-  {
-    const response = await GET(new Request(callbackUrl("next=/agenda")) as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/agenda");
-  });
 
-  it("debería ir al dashboard en modo demo sin next",
-  async () =>
-  {
-    const response = await GET(new Request(callbackUrl("")) as never);
-
-    expect(response.headers.get("location")).toBe("http://localhost/dashboard");
-  });
-
-  it("debería rechazar next abierto en modo demo",
-  async () =>
-  {
-    const response = await GET(new Request(callbackUrl("next=https://evil.com")) as never);
-
-    expect(response.headers.get("location")).toBe("http://localhost/dashboard");
-  });
 
   it("debería pedir login sin code en modo supabase",
   async () =>

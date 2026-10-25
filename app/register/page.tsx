@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import AuthCard from "@/components/auth-card";
 import LegalLinks from "@/components/legal-links";
 import SocialLoginButton from "@/components/social-login-button";
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
+import { isSupabaseConfigured } from "@/lib/env/env";
 import { register } from "./actions";
 
 const ERROR_KEYS = {
@@ -28,7 +28,7 @@ export default async function RegisterPage({
 {
   const t = await getTranslations("common");
   const { error } = await searchParams;
-  const showSocialLogin = resolveAuthMode() === "supabase";
+  const showSocialLogin = isSupabaseConfigured();
 
   return (
     <AuthCard

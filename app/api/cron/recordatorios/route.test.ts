@@ -121,7 +121,7 @@ describe("POST /api/cron/recordatorios",
     }
   });
 
-  it("debería responder sin base en modo demo",
+  it("debería responder sin base disponible",
   async () =>
   {
     vi.stubEnv("QSTASH_CURRENT_SIGNING_KEY", "");

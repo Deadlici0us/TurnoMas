@@ -2,9 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { resolveAuthMode, buildOnboardingResult } from "@/lib/auth/auth-mode";
-import { isDemoOwner } from "@/lib/auth/demo-guard";
 import { validarWhatsappNegocio } from "@/lib/negocios/whatsapp";
+import { buildOnboardingResult } from "@/lib/onboarding/onboarding-result";
 import { DAY_ORDER } from "@/lib/staff/schedule";
 import { validarHorariosStaff } from "@/lib/staff/validation";
 import { withRedirectAction } from "@/lib/actions/with-redirect-action";
@@ -47,8 +46,8 @@ function horariosDeFormulario(formData: FormData): Record<string, string[]> | nu
 
 /**
  * Crea el perfil del negocio (paso 1 del onboarding).
- * En Vercel persiste en `negocios` y sigue al paso 2 (conectar MercadoPago,
- * obligatorio para cobrar señas); en local redirige al dashboard demo.
+ * Persiste en `negocios` y sigue al paso 2 (conectar MercadoPago,
+ * obligatorio para cobrar señas).
  */
 async function createBusinessInterno(formData: FormData): Promise<void>
 {
@@ -70,23 +69,12 @@ async function createBusinessInterno(formData: FormData): Promise<void>
     redirect("/onboarding?error=datos");
   }
 
-  if (resolveAuthMode() === "demo")
-  {
-    redirect("/dashboard");
-  }
-
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user)
   {
     redirect("/login?error=sesion");
-  }
-
-  // La demo ya tiene negocio: no puede crear otro (además es solo lectura).
-  if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
-  {
-    redirect("/dashboard");
   }
 
   const slug = url.split("/").pop() ?? "";
@@ -134,22 +122,12 @@ async function createBusinessInterno(formData: FormData): Promise<void>
  */
 async function saveBusinessWhatsappInterno(formData: FormData): Promise<void>
 {
-  if (resolveAuthMode() === "demo")
-  {
-    redirect("/dashboard");
-  }
-
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user)
   {
     redirect("/login?error=sesion");
-  }
-
-  if (isDemoOwner({ userId: user.id, email: user.email ?? null }))
-  {
-    redirect("/dashboard");
   }
 
   let whatsapp: string | null = null;

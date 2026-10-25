@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 
 import { validarTransicionTurno } from "@/lib/dashboard/estados";
 import type { EstadoTurno } from "@/lib/dashboard/estados";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { AuthError } from "@/lib/errors/auth-error";
 import { ConflictError } from "@/lib/errors/conflict-error";
 import { NotFoundError } from "@/lib/errors/not-found-error";
@@ -39,7 +38,6 @@ async function exigirTurnoEditable(turnoId: string, nuevo: EstadoTurno): Promise
     throw new RangeError("Ese estado de turno no existe.");
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

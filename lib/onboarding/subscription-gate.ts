@@ -1,8 +1,7 @@
 /**
  * Gate de suscripción del dashboard (Módulo 1, paywall 14 días).
  *
- * Envuelve `evaluateSubscription` para filas `negocios` reales o
- * seed en memoria (sin `created_at` → trial, nunca bloquea la demo).
+ * Envuelve `evaluateSubscription` para filas `negocios` reales.
  * Resuelve el margen de confirmación desde `MP_MARGEN_RENOVACION_HORAS`.
  */
 

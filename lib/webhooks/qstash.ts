@@ -2,7 +2,7 @@
  * Firma de QStash (Módulo 5): verifica el JWT `Upstash-Signature`.
  *
  * Función pura para TDD. Sin secretos configurados permite el paso
- * (modo demo/build); con secreto exige JWT HS256 vigente firmado
+ * (build/test); con secreto exige JWT HS256 vigente firmado
  * con la clave actual o la siguiente (rotación de Upstash).
  */
 

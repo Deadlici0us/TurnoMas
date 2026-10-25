@@ -13,7 +13,7 @@ import type
   PortalServicio,
   PortalStaff,
   PortalTurno,
-} from "@/lib/portal/demo-business";
+} from "@/lib/portal/types";
 import { retieneSlot } from "@/lib/reservas/disponibilidad";
 
 const FECHA_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

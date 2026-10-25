@@ -1,31 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import
-{
-  buildOnboardingResult,
-  resolveAuthMode,
-} from "./auth-mode";
-
-describe("resolveAuthMode",
-() =>
-{
-  it("debería usar supabase cuando hay URL y clave pública",
-  () =>
-  {
-    expect(
-      resolveAuthMode({
-        NEXT_PUBLIC_SUPABASE_URL: "https://xyz.supabase.co",
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_123",
-      }),
-    ).toBe("supabase");
-  });
-
-  it("debería caer a demo sin secrets (build local, tests)",
-  () =>
-  {
-    expect(resolveAuthMode({})).toBe("demo");
-  });
-});
+import { buildOnboardingResult } from "./onboarding-result";
 
 describe("buildOnboardingResult",
 () =>

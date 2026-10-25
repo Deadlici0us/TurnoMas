@@ -39,7 +39,7 @@ function callbackState(code: string, negocioId: string, next: string | null = nu
   return callbackUrl(`code=${code}&state=${codificarMpState({ negocioId, next })}`);
 }
 
-/** Sesión de dueño autenticado no demo. */
+/** Sesión de dueño autenticado. */
 function sesionDueno(): void
 {
   mockServer.mockResolvedValue({
@@ -147,19 +147,6 @@ describe("GET /api/integrations/mercadopago/callback",
     expect(mockExchange).not.toHaveBeenCalled();
   });
 
-  it("debería rechazar al dueño demo sin guardar tokens",
-  async () =>
-  {
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "demo-id", email: "demo@turnomas.com" } } }) },
-    } as never);
-    stubCallback({ id: "neg-demo" });
-
-    const response = await GET(new Request(callbackState("TG-1", "neg-demo")));
-
-    expect(response.headers.get("location")).toContain("mp=demo");
-    expect(mockExchange).not.toHaveBeenCalled();
-  });
 
   it("debería guardar tokens y marcar ok con code válido",
   async () =>

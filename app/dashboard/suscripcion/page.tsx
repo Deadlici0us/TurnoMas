@@ -118,7 +118,7 @@ function clasePago(estado: string): string
 /**
  * Historial de pagos del negocio (best-effort: nunca rompe la página).
  *
- * @param negocioId ID del negocio o null (demo/sin fila).
+ * @param negocioId ID del negocio o null (sin fila).
  * @return Cuotas ordenadas por fecha desc, o lista vacía si falla.
  */
 async function cargarPagos(negocioId: string | null): Promise<PagoSuscripcion[]>
@@ -345,45 +345,11 @@ function panelAccionSuscripcion(props: PanelAccionProps): ReactNode
   );
 }
 
-/** Vista de suscripción para la demo: sin plan, pagos ni checkout. */
-function DemoSuscripcion(): ReactNode
-{
-  return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="ui-page-title">Suscripción</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Cuenta demo de solo lectura.</p>
-        </div>
-        <Link href="/dashboard" className="ui-btn ui-btn-outline ui-btn-sm">
-          Volver
-        </Link>
-      </div>
-      <div className="ui-card p-4 sm:p-6">
-        <h2 className="ui-section-title mb-2">La demo no tiene suscripción</h2>
-        <p className="text-sm text-muted-foreground">
-          Esta cuenta es solo para explorar el producto: no tiene plan, pagos ni débito automático.
-          Creá tu cuenta gratis para activar tu propia suscripción.
-        </p>
-        <Link href="/register" className="ui-btn ui-btn-primary ui-btn-sm mt-4">
-          Creá tu cuenta gratis
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 export default async function SuscripcionPage(
   props?: { readonly searchParams?: Promise<{ suscripcion?: string; preapproval_id?: string; error?: string }> },
 )
 {
   const inicial = await getDashboardData();
-
-  if (inicial.isDemo)
-  {
-    return <DemoSuscripcion />;
-  }
-
   const params = props?.searchParams === undefined ? undefined : await props.searchParams;
   const retorno = esRetornoCheckout({
     suscripcion: params?.suscripcion,

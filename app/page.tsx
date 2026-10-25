@@ -209,16 +209,14 @@ export default function HomePage()
         <section className="bg-navy py-14">
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="font-heading text-2xl font-bold text-white sm:text-3xl">
-              ¿Listo para probar la cuenta demo?
+              Empezá tu prueba gratis
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-white/70">
-              Explorá una agenda completa, probá cambiar turnos y mirá cómo se siente tu negocio
-              con TurnoMas.
+              14 días gratis, sin tarjeta. Armá tu agenda y empezá a recibir reservas con seña.
             </p>
-            <Link href="/login" className="ui-btn ui-btn-cta ui-btn-lg mt-6">
-              {t("auth.loginCta")}
+            <Link href="/register" className="ui-btn ui-btn-cta ui-btn-lg mt-6">
+              {t("auth.registerCta")}
             </Link>
-            <p className="mt-3 text-xs text-white/60">{t("demo.note")}</p>
           </div>
         </section>
 

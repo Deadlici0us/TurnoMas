@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "./route";
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/services/subscription", () =>
 {
@@ -26,8 +21,6 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-const mockAssertModo = vi.mocked(assertModoEditable);
-const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockCrear = vi.mocked(subscriptionService.crearParaNegocio);
 const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
 const mockServer = vi.mocked(getSupabaseServer);
@@ -43,11 +36,9 @@ function solicitud(body: Record<string, unknown> = { payerEmail: "pagador@mp.com
   });
 }
 
-/** Sesión de dueño autenticado no demo con negocio. */
+/** Sesión de dueño autenticado con negocio. */
 function sesionDueno(): void
 {
-  mockAssertModo.mockResolvedValue(undefined);
-  mockAssertDueno.mockReturnValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueno@negocio.com" } } }) },
   } as never);
@@ -72,24 +63,10 @@ beforeEach(() =>
 describe("POST /api/suscripcion/crear",
 () =>
 {
-  it("debería bloquear la demo con 403",
-  async () =>
-  {
-    mockAssertModo.mockRejectedValueOnce(new Error("La cuenta demo es de solo lectura."));
-
-    const response = await POST(solicitud());
-    const body = await response.json() as { error: string };
-
-    expect(response.status).toBe(403);
-    expect(body.error).toBe("La cuenta demo es de solo lectura.");
-    expect(mockCrear).not.toHaveBeenCalled();
-  });
 
   it("debería exigir sesión iniciada",
   async () =>
   {
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockReturnValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -115,8 +92,6 @@ describe("POST /api/suscripcion/crear",
   it("debería exigir email de pago",
   async () =>
   {
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockReturnValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: { id: "user-1", email: null } } }) },
     } as never);
@@ -131,8 +106,6 @@ describe("POST /api/suscripcion/crear",
   it("debería exigir negocio antes de suscribir",
   async () =>
   {
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockReturnValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueno@negocio.com" } } }) },
     } as never);

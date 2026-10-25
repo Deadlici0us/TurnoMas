@@ -73,13 +73,6 @@ function formularioWhatsapp(whatsapp: string): FormData
 describe("saveBusinessWhatsapp",
 () =>
 {
-  it("debería ir al dashboard en modo demo",
-  async () =>
-  {
-    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
-      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
-    expect(mockServer).not.toHaveBeenCalled();
-  });
 
   it("debería pedir login sin sesión en modo supabase",
   async () =>
@@ -94,19 +87,6 @@ describe("saveBusinessWhatsapp",
       .rejects.toThrow("NEXT_REDIRECT:/login?error=sesion");
   });
 
-  it("debería mandar al dashboard al dueño demo",
-  async () =>
-  {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
-    vi.stubEnv("DEMO_DUENIO_ID", "user-1");
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "a@b.com" } } }) },
-    } as never);
-
-    await expect(saveBusinessWhatsapp(formularioWhatsapp("+54 9 11 1234-5678")))
-      .rejects.toThrow("NEXT_REDIRECT:/dashboard");
-  });
 
   it("debería guardar el WhatsApp recortado y seguir al paso 4",
   async () =>
@@ -170,12 +150,6 @@ describe("createBusiness",
       .rejects.toThrow("NEXT_REDIRECT:/onboarding?error=datos");
   });
 
-  it("debería ir al dashboard en modo demo",
-  async () =>
-  {
-    await expect(createBusiness(formularioValido())).rejects.toThrow("NEXT_REDIRECT:/dashboard");
-    expect(mockServer).not.toHaveBeenCalled();
-  });
 
   it("debería pedir login sin sesión en modo supabase",
   async () =>
@@ -190,18 +164,6 @@ describe("createBusiness",
       .rejects.toThrow("NEXT_REDIRECT:/login?error=sesion");
   });
 
-  it("debería mandar al dashboard al dueño demo",
-  async () =>
-  {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://xyz.supabase.co");
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_123");
-    vi.stubEnv("DEMO_DUENIO_ID", "user-demo");
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "user-demo", email: "x@y.com" } } }) },
-    } as never);
-
-    await expect(createBusiness(formularioValido())).rejects.toThrow("NEXT_REDIRECT:/dashboard");
-  });
 
   it("debería seguir al dashboard con negocio duplicado",
   async () =>

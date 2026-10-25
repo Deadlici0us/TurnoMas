@@ -11,7 +11,7 @@ import type
   PortalServicio,
   PortalStaff,
   PortalTurno,
-} from "@/lib/portal/demo-business";
+} from "@/lib/portal/types";
 import { serviciosDeStaff } from "@/lib/staff/servicios";
 
 /** Parámetros compartidos por el portal público y el alta manual. */

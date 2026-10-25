@@ -47,12 +47,6 @@ describe("slugifyBusinessName",
     expect(() => slugifyBusinessName("!!!")).toThrow(RangeError);
   });
 
-  it("debería rechazar el slug reservado de la demo",
-  () =>
-  {
-    expect(() => slugifyBusinessName("Negocio Demo")).toThrow(RangeError);
-    expect(() => slugifyBusinessName("Negocio Demo!")).toThrow(RangeError);
-  });
 });
 
 describe("buildBusinessUrl",

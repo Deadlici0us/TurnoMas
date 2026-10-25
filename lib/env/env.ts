@@ -40,7 +40,7 @@ export function hasSupabaseServiceKey(env: EnvRecord = process.env): boolean
  * Indica si el entorno exige firmas de webhook/cron.
  *
  * Sin secretos configurados las rutas fallan cerradas en producción y
- * solo permiten el paso en demo/build/test. Nunca loguear esta decisión
+ * solo permiten el paso en build/test. Nunca loguear esta decisión
  * con valores de secretos.
  */
 export function exigeFirmas(env: EnvRecord = process.env): boolean

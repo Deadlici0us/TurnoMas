@@ -10,7 +10,6 @@ import { NextResponse } from "next/server";
 
 import { withApiHandler } from "@/lib/api/with-api-handler";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -55,20 +54,6 @@ interface FilaNegocio
 {
   readonly id: string;
   readonly pais?: unknown;
-}
-
-/**
- * Construye la respuesta 403 de modo demo de solo lectura.
- *
- * @param error Error lanzado por los guardas de modo editable.
- * @return Respuesta HTTP 403 con el mensaje del guarda.
- */
-function errorSoloLectura(error: unknown): NextResponse
-{
-  return NextResponse.json(
-    { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-    { status: 403 },
-  );
 }
 
 /**
@@ -172,15 +157,6 @@ async function handlePOST(request: Request)
 {
   try
   {
-    await assertModoEditable();
-  }
-  catch (error)
-  {
-    return errorSoloLectura(error);
-  }
-
-  try
-  {
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -190,15 +166,6 @@ async function handlePOST(request: Request)
         { error: "Tenés que iniciar sesión para activar el plan." },
         { status: 401 },
       );
-    }
-
-    try
-    {
-      assertDuenoEditable({ userId: user.id, email: user.email ?? null });
-    }
-    catch (error)
-    {
-      return errorSoloLectura(error);
     }
 
     const payerEmail = await leerPayerEmail(request, user.email);

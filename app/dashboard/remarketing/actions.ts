@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 
 import type { ActionResult } from "@/lib/actions/action-result";
 import { runAction } from "@/lib/actions/run-action";
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { AuthError } from "@/lib/errors/auth-error";
 import { UnavailableError } from "@/lib/errors/unavailable-error";
@@ -14,7 +13,6 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 /** Obtiene el admin y el ID del negocio del dueño autenticado. */
 async function exigirDueno()
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

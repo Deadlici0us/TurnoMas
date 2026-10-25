@@ -9,7 +9,6 @@ import { NextResponse } from "next/server";
 
 import { withApiHandler } from "@/lib/api/with-api-handler";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioSubscriptionStatus } from "@/lib/onboarding/subscription-gate";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -55,31 +54,8 @@ function estadoDeFila(fila: FilaNegocio): ReturnType<typeof getNegocioSubscripti
   });
 }
 
-/**
- * Construye la respuesta 403 de modo demo de solo lectura.
- *
- * @param error Error lanzado por los guardas de modo editable.
- * @return Respuesta HTTP 403 con el mensaje del guarda.
- */
-function errorSoloLectura(error: unknown): NextResponse
-{
-  return NextResponse.json(
-    { error: error instanceof Error ? error.message : "La demo es de solo lectura." },
-    { status: 403 },
-  );
-}
-
 async function handleGET()
 {
-  try
-  {
-    await assertModoEditable();
-  }
-  catch (error)
-  {
-    return errorSoloLectura(error);
-  }
-
   try
   {
     const supabase = await getSupabaseServer();
@@ -91,15 +67,6 @@ async function handleGET()
         { error: "Tenés que iniciar sesión para consultar tu plan." },
         { status: 401 },
       );
-    }
-
-    try
-    {
-      assertDuenoEditable({ userId: user.id, email: user.email ?? null });
-    }
-    catch (error)
-    {
-      return errorSoloLectura(error);
     }
 
     const admin = getSupabaseAdmin();

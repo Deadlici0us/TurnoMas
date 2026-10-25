@@ -28,7 +28,6 @@ function stubDashboard(negocio: Record<string, unknown>): void
   mockData.mockResolvedValue({
     data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
-    isDemo: false,
     userEmail: "duenio@negocio.com",
   } as never);
 }

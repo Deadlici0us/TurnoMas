@@ -73,7 +73,7 @@ describe("NuevoTurnoPage",
   {
     const user = userEvent.setup();
 
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await NuevoTurnoPage({ searchParams: Promise.resolve({ clienteId: "cli-1" }) }));
 
@@ -98,7 +98,7 @@ describe("NuevoTurnoPage",
     const clave = `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, "0")}-` +
       `${String(manana.getDate()).padStart(2, "0")}`;
 
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await NuevoTurnoPage({ searchParams: Promise.resolve({ fecha: clave }) }));
 
@@ -114,7 +114,7 @@ describe("NuevoTurnoPage",
   it("debería caer en la fecha de hoy con una fecha inválida",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await NuevoTurnoPage({ searchParams: Promise.resolve({ fecha: "hoy" }) }));
 

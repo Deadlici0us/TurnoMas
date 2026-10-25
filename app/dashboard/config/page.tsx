@@ -350,14 +350,6 @@ function mensajeMp(mp: string | undefined): { readonly texto: string; readonly c
     };
   }
 
-  if (mp === "demo")
-  {
-    return {
-      texto: "La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas.",
-      clase: "ui-alert-danger",
-    };
-  }
-
   if (mp === "error")
   {
     return {
@@ -381,7 +373,6 @@ interface ContextoConfig
 {
   readonly mpToken: string | null;
   readonly mpConectadoAt: string | null;
-  readonly demo: boolean;
   readonly avisoMp: ReturnType<typeof mensajeMp>;
   readonly mpConectado: boolean;
   readonly portalUrl: string;
@@ -394,19 +385,15 @@ interface ContextoConfig
  * @param negocioIdCrudo ID crudo del negocio del dashboard.
  * @param negocio Fila del negocio con sus datos públicos.
  * @param searchParams Params de la URL con el aviso de MercadoPago.
- * @param demo Indica si la request es la demo temporal.
  * @return Contexto normalizado para el render de la página.
  */
 async function cargarContextoConfig(
   negocioIdCrudo: unknown,
   negocio: { readonly pais?: unknown; readonly slug?: unknown; readonly nombre?: unknown },
   searchParams: { readonly mp?: string } | undefined,
-  demo: boolean,
 ): Promise<ContextoConfig>
 {
-  const conexiones = demo
-    ? { mpToken: null, mpConectadoAt: null }
-    : await cargarConexiones(negocioIdCrudo);
+  const conexiones = await cargarConexiones(negocioIdCrudo);
   const { mpToken, mpConectadoAt } = conexiones;
   const avisoMp = mensajeMp(searchParams?.mp);
   const mpConectado = mpToken !== null;
@@ -425,7 +412,6 @@ async function cargarContextoConfig(
   return {
     mpToken,
     mpConectadoAt,
-    demo,
     avisoMp,
     mpConectado,
     portalUrl,
@@ -436,27 +422,15 @@ async function cargarContextoConfig(
 /**
  * Renderiza la tarjeta de conexión de MercadoPago según su estado.
  *
- * @param demo Indica si el lector es el dueño demo.
  * @param mpConectado Indica si ya hay un token de MercadoPago.
  * @param desconectar Acción de servidor para desconectar la cuenta.
  * @return Panel de conexión correspondiente al estado.
  */
 function panelMercadoPago(
-  demo: boolean,
   mpConectado: boolean,
   desconectar: () => Promise<ActionResult<void> | void>,
 ): ReactNode
 {
-  if (demo)
-  {
-    return (
-      <p className="ui-input">
-        La demo no conecta cuentas reales. Creá tu cuenta gratis para cobrar señas
-        con tu MercadoPago.
-      </p>
-    );
-  }
-
   if (mpConectado)
   {
     return (
@@ -495,7 +469,7 @@ export default async function ConfigPage(
   const esCobros = seccionActiva === "cobros";
   const esMensajes = seccionActiva === "mensajes";
   const esCuenta = seccionActiva === "cuenta";
-  const { data: dashboard, isDemo } = await getDashboardData();
+  const { data: dashboard } = await getDashboardData();
   const negocio = dashboard.negocio as NegocioConfigRow & {
     nombre?: string; pais?: string; slug?: string; horarios?: unknown;
     msg_confirmacion_subject?: string | null; msg_confirmacion_cuerpo?: string | null;
@@ -525,11 +499,10 @@ export default async function ConfigPage(
   const {
     mpToken,
     mpConectadoAt,
-    demo,
     avisoMp,
     mpConectado,
     whatsappGuia,
-  } = await cargarContextoConfig(negocioId, negocio, searchParams, isDemo);
+  } = await cargarContextoConfig(negocioId, negocio, searchParams);
 
   return (
     <div className="space-y-4">
@@ -995,7 +968,7 @@ export default async function ConfigPage(
               {mpConectado ? `Listo ${maskMpToken(mpToken)}` : "Falta conectar"}
             </span>
           </div>
-          {panelMercadoPago(demo, mpConectado, quitarTokenMp)}
+          {panelMercadoPago(mpConectado, quitarTokenMp)}
           <p className="text-xs text-muted-foreground">
             {mpConectado && mpConectadoAt !== null
               ? "Listo: cuando te pagan, el turno se confirma solo."

@@ -2,11 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import AuthCard from "@/components/auth-card";
-import DemoCredentials from "@/components/demo-credentials";
 import LegalLinks from "@/components/legal-links";
 import SocialLoginButton from "@/components/social-login-button";
-import { getDemoCredentials } from "@/lib/auth/demo-credentials";
-import { resolveAuthMode } from "@/lib/auth/auth-mode";
+import { isSupabaseConfigured } from "@/lib/env/env";
 import { login } from "./actions";
 
 const ERROR_KEYS = {
@@ -28,8 +26,7 @@ export default async function LoginPage({
     || error === "inesperado"
     ? ERROR_KEYS[error]
     : null;
-  const demo = getDemoCredentials();
-  const showSocialLogin = resolveAuthMode() === "supabase";
+  const showSocialLogin = isSupabaseConfigured();
 
   return (
     <AuthCard
@@ -94,20 +91,6 @@ export default async function LoginPage({
           {t("auth.loginCta")}
         </button>
       </form>
-      <div className="space-y-3 rounded-lg border border-line bg-surface p-4">
-        <div className="text-center">
-          <p className="text-sm font-semibold text-ink">{t("auth.demoTitle")}</p>
-          <p className="text-xs text-muted-foreground">{t("auth.demoSubtitle")}</p>
-        </div>
-        <DemoCredentials
-          email={demo.email}
-          password={demo.password}
-          emailLabel={t("auth.demoEmail")}
-          passwordLabel={t("auth.demoPassword")}
-          copyLabel={t("auth.copy")}
-          copiedLabel={t("auth.copied")}
-        />
-      </div>
     </AuthCard>
   );
 }

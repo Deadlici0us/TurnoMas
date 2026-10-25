@@ -16,7 +16,7 @@ import type
   PortalServicio,
   PortalStaff,
   PortalTurno,
-} from "@/lib/portal/demo-business";
+} from "@/lib/portal/types";
 
 /** Cliente disponible para precargar el formulario. */
 export interface ClienteTurnoManual

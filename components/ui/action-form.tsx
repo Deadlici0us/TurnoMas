@@ -20,7 +20,7 @@ export interface ActionFormProps extends Omit<FormHTMLAttributes<HTMLFormElement
  * Formulario que ejecuta una Server Action y muestra feedback animado.
  *
  * Usa `onSubmit` para poder capturar también los errores que devuelve la
- * acción (por ejemplo, la demo de solo lectura) sin romper la navegación.
+ * acción sin romper la navegación.
  *
  * @param props Acción, mensajes y contenido del formulario.
  * @return Formulario con toast de éxito o error.

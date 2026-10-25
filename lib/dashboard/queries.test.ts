@@ -4,6 +4,16 @@ import { getDashboardData, getDashboardStats } from "./queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
+vi.mock("next/navigation", () =>
+{
+  return {
+    redirect: (url: string): never =>
+    {
+      throw new Error(`NEXT_REDIRECT:${url}`);
+    },
+  };
+});
+
 vi.mock("@/lib/supabase/server", () =>
 {
   return { getSupabaseServer: vi.fn() };
@@ -46,7 +56,7 @@ interface ListasDashboard
  */
 function stubDashboard(
   negocio: unknown = NEGOCIO,
-  negocioError: { message: string } | null = null,
+  negocioError: { message: string; code?: string } | null = null,
   listas: ListasDashboard = {},
   counts: Record<string, number | null> = {},
   pagos: Array<{ sena_monto: number | null }> | null = [],
@@ -60,7 +70,7 @@ function stubDashboard(
         const countData = tabla === "turnos" && cols.includes("sena_monto")
           ? { data: pagos }
           : { count: counts[tabla] ?? counts.default ?? null };
-        const single = async (): Promise<{ data: unknown; error: { message: string } | null }> =>
+        const single = async (): Promise<{ data: unknown; error: { message: string; code?: string } | null }> =>
         {
           if (tabla === "negocios") return { data: negocio, error: negocioError };
 
@@ -95,22 +105,22 @@ beforeEach(() =>
 describe("getDashboardData",
 () =>
 {
-  it("debería devolver seed demo sin sesión",
-  async () =>
+  it("debería redirigir al login sin sesión", async () =>
   {
     mockServer.mockRejectedValueOnce(new Error("sin cookies"));
 
-    const result = await getDashboardData();
-
-    expect(result.error).toBeNull();
-    expect(result.isDemo).toBe(true);
-    expect(result.userEmail).toBeNull();
-    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
+    await expect(getDashboardData()).rejects.toThrow("NEXT_REDIRECT:/login");
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 
-  it("debería devolver el email del dueño para precargar el pago",
-  async () =>
+  it("debería redirigir al login con usuario nulo", async () =>
+  {
+    sesionUsuario(null);
+
+    await expect(getDashboardData()).rejects.toThrow("NEXT_REDIRECT:/login");
+  });
+
+  it("debería devolver el email del dueño para precargar el pago", async () =>
   {
     sesionUsuario({ id: "user-1", email: "dueno@negocio.com" });
     stubDashboard(NEGOCIO);
@@ -120,58 +130,23 @@ describe("getDashboardData",
     expect(result.userEmail).toBe("dueno@negocio.com");
   });
 
-  it("debería devolver seed demo con usuario nulo",
-  async () =>
-  {
-    sesionUsuario(null);
-
-    const result = await getDashboardData();
-
-    expect(result.isDemo).toBe(true);
-    expect(result.data.staff.length).toBeGreaterThan(0);
-  });
-
-  it("debería servir el seed para el dueño demo sin leer la DB",
-  async () =>
-  {
-    vi.stubEnv("DEMO_DUENIO_ID", "user-demo");
-    sesionUsuario({ id: "user-demo", email: "otro@ejemplo.com" });
-    stubDashboard(NEGOCIO, null, { staff: [{ id: "s-1" }], turnos: [] });
-
-    const result = await getDashboardData();
-
-    expect(result.isDemo).toBe(true);
-    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
-    expect(result.data.staff).not.toEqual([{ id: "s-1" }]);
-    expect(mockAdmin).not.toHaveBeenCalled();
-  });
-
-  it("debería devolver seed sin negocio del dueño",
-  async () =>
+  it("debería redirigir al onboarding sin negocio del dueño", async () =>
   {
     sesionUsuario({ id: "user-1" });
     stubDashboard(null);
 
-    const result = await getDashboardData();
-
-    expect(result.error).toBeNull();
-    expect(result.isDemo).toBe(false);
-    expect(result.data.negocio).toMatchObject({ nombre: "Negocio Demo" });
+    await expect(getDashboardData()).rejects.toThrow("NEXT_REDIRECT:/onboarding");
   });
 
-  it("debería devolver seed ante error del negocio",
-  async () =>
+  it("debería lanzar error ante fallas del negocio", async () =>
   {
     sesionUsuario({ id: "user-1" });
-    stubDashboard(null, { message: "db caída" });
+    stubDashboard(null, { message: "db caída", code: "500" });
 
-    const result = await getDashboardData();
-
-    expect(result.data.servicios.length).toBeGreaterThan(0);
+    await expect(getDashboardData()).rejects.toThrow("No pudimos cargar tu negocio");
   });
 
-  it("debería normalizar listas nulas a arreglos",
-  async () =>
+  it("debería normalizar listas nulas a arreglos", async () =>
   {
     sesionUsuario({ id: "user-1" });
     stubDashboard(NEGOCIO, null, { staff: null, servicios: null, clientes: null, turnos: null });
@@ -185,15 +160,13 @@ describe("getDashboardData",
 describe("getDashboardStats",
 () =>
 {
-  it("debería devolver ceros sin negocio",
-  async () =>
+  it("debería devolver ceros sin negocio", async () =>
   {
     await expect(getDashboardStats("   ")).resolves.toMatchObject({ pendientes: 0, totalIngresos: 0 });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 
-  it("debería sumar conteos e ingresos de señas",
-  async () =>
+  it("debería sumar conteos e ingresos de señas", async () =>
   {
     stubDashboard(NEGOCIO, null, {}, { default: 3 }, [{ sena_monto: 100 }, { sena_monto: null }]);
 
@@ -203,8 +176,7 @@ describe("getDashboardStats",
     expect(stats.totalIngresos).toBe(100);
   });
 
-  it("debería normalizar conteos nulos a cero",
-  async () =>
+  it("debería normalizar conteos nulos a cero", async () =>
   {
     stubDashboard(NEGOCIO, null, {}, {}, null);
 
@@ -213,8 +185,7 @@ describe("getDashboardStats",
     expect(stats).toMatchObject({ pendientes: 0, totalIngresos: 0 });
   });
 
-  it("debería devolver ceros ante fallas de base",
-  async () =>
+  it("debería devolver ceros ante fallas de base", async () =>
   {
     mockAdmin.mockImplementation(() =>
     {
@@ -230,8 +201,7 @@ describe("getDashboardStats",
 describe("getDashboardData integración",
 () =>
 {
-  it("debería cargar negocio y listas punta a punta",
-  async () =>
+  it("debería cargar negocio y listas punta a punta", async () =>
   {
     sesionUsuario({ id: "user-1" });
     stubDashboard(NEGOCIO, null, {
@@ -243,7 +213,6 @@ describe("getDashboardData integración",
 
     const result = await getDashboardData();
 
-    expect(result.isDemo).toBe(false);
     expect(result.data.turnos).toEqual([{ id: "t-1" }]);
     expect(result.data.clientes).toEqual([{ id: "c-1" }]);
   });

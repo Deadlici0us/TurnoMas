@@ -116,7 +116,6 @@ cp .env.example .env.local
 | `GOOGLE_CLIENT_ID` | Client ID de Sign in with Google (GIS). |
 | `CANCELACION_SECRET` | Firma de links de cancelación; mínimo 32 caracteres. |
 | `ADMIN_EMAIL` | Email habilitado para `/admin/promociones`. |
-| `DEMO_DUENIO_ID` | UID legado del dueño demo; solo para compatibilidad. |
 
 ### Integraciones opcionales
 
@@ -127,10 +126,8 @@ cp .env.example .env.local
 | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | Suscripción SaaS de MercadoPago. |
 | `MP_CLIENT_ID`, `MP_CLIENT_SECRET` | OAuth de MercadoPago para señas. |
 | `MP_PLAN_ARS`, `MP_PLAN_USD`, `MP_MARGEN_RENOVACION_HORAS` | Precio y margen del plan. |
-| `DEMO_EMAIL`, `DEMO_PASSWORD` | Credenciales demo opcionales. |
 
-La app tiene valores por defecto para la demo, pero no para las integraciones
-externas.
+La app no tiene valores por defecto para las integraciones externas.
 
 ## 6. Levantar la aplicación
 
@@ -152,19 +149,7 @@ Abrir `http://localhost:3000`.
 La base nueva **no necesita datos iniciales**. El dashboard y el portal
 estarán vacíos hasta completar estos pasos.
 
-## 8. Probar la demo
-
-La cuenta demo actual se sirve en memoria desde `lib/seed/demo-rows.ts`:
-
-- Portal: `/ar/negocio-demo`.
-- Login demo: las credenciales públicas configuradas en la app.
-- No escribe en Supabase.
-- No necesita `seed-demo.sql`.
-
-`cleanup-demo.sql` (en `supabase/`) solo se usa en bases existentes que
-tengan datos de la demo legada. **No ejecutarlo en una base nueva.**
-
-## 9. Integraciones externas
+## 8. Integraciones externas
 
 ### MercadoPago
 
@@ -292,4 +277,3 @@ URL debe ser la del dominio público; en desarrollo, la de `localhost`.
 - No commitear `.env.local` ni valores reales de integraciones.
 - `0000_init.sql` no actualiza bases existentes.
 - Antes de ejecutar cambios destructivos en una base con datos, hacer backup.
-- La demo es de solo lectura y no debe persistir datos en Supabase.

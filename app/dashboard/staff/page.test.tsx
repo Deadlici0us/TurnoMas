@@ -48,7 +48,7 @@ describe("StaffPage",
   it("debería mostrar el equipo y el formulario de alta",
   async () =>
   {
-    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null, isDemo: false } as never);
+    mockData.mockResolvedValueOnce({ data: dashboardBase(), error: null } as never);
 
     render(await StaffPage());
 
@@ -68,7 +68,6 @@ describe("StaffPage",
         horarios: { lun: "09:00-19:00", mar: ["09:00-13:00", "15:00-20:00"], "mié": 123 },
       }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -89,7 +88,6 @@ describe("StaffPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([{ id: "s-1", nombre: "Diego", activo: true, horarios: { lun: "09:00-19:00" } }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -106,7 +104,6 @@ describe("StaffPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([{ id: "s-1", nombre: "Diego", activo: true, horarios: { lun: "09:00-19:00" } }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -122,7 +119,6 @@ describe("StaffPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([{ id: "s-2", nombre: "Ana", activo: false, horarios: null }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -151,7 +147,6 @@ describe("StaffPage",
         }],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -185,7 +180,6 @@ describe("StaffPage",
         }],
       },
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -204,7 +198,6 @@ describe("StaffPage",
         { id: "s-2", nombre: "Ana", activo: true, horarios: null },
       ]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());
@@ -223,7 +216,6 @@ describe("StaffPage",
     mockData.mockResolvedValueOnce({
       data: dashboardBase([{ id: "s-1", nombre: "Diego", activo: true, horarios: { lun: "09:00-19:00" } }]),
       error: null,
-      isDemo: false,
     } as never);
 
     render(await StaffPage());

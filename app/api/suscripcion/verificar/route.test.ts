@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "./route";
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { subscriptionService } from "@/lib/services/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/services/subscription", () =>
 {
@@ -26,21 +21,17 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-const mockAssertModo = vi.mocked(assertModoEditable);
-const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockReconciliar = vi.mocked(subscriptionService.reconciliar);
 const mockCancelarLocal = vi.mocked(subscriptionService.cancelarSuscripcionLocal);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
-/** Sesión de dueño autenticado no demo con negocio. */
+/** Sesión de dueño autenticado con negocio. */
 function sesionDueno(
   suscripcionEstado: string | null = "active",
   extra: Record<string, unknown> = {},
 ): void
 {
-  mockAssertModo.mockResolvedValue(undefined);
-  mockAssertDueno.mockReturnValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueno@negocio.com" } } }) },
   } as never);
@@ -66,23 +57,10 @@ beforeEach(() =>
 describe("POST /api/suscripcion/verificar",
   () =>
   {
-    it("debería bloquear la demo con 403",
-    async () =>
-    {
-      mockAssertModo.mockRejectedValueOnce(new Error("La cuenta demo es de solo lectura."));
-
-      const response = await POST();
-      const body = await response.json() as { error: string };
-
-      expect(response.status).toBe(403);
-      expect(body.error).toBe("La cuenta demo es de solo lectura.");
-      expect(mockReconciliar).not.toHaveBeenCalled();
-    });
 
     it("debería exigir sesión iniciada",
     async () =>
     {
-      mockAssertModo.mockResolvedValue(undefined);
       mockServer.mockResolvedValue({
         auth: { getUser: async () => ({ data: { user: null } }) },
       } as never);

@@ -69,8 +69,8 @@ const mockData = vi.mocked(getDashboardData);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 const mockServer = vi.mocked(getSupabaseServer);
 
-/** Sesión no demo para la detección de lector. */
-function sesionNoDemo(): void
+/** Sesión para la detección de lector. */
+function sesionAutenticada(): void
 {
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueño@negocio.com" } } }) },
@@ -103,11 +103,10 @@ function negocioBase(overrides: Record<string, unknown> = {})
 /** Dashboard + secretos mockeados. */
 function stubConfig(negocio: unknown, secretos: unknown = null): void
 {
-  sesionNoDemo();
+  sesionAutenticada();
   mockData.mockResolvedValueOnce({
     data: { negocio, staff: [], servicios: [], clientes: [], turnos: [] },
     error: null,
-    isDemo: false,
   } as never);
   mockAdmin.mockReturnValue({
     from: () => ({
@@ -251,32 +250,6 @@ describe("ConfigPage",
       .toBeDefined();
   });
 
-  it("debería ocultar el OAuth en la demo",
-  async () =>
-  {
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "demo-id", email: "demo@turnomas.com" } } }) },
-    } as never);
-    mockData.mockResolvedValueOnce({
-      data: { negocio: negocioBase(), staff: [], servicios: [], clientes: [], turnos: [] },
-      error: null,
-      isDemo: true,
-    } as never);
-    mockAdmin.mockReturnValue({
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null }),
-          }),
-        }),
-      }),
-    } as never);
-
-    render(await ConfigPage({ searchParams: seccionParams("cobros") }));
-
-    expect(screen.queryByRole("link", { name: "Conectar MercadoPago" })).toBeNull();
-    expect(screen.getByText(/La demo no conecta cuentas reales/)).toBeDefined();
-  });
 
   it("debería tolerar negocio sin id y base caída",
   async () =>

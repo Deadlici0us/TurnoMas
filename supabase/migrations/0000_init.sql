@@ -3,10 +3,6 @@
 -- Este archivo reemplaza las migraciones 0001–0023 y representa el estado
 -- final del esquema. Es idempotente para reintentos, pero NO es un script de
 -- upgrade: está pensado para crear una base desde cero.
---
--- La demo (Negocio Demo) se sirve en memoria desde `lib/seed/demo-rows.ts` y
--- no inserta filas en Supabase. Para limpiar datos legados de la demo en una
--- base existente, ejecutar una sola vez `supabase/cleanup-demo.sql`.
 
 -- 1. Tablas ---------------------------------------------------------------
 

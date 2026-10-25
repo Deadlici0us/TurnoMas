@@ -28,13 +28,6 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 3. Configurar las variables de `.env.example` (o los secrets de Vercel).
 4. Registrarse en `/register` y completar el onboarding.
 
-La cuenta demo **no usa la base de datos**: se sirve en memoria desde
-`lib/seed/demo-rows.ts` con la cookie `session=demo` y el portal
-`/ar/negocio-demo`.
-
-Si la base ya existía con la demo legada, ejecutar una sola vez
-`supabase/cleanup-demo.sql` antes de descartar las migraciones viejas.
-
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET } from "./route";
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { decodificarMpState } from "@/lib/payments/mp-oauth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
-vi.mock("@/lib/auth/demo-guard", () =>
-{
-  return { assertDuenoEditable: vi.fn(), assertModoEditable: vi.fn() };
-});
 
 vi.mock("@/lib/supabase/server", () =>
 {
@@ -21,18 +16,14 @@ vi.mock("@/lib/supabase/admin", () =>
   return { getSupabaseAdmin: vi.fn() };
 });
 
-const mockAssertModo = vi.mocked(assertModoEditable);
-const mockAssertDueno = vi.mocked(assertDuenoEditable);
 const mockServer = vi.mocked(getSupabaseServer);
 const mockAdmin = vi.mocked(getSupabaseAdmin);
 
 const URL_BASE = "http://localhost/api/integrations/mercadopago/authorize";
 
-/** Sesión de dueño autenticado no demo. */
+/** Sesión de dueño autenticado. */
 function sesionDueno(): void
 {
-  mockAssertModo.mockResolvedValue(undefined);
-  mockAssertDueno.mockReturnValue(undefined);
   mockServer.mockResolvedValue({
     auth: { getUser: async () => ({ data: { user: { id: "user-1", email: "dueño@negocio.com" } } }) },
   } as never);
@@ -47,22 +38,10 @@ beforeEach(() =>
 describe("GET /api/integrations/mercadopago/authorize",
 () =>
 {
-  it("debería bloquear la demo local con 403",
-  async () =>
-  {
-    mockAssertModo.mockRejectedValueOnce(new Error("La cuenta demo es de solo lectura."));
-
-    const response = await GET(new Request(URL_BASE));
-    const body = await response.json() as { error: string };
-
-    expect(response.status).toBe(403);
-    expect(body.error).toBe("La cuenta demo es de solo lectura.");
-  });
 
   it("debería exigir MP_CLIENT_ID",
   async () =>
   {
-    mockAssertModo.mockResolvedValue(undefined);
 
     const response = await GET(new Request(URL_BASE));
     const body = await response.json() as { error: string };
@@ -75,8 +54,6 @@ describe("GET /api/integrations/mercadopago/authorize",
   async () =>
   {
     vi.stubEnv("MP_CLIENT_ID", "cid-test");
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockReturnValue(undefined);
     mockServer.mockResolvedValue({
       auth: { getUser: async () => ({ data: { user: null } }) },
     } as never);
@@ -87,25 +64,6 @@ describe("GET /api/integrations/mercadopago/authorize",
     expect(response.headers.get("location")).toContain("/login?next=/dashboard/config");
   });
 
-  it("debería bloquear al dueño demo con 403",
-  async () =>
-  {
-    vi.stubEnv("MP_CLIENT_ID", "cid-test");
-    mockAssertModo.mockResolvedValue(undefined);
-    mockAssertDueno.mockImplementationOnce(() =>
-    {
-      throw new Error("La cuenta demo es de solo lectura.");
-    });
-    mockServer.mockResolvedValue({
-      auth: { getUser: async () => ({ data: { user: { id: "demo-id", email: "demo@turnomas.com" } } }) },
-    } as never);
-
-    const response = await GET(new Request(URL_BASE));
-    const body = await response.json() as { error: string };
-
-    expect(response.status).toBe(403);
-    expect(body.error).toContain("solo lectura");
-  });
 
   it("debería exigir negocio antes de conectar",
   async () =>

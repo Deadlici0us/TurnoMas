@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertDuenoEditable, assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { IMAGEN_PESO_MAXIMO_SALIDA_BYTES, MENSAJES_IMAGEN } from "@/lib/imagenes/imagen-limites";
 import { esJpeg, normalizarImagenCuadrada, rutaDelBucketLogos } from "@/lib/imagenes/imagen-servidor";
@@ -57,7 +56,6 @@ export async function actualizarPoliticaListaNegra(umbral: number, penalidad: Pe
     throw new RangeError("Esa penalidad no existe.");
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -87,7 +85,6 @@ export async function actualizarPoliticaSena(retencionHs: number): Promise<void>
     throw new RangeError(`La retención debe ser un entero entre ${RETENCION_MIN_HS} y ${RETENCION_MAX_HS} horas.`);
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -132,7 +129,6 @@ export async function actualizarPoliticaRecordatorios(activo: boolean, hs: numbe
       `El recordatorio debe ser un entero entre ${RECORDATORIO_MIN_HS} y ${RECORDATORIO_MAX_HS} horas.`);
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -162,7 +158,6 @@ export async function actualizarPoliticaResenas(activa: boolean, hs: number): Pr
     throw new RangeError(`La reseña debe ser un entero entre ${RESENA_MIN_HS} y ${RESENA_MAX_HS} horas.`);
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -193,7 +188,6 @@ export async function actualizarPoliticaRemarketing(activo: boolean, dias: numbe
       `El remarketing debe ser un entero entre ${REMARKETING_MIN_DIAS} y ${REMARKETING_MAX_DIAS} días.`);
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -236,7 +230,6 @@ export async function actualizarPlantillaMensaje(
     throw new RangeError("Ese tipo de mensaje no existe.");
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -265,7 +258,6 @@ export async function actualizarGoogleMapsUrl(url: string | null): Promise<void>
 {
   const valor = validarGoogleMapsUrl(url);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -294,7 +286,6 @@ export async function actualizarDescripcionNegocio(descripcion: string | null): 
 {
   const valor = validarDescripcionNegocio(descripcion);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -341,7 +332,6 @@ export async function subirLogoNegocio(formData: FormData): Promise<{ readonly u
     throw new RangeError(MENSAJES_IMAGEN.salida);
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -418,7 +408,6 @@ export async function actualizarLogoNegocio(url: string | null): Promise<void>
     throw new RangeError("La imagen del logo no es válida.");
   }
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -447,7 +436,6 @@ export async function actualizarGooglePlaceId(valor: string | null): Promise<voi
 {
   const placeId = validarGooglePlaceId(valor);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -485,7 +473,6 @@ export async function actualizarWhatsappNegocio(valor: string | null): Promise<v
 {
   const whatsapp = validarWhatsappNegocio(valor);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -511,11 +498,10 @@ export async function actualizarWhatsappNegocio(valor: string | null): Promise<v
  * Desconecta MercadoPago (OAuth).
  *
  * Bloqueado si hay servicios con seña activa: primero se desactivan en
- * Servicios. La demo nunca toca secretos.
+ * Servicios.
  */
 export async function desconectarMercadoPago(): Promise<void>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -525,7 +511,6 @@ export async function desconectarMercadoPago(): Promise<void>
     throw new AuthError("Tenés que iniciar sesión para desconectar MercadoPago.");
   }
 
-  assertDuenoEditable({ userId: user.id, email: user.email ?? null });
 
   const admin = getSupabaseAdmin();
   const { data: negocio } = await admin.from("negocios").select("id")
@@ -562,7 +547,6 @@ export async function actualizarHorariosNegocio(horarios: unknown): Promise<void
 {
   const value = validarHorariosStaff(horarios);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -590,7 +574,6 @@ export async function actualizarTimezoneNegocio(timezone: string): Promise<void>
 {
   const value = validarTimezone(timezone);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -619,7 +602,6 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
 {
   const value = validarNombreNegocio(nombre);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -629,7 +611,6 @@ export async function actualizarNombreNegocio(nombre: string): Promise<void>
     throw new AuthError("Tenés que iniciar sesión para cambiar el nombre.");
   }
 
-  // Permitir que la demo renombre su negocio.
 
 
   const admin = getSupabaseAdmin();
@@ -674,7 +655,6 @@ function escapeHtmlEliminacion(valor: string): string
  */
 export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacion>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -719,7 +699,6 @@ export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacio
 /** Borra el negocio y la cuenta tras validar token + código del email + texto. */
 export async function confirmarEliminacionNegocio(token: string, codigo: string, texto: string): Promise<void>
 {
-  await assertModoEditable();
   validarTextoConfirmacion(texto);
 
   const payload = verificarTokenEliminacion(token, secretoEliminacion());

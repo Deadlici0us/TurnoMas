@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { assertModoEditable } from "@/lib/auth/demo-guard";
 import { getNegocioIdDelDueno } from "@/lib/dashboard/negocio";
 import { AuthError } from "@/lib/errors/auth-error";
 import { ConflictError } from "@/lib/errors/conflict-error";
@@ -86,7 +85,6 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     })(),
   } satisfies ServicioInput);
 
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -96,9 +94,6 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
     throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  // El dueño demo está permitido si está en modo editable (ej: local).
-  // Si necesitas que la demo sea exclusivamente una sandbox protegida, podrías
-  // activar un segundo controlador más adelante (ej: readOnlyForDemo).
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
@@ -136,7 +131,6 @@ export async function guardarServicio(servicioId: string | null, formData: FormD
 /** Elimina un servicio sin turnos del negocio del dueño autenticado. */
 export async function eliminarServicio(servicioId: string): Promise<void>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -146,7 +140,6 @@ export async function eliminarServicio(servicioId: string): Promise<void>
     throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  // Si querés forzar que el dueño demo no pueda eliminar servicios, podés volver a llamar a assertDuenoEditable.
   // Por ahora, mantenerlo editable.
 
   const admin = getSupabaseAdmin();
@@ -172,7 +165,6 @@ export async function eliminarServicio(servicioId: string): Promise<void>
 /** Activa o desactiva un servicio del negocio del dueño autenticado. */
 export async function cambiarEstadoServicio(servicioId: string, activo: boolean): Promise<void>
 {
-  await assertModoEditable();
 
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -182,7 +174,6 @@ export async function cambiarEstadoServicio(servicioId: string, activo: boolean)
     throw new AuthError("Tenés que iniciar sesión para modificar servicios.");
   }
 
-  // Mantenerlo editable para la demo también.
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
