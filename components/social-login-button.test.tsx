@@ -40,7 +40,6 @@ const cancel = vi.fn();
 beforeEach(() =>
 {
   vi.clearAllMocks();
-  vi.stubEnv("NEXT_PUBLIC_GOOGLE_CLIENT_ID", "client-1");
   signInWithIdToken.mockResolvedValue({ data: {}, error: null });
   window.google = {
     accounts: {
@@ -51,7 +50,6 @@ beforeEach(() =>
 
 afterEach(() =>
 {
-  vi.unstubAllEnvs();
   delete (window as { google?: unknown }).google;
 });
 
@@ -61,7 +59,7 @@ describe("SocialLoginButton",
   it("debería renderizar el contenedor accesible de Google",
   () =>
   {
-    render(<SocialLoginButton label="Continuar con Google" />);
+    render(<SocialLoginButton label="Continuar con Google" clientId="client-1" />);
 
     expect(screen.getByLabelText("Continuar con Google")).toBeDefined();
   });
@@ -69,7 +67,7 @@ describe("SocialLoginButton",
   it("debería inicializar GIS y canjear el ID token en Supabase",
   async () =>
   {
-    render(<SocialLoginButton label="Continuar con Google" />);
+    render(<SocialLoginButton label="Continuar con Google" clientId="client-1" />);
 
     await waitFor(() => expect(initialize).toHaveBeenCalledOnce());
 
@@ -98,7 +96,7 @@ describe("SocialLoginButton",
   it("debería respetar el destino next saneado",
   async () =>
   {
-    render(<SocialLoginButton label="Continuar con Google" next="/dashboard/agenda" />);
+    render(<SocialLoginButton label="Continuar con Google" next="/dashboard/agenda" clientId="client-1" />);
 
     await waitFor(() => expect(initialize).toHaveBeenCalledOnce());
 
@@ -121,6 +119,7 @@ describe("SocialLoginButton",
       <SocialLoginButton
         label="Continuar con Google"
         errorLabel="No pudimos iniciar con Google. Probá de nuevo"
+        clientId="client-1"
       />,
     );
 
@@ -141,12 +140,11 @@ describe("SocialLoginButton",
   it("debería mostrar error cuando falta el Client ID",
   async () =>
   {
-    vi.stubEnv("NEXT_PUBLIC_GOOGLE_CLIENT_ID", "");
-
     render(
       <SocialLoginButton
         label="Continuar con Google"
         errorLabel="No pudimos iniciar con Google. Probá de nuevo"
+        clientId=""
       />,
     );
 

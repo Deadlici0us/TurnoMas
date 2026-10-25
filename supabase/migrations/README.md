@@ -113,7 +113,7 @@ cp .env.example .env.local
 | Variable | Uso |
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | URL pública para links, callbacks y QStash. |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID público para Sign in with Google (GIS). |
+| `GOOGLE_CLIENT_ID` | Client ID de Sign in with Google (GIS). |
 | `CANCELACION_SECRET` | Firma de links de cancelación; mínimo 32 caracteres. |
 | `ADMIN_EMAIL` | Email habilitado para `/admin/promociones`. |
 | `DEMO_DUENIO_ID` | UID legado del dueño demo; solo para compatibilidad. |
@@ -181,8 +181,7 @@ tengan datos de la demo legada. **No ejecutarlo en una base nueva.**
   **Authorized JavaScript origins**.
 - Configurar en Supabase Auth el mismo Client ID y su Client Secret.
 - Data Access: solo `openid`, `userinfo.email` y `userinfo.profile`.
-- La app toma `GOOGLE_CLIENT_ID` en el servidor o
-  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` en el cliente y no solicita scopes de Google
+- La app toma `GOOGLE_CLIENT_ID` en el servidor y no solicita scopes de Google
   APIs.
 
 ### Crons con QStash
