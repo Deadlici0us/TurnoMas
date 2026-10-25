@@ -12,6 +12,7 @@ import
   Users,
 } from "lucide-react";
 
+import HeroAgendaPreview from "@/components/hero-agenda-preview";
 import LossCalculator from "@/components/loss-calculator";
 
 // next-intl sin segmento [locale]: el prerender estático no tiene
@@ -98,52 +99,7 @@ export default function HomePage()
           </div>
 
           <div className="animate-reveal-up" style={{ animationDelay: "180ms" }}>
-            <div className="ui-card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-line bg-white px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full bg-danger" />
-                  <span className="size-2.5 rounded-full bg-warning" />
-                  <span className="size-2.5 rounded-full bg-success" />
-                </div>
-                <span className="font-heading text-sm font-bold text-navy">Agenda de hoy</span>
-                <span className="ui-badge ui-badge-info">6 turnos</span>
-              </div>
-              <div className="grid grid-cols-[54px_1fr] gap-px bg-line">
-                <div className="space-y-0 bg-surface py-3">
-                  {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00"].map((hora) => (
-                    <div key={hora} className="h-12 pr-2 text-right font-mono text-[10px]
-                      text-muted-foreground">
-                      {hora}
-                    </div>
-                  ))}
-                </div>
-                <div className="relative space-y-2 bg-white p-3">
-                  <div className="ml-1 h-11 w-4/5 rounded-md border border-info/30 border-l-4
-                    border-l-info bg-info-soft px-3 py-2 text-xs font-semibold text-[#0b5f7f]">
-                    Juan · Corte
-                  </div>
-                  <div className="ml-10 h-11 w-3/5 rounded-md border border-success/30 border-l-4
-                    border-l-success bg-success-soft px-3 py-2 text-xs font-semibold text-[#0c6b45]">
-                    Ana · Color
-                  </div>
-                  <div className="ml-3 h-11 w-2/3 rounded-md border border-warning/40 border-l-4
-                    border-l-warning bg-warning-soft px-3 py-2 text-xs font-semibold text-[#7a5200]">
-                    Leo · Barba
-                  </div>
-                  <div className="ml-16 h-11 w-1/2 rounded-md border border-danger/30 border-l-4
-                    border-l-danger bg-danger-soft px-3 py-2 text-xs font-semibold text-[#a3122f]">
-                    Seña pendiente
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between border-t border-line px-5 py-3">
-                <span className="text-xs text-muted-foreground">Hoy</span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
-                  <Check className="size-4" aria-hidden="true" />
-                  Todo confirmado
-                </span>
-              </div>
-            </div>
+            <HeroAgendaPreview />
           </div>
         </section>
 

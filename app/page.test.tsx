@@ -24,6 +24,16 @@ describe("HomePage",
     expect(screen.getByRole("link", { name: "hero.ctaSecondary" })).toHaveAttribute("href", "/features");
   });
 
+  it("debería mostrar la vista previa de la agenda del día",
+  () =>
+  {
+    render(<HomePage />);
+
+    expect(screen.getByText("Agenda de hoy")).toBeDefined();
+    expect(screen.getAllByTestId("hero-agenda-turno")).toHaveLength(6);
+    expect(screen.getByText("2 señas cobradas")).toBeDefined();
+  });
+
   it("debería listar las 4 features",
   () =>
   {
