@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Mulish, Open_Sans } from "next/font/google";
 import Providers from "./providers";
+import RevealOnScroll from "@/components/reveal-on-scroll";
 import SiteHeader from "@/components/site-header";
 import "./globals.css";
 
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
     >
       <body className="min-h-full flex flex-col bg-surface text-ink">
         <Providers messages={messages} locale={locale}>
+          <RevealOnScroll />
           <SiteHeader />
           {children}
         </Providers>

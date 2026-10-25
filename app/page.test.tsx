@@ -76,13 +76,14 @@ describe("HomePage",
     expect(raiz.className).not.toContain("bg-transparent");
   });
 
-  it("debería usar animaciones de revelado sin shimmer neón",
+  it("debería usar el hero animado y revelado por scroll sin shimmer neón",
   () =>
   {
     const { container } = render(<HomePage />);
     const raiz = container.firstChild as HTMLElement;
 
     expect(raiz.innerHTML).toContain("animate-reveal-up");
+    expect(raiz.innerHTML).toContain('data-reveal="true"');
     expect(raiz.innerHTML).not.toContain("animate-shimmer");
   });
 });

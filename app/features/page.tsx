@@ -27,10 +27,17 @@ export default function FeaturesPage()
       <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold tracking-widest text-primary uppercase">Funciones</p>
-          <h1 className="animate-reveal-up mt-2 font-heading text-4xl font-extrabold tracking-tight text-navy">
+          <h1
+            data-reveal="true"
+            className="mt-2 font-heading text-4xl font-extrabold tracking-tight text-navy"
+          >
             {t("appName")}
           </h1>
-          <p className="animate-reveal-up mt-3 text-muted-foreground" style={{ animationDelay: "80ms" }}>
+          <p
+            data-reveal="true"
+            className="mt-3 text-muted-foreground"
+            style={{ animationDelay: "80ms" }}
+          >
             Todo lo que necesitás para organizar turnos, cobrar señas y reducir ausencias.
           </p>
         </div>
@@ -38,7 +45,8 @@ export default function FeaturesPage()
           {features.map(({ key, title, desc, Icon, tone }, index) => (
             <article
               key={key}
-              className="animate-reveal-up ui-card ui-card-hover p-6"
+              data-reveal="true"
+              className="ui-card ui-card-hover p-6"
               style={{ animationDelay: `${Math.min(index * 80, 320)}ms` }}
             >
               <span className={`inline-flex size-11 items-center justify-center rounded-full ${tone}`}>

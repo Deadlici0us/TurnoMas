@@ -118,7 +118,8 @@ export default function HomePage()
               {features.map(({ key, title, desc, Icon, tone }, index) => (
                 <article
                   key={key}
-                  className="animate-reveal-up ui-card ui-card-hover p-6"
+                  data-reveal="true"
+                  className="ui-card ui-card-hover p-6"
                   style={{ animationDelay: `${index * 70}ms` }}
                 >
                   <span className={`inline-flex size-11 items-center justify-center rounded-full ${tone}`}>
@@ -135,7 +136,7 @@ export default function HomePage()
         <LossCalculator />
 
         <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="animate-reveal-up ui-card p-6 text-center sm:p-10">
+          <div data-reveal="true" className="ui-card p-6 text-center sm:p-10">
             <p className="text-xs font-semibold tracking-widest text-primary uppercase">Precio simple</p>
             <h2 className="mt-2 font-heading text-3xl font-extrabold tracking-tight text-navy">
               {t("pricing.title")}

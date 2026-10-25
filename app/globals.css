@@ -301,6 +301,20 @@
   }
 }
 
+@media (scripting: enabled)
+{
+  [data-reveal="true"]:not([data-visible="true"])
+  {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+  }
+}
+
+[data-reveal="true"][data-visible="true"]
+{
+  animation: reveal-up 450ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce)
 {
   *,
@@ -310,6 +324,12 @@
     animation: none !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  [data-reveal="true"]:not([data-visible="true"])
+  {
+    opacity: 1;
+    transform: none;
   }
 }
 

@@ -128,7 +128,7 @@ export default function FormularioTurnoManual({
   }
 
   return (
-    <div className="animate-reveal-up ui-card space-y-8 p-5 sm:p-8">
+    <div data-reveal="true" className="ui-card space-y-8 p-5 sm:p-8">
       <div>
         <h2 className="font-heading text-xl font-bold text-navy">Cargá el turno en 4 pasos</h2>
         <p className="text-sm text-muted-foreground">

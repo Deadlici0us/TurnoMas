@@ -64,7 +64,7 @@ export default function OnboardingWizard()
 
   return (
     <div className="max-w-xl w-full px-8 py-12">
-      <div className="animate-reveal-up ui-card space-y-8 p-6 sm:p-8">
+      <div data-reveal="true" className="ui-card space-y-8 p-6 sm:p-8">
         <div className="text-center">
           <h1 className="ui-page-title">{t("onboarding.title")}</h1>
           <p className="ui-page-subtitle mx-auto">{t("onboarding.subtitle")}</p>

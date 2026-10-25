@@ -18,7 +18,7 @@ export default function AuthCard({ title, subtitle, error, children, footer }: A
   return (
     <div className="flex min-h-[calc(100vh-60px)] items-center justify-center bg-surface px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="animate-reveal-up ui-card space-y-6 p-6 sm:p-8">
+        <div data-reveal="true" className="ui-card space-y-6 p-6 sm:p-8">
           <div className="text-center">
             <h1 className="ui-page-title">{title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>

@@ -20,3 +20,20 @@ async ({ page }) =>
 
   await expect(page).toHaveURL(/\/login/);
 });
+
+test("las secciones se revelan al scrollear",
+async ({ page }) =>
+{
+  await page.goto("/");
+
+  const pricing = page.locator('[data-reveal="true"]')
+    .filter({ hasText: "Precios simples y transparentes" });
+
+  await expect(pricing).not.toHaveAttribute("data-visible", "true");
+  await expect(pricing).toHaveCSS("opacity", "0");
+
+  await pricing.scrollIntoViewIfNeeded();
+
+  await expect(pricing).toHaveAttribute("data-visible", "true");
+  await expect(pricing).toHaveCSS("opacity", "1");
+});

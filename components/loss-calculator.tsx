@@ -37,7 +37,7 @@ export default function LossCalculator()
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="animate-reveal-up ui-card p-6 sm:p-8">
+      <div data-reveal="true" className="ui-card p-6 sm:p-8">
         <h2 className="text-center font-heading text-2xl font-extrabold text-navy">
           {t("calculator.title")}
         </h2>

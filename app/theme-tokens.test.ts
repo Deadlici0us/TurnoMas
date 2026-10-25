@@ -43,6 +43,14 @@ describe("tokens del tema claro",
     expect(CSS).toMatch(/animation:\s*none/);
   });
 
+  it("debería revelar por scroll con fallback sin JavaScript",
+  () =>
+  {
+    expect(CSS).toContain('[data-reveal="true"]');
+    expect(CSS).toContain("@media (scripting: enabled)");
+    expect(CSS).toContain('[data-reveal="true"][data-visible="true"]');
+  });
+
   it("no debería conservar los efectos neón del tema anterior",
   () =>
   {

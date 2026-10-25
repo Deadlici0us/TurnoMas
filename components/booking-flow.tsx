@@ -394,7 +394,7 @@ export default function BookingFlow({ negocioNombre, negocioLogoUrl = null, nego
   }
 
   return (
-    <div className="animate-reveal-up ui-card space-y-8 p-5 sm:p-8">
+    <div data-reveal="true" className="ui-card space-y-8 p-5 sm:p-8">
       {renderEncabezado({ negocioNombre, negocioLogoUrl, negocioDescripcion })}
 
       <PasoProfesional staff={staff} staffId={staffId} onElegir={elegirProfesional} />
