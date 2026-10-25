@@ -21,7 +21,7 @@ describe("SiteHeaderNav",
   it("debería mostrar login y registro para invitados",
   () =>
   {
-    render(
+    const { container } = render(
       <SiteHeaderNav
         isAuthenticated={false}
         businessName={null}
@@ -34,6 +34,9 @@ describe("SiteHeaderNav",
     expect(screen.getByRole("link", { name: "Iniciar sesión" })).toBeDefined();
     expect(screen.getByRole("link", { name: "Registrarse" })).toBeDefined();
     expect(screen.queryByRole("button", { name: "Abrir menú de cuenta" })).toBeNull();
+    const logo = container.querySelector("img");
+    expect(logo).toHaveAttribute("alt", "");
+    expect(logo?.getAttribute("src")).toContain("logo-512");
   });
 
   it("debería mostrar el perfil para autenticados",

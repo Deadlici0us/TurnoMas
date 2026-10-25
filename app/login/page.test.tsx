@@ -88,4 +88,13 @@ describe("LoginPage",
 
     expect(screen.getByRole("link", { name: "auth.toRegister" })).toHaveAttribute("href", "/register");
   });
+
+  it("debería enlazar a las páginas legales",
+  async () =>
+  {
+    render(await LoginPage({ searchParams: params() }));
+
+    expect(screen.getByRole("link", { name: "footer.privacy" })).toHaveAttribute("href", "/privacidad");
+    expect(screen.getByRole("link", { name: "footer.terms" })).toHaveAttribute("href", "/terminos");
+  });
 });

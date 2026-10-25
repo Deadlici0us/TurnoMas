@@ -226,6 +226,14 @@ export default function HomePage()
           px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
           <span>{t("appName")}</span>
           <span>Reservas, señas y recordatorios en un solo lugar.</span>
+          <nav className="flex items-center gap-4" aria-label="Legal">
+            <Link href="/privacidad" className="transition-colors hover:text-primary">
+              {t("footer.privacy")}
+            </Link>
+            <Link href="/terminos" className="transition-colors hover:text-primary">
+              {t("footer.terms")}
+            </Link>
+          </nav>
         </footer>
       </main>
     </div>

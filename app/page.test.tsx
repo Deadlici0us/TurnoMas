@@ -47,6 +47,15 @@ describe("HomePage",
     expect(screen.getByRole("link", { name: "pricing.cta" })).toHaveAttribute("href", "/register");
   });
 
+  it("debería enlazar a las páginas legales",
+  () =>
+  {
+    render(<HomePage />);
+
+    expect(screen.getByRole("link", { name: "footer.privacy" })).toHaveAttribute("href", "/privacidad");
+    expect(screen.getByRole("link", { name: "footer.terms" })).toHaveAttribute("href", "/terminos");
+  });
+
   it("debería usar el fondo claro del sistema de diseño",
   () =>
   {

@@ -23,9 +23,16 @@ export const ADMIN_ROUTE = "/admin";
  * ni reautenticarse y quedaría atrapado en un bucle de redirección. `admin`
  * queda exenta para que el administrador de la plataforma pueda gestionar
  * promociones aunque su propio negocio esté bloqueado; la página valida
- * ADMIN_EMAIL por su cuenta.
+ * ADMIN_EMAIL por su cuenta. Las páginas legales también quedan accesibles
+ * para que cualquier persona pueda consultarlas.
  */
-const RUTAS_EXENTAS_BLOQUEO = ["/login", "/auth", ADMIN_ROUTE] as const;
+const RUTAS_EXENTAS_BLOQUEO = [
+  "/login",
+  "/auth",
+  ADMIN_ROUTE,
+  "/privacidad",
+  "/terminos",
+] as const;
 
 /** Foto de acceso resuelta para una request. */
 export interface AccessSnapshot

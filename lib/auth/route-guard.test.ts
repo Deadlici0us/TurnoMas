@@ -138,7 +138,7 @@ describe("isRutaAdquirirServicio / isRutaExentaBloqueo",
     expect(isRutaAdquirirServicio("/dashboard/suscripcion/extra")).toBe(false);
   });
 
-  it("debería marcar exentas adquisición, login y auth",
+  it("debería marcar exentas adquisición, login, auth y legales",
   () =>
   {
     expect(isRutaExentaBloqueo("/dashboard/suscripcion")).toBe(true);
@@ -147,6 +147,8 @@ describe("isRutaAdquirirServicio / isRutaExentaBloqueo",
     expect(isRutaExentaBloqueo("/auth/callback")).toBe(true);
     expect(isRutaExentaBloqueo("/admin")).toBe(true);
     expect(isRutaExentaBloqueo("/admin/promociones")).toBe(true);
+    expect(isRutaExentaBloqueo("/privacidad")).toBe(true);
+    expect(isRutaExentaBloqueo("/terminos")).toBe(true);
     expect(isRutaExentaBloqueo("/dashboard/agenda")).toBe(false);
   });
 });

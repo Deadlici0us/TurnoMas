@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "brand:assets": "node scripts/generate-brand-assets.mjs",
     "repomix": "repomix",
     "repomix:md": "repomix --style markdown",
     "repomix:stdout": "repomix --stdout"

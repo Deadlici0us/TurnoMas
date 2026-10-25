@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Mulish, Open_Sans } from "next/font/google";
 import Providers from "./providers";
 import SiteHeader from "@/components/site-header";
@@ -8,10 +8,32 @@ const openSans = Open_Sans({ variable: "--font-open-sans", subsets: ["latin"], d
 const mulish = Mulish({ variable: "--font-mulish", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], display: "swap" });
 
+const APP_TITLE = "TurnoMas - Reservas Inteligentes";
+const APP_DESCRIPTION = "Sistema B2B de reservas para profesionales independientes. " +
+  "Eliminá las inasistencias cobrando señas y automatizando notificaciones.";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://turnomas.com";
+
 export const metadata: Metadata = {
-  title: "TurnoMas - Reservas Inteligentes",
-  description:
-    "Sistema B2B de reservas para profesionales independientes. Eliminá las inasistencias cobrando señas y automatizando notificaciones.",
+  metadataBase: new URL(APP_URL),
+  applicationName: "TurnoMas",
+  title: APP_TITLE,
+  description: APP_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "TurnoMas",
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#06adef",
 };
 
 // El CSP con nonce por request (proxy) exige render dinámico: un HTML

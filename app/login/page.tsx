@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import AuthCard from "@/components/auth-card";
 import DemoCredentials from "@/components/demo-credentials";
+import LegalLinks from "@/components/legal-links";
 import SocialLoginButton from "@/components/social-login-button";
 import { getDemoCredentials } from "@/lib/auth/demo-credentials";
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
@@ -36,9 +37,15 @@ export default async function LoginPage({
       subtitle={t("auth.loginSubtitle")}
       error={errorKey !== null ? t(errorKey) : null}
       footer={(
-        <Link href="/register" className="block ui-link">
-          {t("auth.toRegister")}
-        </Link>
+        <div className="space-y-2">
+          <Link href="/register" className="block ui-link">
+            {t("auth.toRegister")}
+          </Link>
+          <LegalLinks
+            privacyLabel={t("footer.privacy")}
+            termsLabel={t("footer.terms")}
+          />
+        </div>
       )}
     >
       {showSocialLogin && (

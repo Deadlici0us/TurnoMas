@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
 
 import ProfileMenu from "@/components/profile-menu";
 
@@ -41,9 +41,14 @@ export default function SiteHeaderNav(props: SiteHeaderNavProps)
           href={props.isAuthenticated ? "/dashboard" : "/"}
           className="flex items-center gap-2.5 text-navy"
         >
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary text-white">
-            <CalendarClock className="size-4" aria-hidden="true" />
-          </span>
+          <Image
+            src="/brand/logo-512.png"
+            alt=""
+            width={32}
+            height={32}
+            priority
+            className="size-8 shrink-0 rounded-lg"
+          />
           <span className="font-heading text-lg font-extrabold tracking-tight">{props.appName}</span>
         </Link>
         <div className="flex items-center gap-3 text-sm">

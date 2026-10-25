@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import AuthCard from "@/components/auth-card";
+import LegalLinks from "@/components/legal-links";
 import SocialLoginButton from "@/components/social-login-button";
 import { resolveAuthMode } from "@/lib/auth/auth-mode";
 import { register } from "./actions";
@@ -35,9 +36,15 @@ export default async function RegisterPage({
       subtitle={t("auth.registerSubtitle")}
       error={isErrorParam(error) ? t(ERROR_KEYS[error]) : null}
       footer={(
-        <Link href="/login" className="ui-link">
-          {t("auth.toLogin")}
-        </Link>
+        <div className="space-y-2">
+          <Link href="/login" className="ui-link">
+            {t("auth.toLogin")}
+          </Link>
+          <LegalLinks
+            privacyLabel={t("footer.privacy")}
+            termsLabel={t("footer.terms")}
+          />
+        </div>
       )}
     >
       {showSocialLogin && (

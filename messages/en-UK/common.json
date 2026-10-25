@@ -4,7 +4,7 @@
   "auth": {
     "continueWithGoogle": "Continue with Google",
     "googleTitle": "Continue with Google (recommended)",
-    "googleHint": "Faster, no password. You connect Google Calendar later in onboarding",
+    "googleHint": "You will see a Supabase domain, our authentication provider. You will return to TurnoMas automatically",
     "useEmailInstead": "or use email and password",
     "orSeparator": "or",
     "oauthError": "We couldn't sign you in with Google. Try again",
