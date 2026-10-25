@@ -174,6 +174,17 @@ tengan datos de la demo legada. **No ejecutarlo en una base nueva.**
 - Callback OAuth de señas:
   `<app>/api/integrations/mercadopago/callback`.
 
+### Google Sign-In
+
+- Usar un OAuth client de tipo **Web application**.
+- Agregar `https://turnomas.com` y `http://localhost:3000` en
+  **Authorized JavaScript origins**.
+- Configurar en Supabase Auth el mismo Client ID y su Client Secret.
+- Data Access: solo `openid`, `userinfo.email` y `userinfo.profile`.
+- La app toma `GOOGLE_CLIENT_ID` en el servidor o
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` en el cliente y no solicita scopes de Google
+  APIs.
+
 ### Crons con QStash
 
 Programar llamadas `POST` a:
