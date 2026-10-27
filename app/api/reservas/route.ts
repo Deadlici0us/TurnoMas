@@ -83,7 +83,7 @@ async function resolverOferta(
   staffId: string,
   servicioId: string,
 ): Promise<{
-  readonly negocio: { readonly id: string; readonly nombre: string };
+  readonly negocio: { readonly id: string; readonly nombre: string; readonly logo_url?: string | null };
   readonly negocioId: string;
   readonly staff: unknown;
   readonly servicio: unknown;
@@ -91,7 +91,7 @@ async function resolverOferta(
 {
   const supabase = await getSupabaseServer();
   const { data: negocio, error: negocioError } = await supabase.from("portal_negocios")
-    .select("id, nombre, pais, slug").eq("pais", pais).eq("slug", slug).single();
+    .select("id, nombre, pais, slug, logo_url").eq("pais", pais).eq("slug", slug).single();
 
   if (negocioError !== null)
   {
@@ -132,7 +132,12 @@ async function resolverOferta(
       { status: 404 });
   }
 
-  return { negocio: negocio as { readonly id: string; readonly nombre: string }, negocioId, staff, servicio };
+  return {
+    negocio: negocio as { readonly id: string; readonly nombre: string; readonly logo_url?: string | null },
+    negocioId,
+    staff,
+    servicio,
+  };
 }
 
 /**
@@ -477,6 +482,7 @@ async function handlePOST(request: Request)
       const resultadoEmail = await sincronizarTurnoConfirmado({
         negocioId,
         negocioNombre: negocio.nombre as string,
+        negocioLogoUrl: negocio.logo_url ?? null,
         servicioNombre,
         staffNombre,
         clienteId,
@@ -509,6 +515,7 @@ async function handlePOST(request: Request)
     const resultadoEmail = await enviarEmailReservaPendiente({
       negocioId,
       negocioNombre: negocio.nombre as string,
+      negocioLogoUrl: negocio.logo_url ?? null,
       servicioNombre,
       staffNombre,
       clienteId,

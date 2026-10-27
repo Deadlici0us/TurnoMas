@@ -33,6 +33,7 @@ export interface SincronizarTurnoConfirmadoParams
 {
   readonly negocioId: string;
   readonly negocioNombre: string;
+  readonly negocioLogoUrl?: string | null;
   readonly servicioNombre: string;
   readonly staffNombre: string;
   readonly clienteId: string;
@@ -50,6 +51,7 @@ export interface DatosEmailConfirmacion
 {
   readonly negocioId: string;
   readonly negocioNombre: string;
+  readonly negocioLogoUrl?: string | null;
   readonly servicioNombre: string;
   readonly staffNombre: string;
   readonly clienteId: string;
@@ -133,6 +135,7 @@ export async function enviarEmailConfirmacion(
       servicio: params.servicioNombre,
       profesional: params.staffNombre,
       fecha: formatearFechaEnZona(params.inicio, params.timeZone),
+      logoUrl: params.negocioLogoUrl ?? null,
     };
     const plantilla = resolverPlantilla("confirmacion", {
       subject: params.plantillaSubject,
@@ -180,6 +183,7 @@ export async function sincronizarTurnoConfirmado(
   return enviarEmailConfirmacion({
     negocioId: params.negocioId,
     negocioNombre: params.negocioNombre,
+    negocioLogoUrl: params.negocioLogoUrl,
     servicioNombre: params.servicioNombre,
     staffNombre: params.staffNombre,
     clienteId: params.clienteId,
@@ -199,6 +203,7 @@ export interface EnviarReservaPendienteParams
 {
   readonly negocioId: string;
   readonly negocioNombre: string;
+  readonly negocioLogoUrl?: string | null;
   readonly servicioNombre: string;
   readonly staffNombre: string;
   readonly clienteId: string;
@@ -225,6 +230,7 @@ export async function enviarEmailReservaPendiente(
   return enviarEmailConfirmacion({
     negocioId: params.negocioId,
     negocioNombre: params.negocioNombre,
+    negocioLogoUrl: params.negocioLogoUrl,
     servicioNombre: params.servicioNombre,
     staffNombre: params.staffNombre,
     clienteId: params.clienteId,

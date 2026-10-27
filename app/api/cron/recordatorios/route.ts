@@ -35,7 +35,7 @@ interface TurnoCandidato
   readonly inicio: string;
   readonly notificacion_enviada: boolean;
   readonly negocio: {
-    nombre: string; timezone?: unknown; pais?: unknown;
+    nombre: string; timezone?: unknown; pais?: unknown; logo_url?: string | null;
     recordatorio_activo?: boolean | null; recordatorio_hs?: number | null;
     msg_recordatorio_subject?: string | null; msg_recordatorio_cuerpo?: string | null;
   } | null;
@@ -75,6 +75,7 @@ async function enviarRecordatorio(
     servicio: turno.servicio?.nombre ?? "tu servicio",
     profesional: turno.staff?.nombre ?? "tu profesional",
     fecha: formatearFechaEnZona(new Date(turno.inicio), timeZone),
+    logoUrl: turno.negocio?.logo_url ?? null,
   };
 
   let cancelacionUrl = "";
@@ -149,7 +150,7 @@ async function handlePOST(request: Request)
   const ventanaMax = new Date(ahora.getTime() + 72 * 3_600_000).toISOString();
   const { data } = await admin.from("turnos")
     .select("id, cliente_id, inicio, notificacion_enviada," +
-      " negocio:negocios(nombre, timezone, pais, recordatorio_activo, recordatorio_hs," +
+      " negocio:negocios(nombre, logo_url, timezone, pais, recordatorio_activo, recordatorio_hs," +
       " msg_recordatorio_subject, msg_recordatorio_cuerpo)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email, nombre)")
     .in("estado", ["pagado", "confirmado"]).eq("notificacion_enviada", false)

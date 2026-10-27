@@ -222,6 +222,12 @@ describe("solicitarEliminacionNegocio",
       to: "dueno@ejemplo.com",
       fromName: "TurnoMas",
     }));
+
+    const payload = mockEmailSend.mock.calls[0]?.[0] as { html: string };
+
+    expect(payload.html).toContain("<!DOCTYPE html>");
+    expect(payload.html).toContain("max-width:600px");
+    expect(payload.html).toContain("Barbería");
   });
 
   it("debería exigir email de sesión",

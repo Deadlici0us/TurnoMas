@@ -20,6 +20,7 @@ interface NegocioManual
 {
   readonly id: string;
   readonly nombre: string;
+  readonly logoUrl: string | null;
   readonly timeZone: string;
   readonly msg_confirmacion_subject: unknown;
   readonly msg_confirmacion_cuerpo: unknown;
@@ -51,10 +52,10 @@ async function cargarNegocio(
 ): Promise<NegocioManual>
 {
   const { data } = await admin.from("negocios")
-    .select("id, nombre, timezone, pais, msg_confirmacion_subject, msg_confirmacion_cuerpo")
+    .select("id, nombre, logo_url, timezone, pais, msg_confirmacion_subject, msg_confirmacion_cuerpo")
     .eq("id", negocioId).single();
   const row = data as {
-    id?: unknown; nombre?: unknown; timezone?: unknown; pais?: unknown;
+    id?: unknown; nombre?: unknown; logo_url?: unknown; timezone?: unknown; pais?: unknown;
     msg_confirmacion_subject?: unknown; msg_confirmacion_cuerpo?: unknown;
   } | null;
 
@@ -66,6 +67,7 @@ async function cargarNegocio(
   return {
     id: row.id,
     nombre: typeof row.nombre === "string" ? row.nombre : "tu negocio",
+    logoUrl: typeof row.logo_url === "string" ? row.logo_url : null,
     timeZone: resolverTimezoneNegocio({ timezone: row.timezone, pais: row.pais }),
     msg_confirmacion_subject: row.msg_confirmacion_subject ?? null,
     msg_confirmacion_cuerpo: row.msg_confirmacion_cuerpo ?? null,
@@ -270,6 +272,7 @@ export async function crearTurnoManual(formData: FormData): Promise<string>
   await sincronizarTurnoConfirmado({
     negocioId,
     negocioNombre: negocio.nombre,
+    negocioLogoUrl: negocio.logoUrl,
     servicioNombre: servicio.nombre,
     staffNombre,
     clienteId,

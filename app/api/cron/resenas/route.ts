@@ -33,6 +33,7 @@ interface TurnoCandidato
   readonly resena_pedida: boolean;
   readonly negocio: {
     nombre: string;
+    logo_url?: string | null;
     resena_activa?: boolean | null; resena_hs?: number | null;
     msg_resena_subject?: string | null; msg_resena_cuerpo?: string | null;
     google_maps_url?: string | null; google_place_id?: string | null;
@@ -84,7 +85,7 @@ async function handlePOST(request: Request)
   const ahora = new Date();
   const { data } = await admin.from("turnos")
     .select("id, inicio, fin, resena_pedida," +
-      " negocio:negocios(nombre, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo," +
+      " negocio:negocios(nombre, logo_url, resena_activa, resena_hs, msg_resena_subject, msg_resena_cuerpo," +
       " google_maps_url, google_place_id)," +
       " servicio:servicios(nombre), staff:staff(nombre), cliente:clientes(email, nombre)")
     .eq("estado", "completado").eq("resena_pedida", false)
@@ -111,6 +112,7 @@ async function handlePOST(request: Request)
         servicio: turno.servicio?.nombre ?? "tu servicio",
         profesional: turno.staff?.nombre ?? "tu profesional",
         fecha: "",
+        logoUrl: turno.negocio?.logo_url ?? null,
       };
       const feedbackUrl = `${base}/resena/${turno.id}`;
       const reviewUrl = googleReviewUrl(

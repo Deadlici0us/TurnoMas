@@ -7,6 +7,7 @@
  * queda vacío, se usa el default compartido de `templates.ts`.
  */
 
+import { escapeHtml, renderEmailParagraph } from "./email-layout";
 import
 {
   datosPlantilla,
@@ -15,6 +16,7 @@ import
   interpolarVariables,
   parrafosVisibles,
   plantillaCancelacion,
+  renderizarCuerpoEmail,
   renderizarDefecto,
   textoDefault,
   VARIABLES_PLANTILLA,
@@ -74,11 +76,6 @@ function sinSaltos(texto: string): string
   return texto.replace(/[\r\n]+/g, " ").trim();
 }
 
-function escapeHtml(valor: string): string
-{
-  return valor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 /** Opciones para resolver una plantilla. */
 export interface OpcionesResolverPlantilla
 {
@@ -126,15 +123,20 @@ export function resolverPlantilla(
 
   const vars = datosPlantilla(tipo, datos, enlaces);
   const titulo = subject !== null ? sinSaltos(interpolarVariables(subject, vars)) : datos.negocio;
-  const parrafos = cuerpo !== null
-    ? interpolarVariables(cuerpo, vars).split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0)
-    : [];
   const detalleDefecto = `${datos.servicio} con ${datos.profesional} · ${datos.fecha}`;
-  const cuerpoHtml = parrafos.length > 0
-    ? parrafos.map((p) => `<p>${escapeHtml(p)}</p>`).join("")
-    : `<p>${escapeHtml(detalleDefecto)}</p>`;
+  const contenido = cuerpo !== null
+    ? renderizarCuerpoEmail(tipo, cuerpo, vars, enlaces)
+    : { html: renderEmailParagraph(escapeHtml(detalleDefecto)), actions: [] };
 
-  return { subject: titulo, html: envolverCuerpo(titulo, cuerpoHtml) };
+  return {
+    subject: titulo,
+    html: envolverCuerpo(titulo, contenido.html, {
+      negocio: datos.negocio,
+      logoUrl: datos.logoUrl,
+      actions: contenido.actions,
+      preheader: titulo,
+    }),
+  };
 }
 
 /** Valida la URL de Google Maps del negocio (vacia = sin configurar). */

@@ -100,6 +100,42 @@ describe("plantillaResena",
   });
 });
 
+describe("layout compartido",() =>
+{
+  it("debería usar el mismo shell de marca y el logo del negocio en todos los emails",
+  () =>
+  {
+    const logoUrl = "https://cdn.turnomas.com/logos/barberia.jpg";
+    const emails = [
+      plantillaConfirmacion({ ...base, logoUrl }),
+      plantillaRecordatorio({ ...base, logoUrl, cancelacionUrl: "https://app/cancelar/t-1" }),
+      plantillaRemarketing({ ...base, logoUrl, portalUrl: "https://app/ar/barberia" }),
+      plantillaResena({
+        ...base,
+        logoUrl,
+        googleReviewUrl: "https://search.google.com/local/writereview?placeid=ChIJ1",
+        feedbackUrl: "https://app/resena/1",
+      }),
+      plantillaCancelacion({
+        ...base,
+        logoUrl,
+        cancelacionUrl: "https://app/cancelar/t-1",
+        seDevuelve: true,
+        retencionHs: 72,
+      }),
+    ];
+
+    for (const email of emails)
+    {
+      expect(email.html).toContain("<!DOCTYPE html>");
+      expect(email.html).toContain("max-width:600px");
+      expect(email.html).toContain(logoUrl);
+      expect(email.html).toContain("Enviado por TurnoMas");
+      expect(email.html).toContain("background-color:#0b3052");
+    }
+  });
+});
+
 describe("plantillaCancelacion",
 () =>
 {

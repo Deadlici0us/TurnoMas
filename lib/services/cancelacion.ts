@@ -443,7 +443,7 @@ async function notificarCancelacion(
     const [{ data: cliente }, { data: contexto }] = await Promise.all([
       admin.from("clientes").select("email, nombre").eq("id", turno.cliente_id).single(),
       admin.from("turnos")
-        .select("negocio:negocios(nombre, timezone, pais), servicio:servicios(nombre)," +
+        .select("negocio:negocios(nombre, logo_url, timezone, pais), servicio:servicios(nombre)," +
           " staff:staff(nombre)")
         .eq("id", turno.id).single(),
     ]);
@@ -455,7 +455,7 @@ async function notificarCancelacion(
     }
 
     const fila = contexto as unknown as {
-      negocio: { nombre?: string; timezone?: unknown; pais?: unknown } | null;
+      negocio: { nombre?: string; logo_url?: string | null; timezone?: unknown; pais?: unknown } | null;
       servicio: { nombre?: string } | null;
       staff: { nombre?: string } | null;
     } | null;
@@ -471,6 +471,7 @@ async function notificarCancelacion(
         ? (cliente as { nombre: string }).nombre
         : "cliente",
       negocio: fila?.negocio?.nombre ?? "tu negocio",
+      logoUrl: fila?.negocio?.logo_url ?? null,
       servicio: fila?.servicio?.nombre ?? "tu servicio",
       profesional: fila?.staff?.nombre ?? "tu profesional",
       fecha: Number.isNaN(inicio.getTime()) ? turno.inicio : formatearEnZona(inicio, timeZone),

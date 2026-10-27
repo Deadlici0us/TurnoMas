@@ -30,6 +30,7 @@ import { RECORDATORIO_MAX_HS, RECORDATORIO_MIN_HS } from "@/lib/automations/reco
 import { RESENA_MAX_HS, RESENA_MIN_HS } from "@/lib/automations/resenas";
 import { normalizarTextoPlantilla, validarGoogleMapsUrl, validarGooglePlaceId } from "@/lib/notifications/custom-templates";
 import type { TipoPlantillaConfigurable } from "@/lib/notifications/custom-templates";
+import { EMAIL_THEME, renderEmailLayout, renderEmailParagraph } from "@/lib/notifications/email-layout";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { AuthError } from "@/lib/errors/auth-error";
@@ -643,11 +644,6 @@ function secretoEliminacion(): string
   return secreto;
 }
 
-function escapeHtmlEliminacion(valor: string): string
-{
-  return valor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 /**
  * Envía el código de 6 dígitos al email del dueño para borrar el negocio.
  *
@@ -667,10 +663,11 @@ export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacio
 
   const admin = getSupabaseAdmin();
   const negocioId = await getNegocioIdDelDueno(admin, user.id);
-  const { data: negocio } = await admin.from("negocios").select("nombre").eq("id", negocioId).single();
-  const nombre = typeof (negocio as { nombre?: unknown } | null)?.nombre === "string"
-    ? (negocio as { nombre: string }).nombre
-    : "tu negocio";
+  const { data: negocio } = await admin.from("negocios").select("nombre, logo_url")
+    .eq("id", negocioId).single();
+  const fila = negocio as { nombre?: unknown; logo_url?: unknown } | null;
+  const nombre = typeof fila?.nombre === "string" ? fila.nombre : "tu negocio";
+  const logoUrl = typeof fila?.logo_url === "string" ? fila.logo_url : null;
 
   const codigo = generarCodigoEliminacion();
   const token = firmarTokenEliminacion({
@@ -680,17 +677,29 @@ export async function solicitarEliminacionNegocio(): Promise<SolicitudEliminacio
     exp: Date.now() + MINUTOS_VIGENCIA_CODIGO * 60_000,
   }, secretoEliminacion());
 
+  const subject = `Confirmá la eliminación de ${nombre} (${codigo})`;
+  const codigoHtml = `<div style="margin:18px 0;padding:16px;border-radius:12px;` +
+    `background-color:${EMAIL_THEME.background};border:1px solid ${EMAIL_THEME.border};` +
+    `text-align:center;font-family:${EMAIL_THEME.fontFamily};font-size:28px;font-weight:700;` +
+    `letter-spacing:6px;color:${EMAIL_THEME.heading};">${codigo}</div>`;
+  const cuerpoHtml = renderEmailParagraph("Tu código de confirmación es:") + codigoHtml +
+    renderEmailParagraph(`Vence en ${MINUTOS_VIGENCIA_CODIGO} minutos.`) +
+    renderEmailParagraph("Ingresalo en el panel junto con la palabra ELIMINAR. " +
+      "Esto borra turnos, clientes, servicios, staff e integraciones. No se puede deshacer.") +
+    `<p style="margin:0;font-family:${EMAIL_THEME.fontFamily};font-size:12px;line-height:1.5;` +
+    `color:${EMAIL_THEME.muted};text-align:center;">Si no pediste esto, ignorá este email.</p>`;
+
   await new ResendAdapter().send({
     to: email,
-    subject: `Confirmá la eliminación de ${nombre} (${codigo})`,
+    subject,
     fromName: "TurnoMas",
-    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">` +
-      `<h2>Confirmá la eliminación de ${escapeHtmlEliminacion(nombre)}</h2>` +
-      `<p>Tu código es <strong style="font-size:24px;letter-spacing:4px">${codigo}</strong> ` +
-      `y vence en ${MINUTOS_VIGENCIA_CODIGO} minutos.</p>` +
-      `<p>Ingresalo en el panel junto con la palabra ELIMINAR. ` +
-      `Esto borra turnos, clientes, servicios, staff e integraciones. No se puede deshacer.</p>` +
-      `<p style="color:#64748b;font-size:12px">Si no pediste esto, ignorá este email.</p></div>`,
+    html: renderEmailLayout({
+      title: `Confirmá la eliminación de ${nombre}`,
+      preheader: subject,
+      bodyHtml: cuerpoHtml,
+      businessName: nombre,
+      logoUrl,
+    }),
   });
 
   return { token, emailEnmascarado: enmascararEmail(email) };

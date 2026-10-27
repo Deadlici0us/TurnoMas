@@ -71,8 +71,38 @@ describe("defaults de mensajes",
 
           for (const linea of lineas(ejemplo.cuerpo))
           {
-            expect(visible).toContain(interpolar(linea));
+            const link = linea.match(/\{link(?:_[a-z]+)?\}/)?.[0] ?? null;
+            const texto = link !== null
+              ? linea.replace(link, "").replace(/[:\s]+$/g, "").trim()
+              : linea;
+
+            if (texto.length > 0)
+            {
+              if (texto.includes("Contanos en privado"))
+              {
+                expect(visible).toContain(interpolar(texto.replace(/\s*Contanos en privado\.?/i, "").trim()));
+                expect(email.html).toContain("Contanos en privado");
+              }
+              else
+              {
+                expect(visible).toContain(interpolar(texto));
+              }
+            }
+
+            if (link !== null)
+            {
+              const url = interpolar(linea).match(/https?:\/\/\S+/)?.[0];
+
+              if (url !== undefined)
+              {
+                expect(email.html).toContain(url);
+              }
+            }
           }
+
+          expect(email.html).toContain("<!DOCTYPE html>");
+          expect(email.html).toContain("max-width:600px");
+          expect(email.html).toContain(DATOS.negocio);
 
           continue;
         }

@@ -77,6 +77,23 @@ describe("sincronizarTurnoConfirmado",
     expect(mockEmailSend).toHaveBeenCalledTimes(1);
   });
 
+  it("debería incluir el logo del negocio en el email",
+  async () =>
+  {
+    mockEmailSend.mockResolvedValueOnce("email-1");
+
+    await sincronizarTurnoConfirmado({
+      ...PARAMS_BASE,
+      negocioLogoUrl: "https://cdn.turnomas.com/logos/barberia.jpg",
+    });
+
+    const payload = mockEmailSend.mock.calls[0]?.[0] as { html: string };
+
+    expect(payload.html).toContain("https://cdn.turnomas.com/logos/barberia.jpg");
+    expect(payload.html).toContain("<!DOCTYPE html>");
+    expect(payload.html).toContain("max-width:600px");
+  });
+
   it("debería usar el asunto default cuando no hay plantilla propia",
   async () =>
   {
@@ -104,7 +121,8 @@ describe("sincronizarTurnoConfirmado",
     const payload = mockEmailSend.mock.calls[0]?.[0] as { subject: string; html: string };
 
     expect(payload.subject).toBe("Tu reserva en Barbería está casi lista");
-    expect(payload.html).toContain("Pagá tu seña acá:");
+    expect(payload.html).toContain("Pagá tu seña acá");
+    expect(payload.html).toContain("Pagar seña");
     expect(payload.html).toContain("https://mp.turnomas.com/pagar/t-1");
   });
 

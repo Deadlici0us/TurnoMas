@@ -9,6 +9,16 @@
  * html o texto plano. El envío vive en `IEmailProvider`.
  */
 
+import
+{
+  EMAIL_THEME,
+  escapeHtml,
+  renderEmailLayout,
+  renderEmailParagraph,
+  type EmailAction,
+  type EmailActionVariant,
+} from "./email-layout";
+
 /** Tipos de mensaje del producto. */
 export type TipoPlantilla = "confirmacion" | "recordatorio" | "resena" | "remarketing" | "cancelacion";
 
@@ -37,6 +47,8 @@ export interface DatosTurno
   readonly servicio: string;
   readonly profesional: string;
   readonly fecha: string;
+  /** Logo público del negocio (se valida y se usa con fallback TurnoMas). */
+  readonly logoUrl?: string | null;
 }
 
 export interface TextoPlantillaDefault
@@ -253,7 +265,13 @@ export function textoDefault(
 ): TextoPlantillaDefault
 {
   const definicion = definicionDefecto(tipo, opciones.canal ?? "email", opciones.variante);
-  const variables: Record<string, string> = { ...input };
+  const variables: Record<string, string> = {
+    cliente: input.cliente,
+    negocio: input.negocio,
+    servicio: input.servicio,
+    profesional: input.profesional,
+    fecha: input.fecha,
+  };
 
   return {
     subject: interpolarVariables(definicion.subject, variables),
@@ -261,28 +279,114 @@ export function textoDefault(
   };
 }
 
-function escapeHtml(valor: string): string
+/** Opciones adicionales del layout al envolver un cuerpo. */
+export interface OpcionesLayoutEmail
 {
-  return valor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  readonly negocio?: string;
+  readonly logoUrl?: string | null;
+  readonly actions?: readonly EmailAction[];
+  readonly preheader?: string;
+}
+
+/** Cuerpo renderizado con sus acciones separadas del texto. */
+export interface CuerpoEmailRenderizado
+{
+  readonly html: string;
+  readonly actions: readonly EmailAction[];
+}
+
+const ETIQUETAS_ACCION: Readonly<Record<string, string>> =
+{
+  link_pago: "Pagar seña",
+  link_cancelacion: "Cancelar turno",
+  link_resena: "Dejar mi reseña",
+  link_reserva: "Reservar de nuevo",
+};
+
+/**
+ * Resuelve la etiqueta visible del botón para un comodín de link.
+ *
+ * @param clave Nombre del comodín sin llaves.
+ * @param tipo Tipo de plantilla.
+ * @return Etiqueta en es-AR.
+ */
+function etiquetaAccion(clave: string, tipo: TipoPlantilla): string
+{
+  if (clave === "link")
+  {
+    if (tipo === "remarketing")
+    {
+      return "Reservar de nuevo";
+    }
+
+    if (tipo === "resena")
+    {
+      return "Dejar mi reseña";
+    }
+
+    return "Cancelar turno";
+  }
+
+  return ETIQUETAS_ACCION[clave] ?? "Continuar";
+}
+
+/**
+ * Define si el botón es principal o secundario según la acción.
+ *
+ * @param clave Nombre del comodín sin llaves.
+ * @param tipo Tipo de plantilla.
+ * @return Variante visual.
+ */
+function varianteAccion(clave: string, tipo: TipoPlantilla): EmailActionVariant
+{
+  if (clave === "link_cancelacion")
+  {
+    return "secondary";
+  }
+
+  if (clave === "link" && tipo !== "remarketing" && tipo !== "resena")
+  {
+    return "secondary";
+  }
+
+  return "primary";
 }
 
 /** Convierte URLs visibles en links sin cambiar el texto que ve el cliente. */
 function linkificar(textoEscapado: string): string
 {
   return textoEscapado.replace(/(https?:\/\/[^\s<]+)/g, (url) =>
-    `<a href="${url.replace(/"/g, "&quot;")}">${url}</a>`);
+    `<a href="${url}" style="color:${EMAIL_THEME.primary};text-decoration:underline;">${url}</a>`);
 }
 
-/** Envuelve el cuerpo en el layout clásico de TurnoMas. */
-export function envolverCuerpo(titulo: string, cuerpoHtml: string): string
+/**
+ * Envuelve el cuerpo en el layout compartido de TurnoMas.
+ *
+ * @param titulo Título visible del email.
+ * @param cuerpoHtml Cuerpo ya renderizado.
+ * @param opciones Negocio, logo, acciones y preheader.
+ * @return Documento HTML listo para enviar.
+ */
+export function envolverCuerpo(
+  titulo: string,
+  cuerpoHtml: string,
+  opciones: OpcionesLayoutEmail = {},
+): string
 {
-  return `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">` +
-    `<h2>${escapeHtml(titulo)}</h2>${cuerpoHtml}` +
-    `<p style="color:#64748b;font-size:12px">Enviado por TurnoMas</p></div>`;
+  return renderEmailLayout({
+    title: titulo,
+    bodyHtml: cuerpoHtml,
+    businessName: opciones.negocio ?? "TurnoMas",
+    logoUrl: opciones.logoUrl,
+    actions: opciones.actions,
+    preheader: opciones.preheader,
+  });
 }
 
 /**
  * Separa un cuerpo en párrafos visibles, descartando líneas cuyo link no exista.
+ *
+ * Se conserva para el texto plano de WhatsApp, donde los links no son botones.
  *
  * @param texto Cuerpo con comodines.
  * @param variables Mapa de comodines a valores ya resueltos.
@@ -306,6 +410,112 @@ export function parrafosVisibles(texto: string, variables: Record<string, string
 }
 
 /**
+ * Renderiza un cuerpo con links y convierte los links sueltos en botones.
+ *
+ * Una línea con un único comodín de link genera el párrafo sin la URL y una
+ * acción; así el email no muestra la URL dos veces. Si el link falta, la línea
+ * se omite (mismo comportamiento que el texto de WhatsApp).
+ *
+ * @param tipo Tipo de plantilla.
+ * @param texto Cuerpo con comodines.
+ * @param variables Mapa de comodines a valores ya resueltos.
+ * @param enlaces Links disponibles (para el feedback privado de reseñas).
+ * @return HTML de párrafos y acciones.
+ */
+export function renderizarCuerpoEmail(
+  tipo: TipoPlantilla,
+  texto: string,
+  variables: Record<string, string>,
+  enlaces: EnlacesPlantilla = {},
+): CuerpoEmailRenderizado
+{
+  const parrafos: string[] = [];
+  const actions: EmailAction[] = [];
+
+  const agregarAccion = (accion: EmailAction): void =>
+  {
+    if (!actions.some((existente) => existente.href === accion.href && existente.label === accion.label))
+    {
+      actions.push(accion);
+    }
+  };
+
+  for (const lineaCruda of texto.split(/\n+/))
+  {
+    const linea = lineaCruda.trim();
+
+    if (linea.length === 0)
+    {
+      continue;
+    }
+
+    const links = linea.match(/\{link(?:_[a-z]+)?\}/g) ?? [];
+
+    if (links.length > 1)
+    {
+      const faltante = links.some((marca) => (variables[marca.slice(1, -1)] ?? "").trim().length === 0);
+
+      if (!faltante)
+      {
+        parrafos.push(linkificar(escapeHtml(interpolarVariables(linea, variables))));
+      }
+
+      continue;
+    }
+
+    if (links.length === 1)
+    {
+      const marca = links[0] as string;
+      const clave = marca.slice(1, -1);
+      const href = (variables[clave] ?? "").trim();
+
+      if (href.length === 0)
+      {
+        continue;
+      }
+
+      const textoPlano = linea.replace(marca, "").replace(/[:\s]+$/g, "").trim();
+
+      if (textoPlano.length > 0)
+      {
+        parrafos.push(linkificar(escapeHtml(interpolarVariables(textoPlano, variables))));
+      }
+
+      agregarAccion({
+        href,
+        label: etiquetaAccion(clave, tipo),
+        variant: varianteAccion(clave, tipo),
+      });
+
+      continue;
+    }
+
+    let lineaInterpolada = interpolarVariables(linea, variables);
+    const opinionPrivada = (enlaces.opinionPrivada ?? "").trim();
+
+    if (tipo === "resena" && opinionPrivada.length > 0 && /\bContanos en privado\b/i.test(lineaInterpolada))
+    {
+      lineaInterpolada = lineaInterpolada.replace(/\s*Contanos en privado\.?/i, "").trim();
+      agregarAccion({
+        href: opinionPrivada,
+        label: "Contanos en privado",
+        variant: "secondary",
+      });
+    }
+
+    if (lineaInterpolada.length > 0)
+    {
+      parrafos.push(linkificar(escapeHtml(lineaInterpolada)));
+    }
+  }
+
+  return {
+    html: parrafos.map(renderEmailParagraph).join(""),
+    actions,
+  };
+}
+
+/**
  * Renderiza el default de email de un tipo, canal y variante.
  *
  * @param tipo Tipo de mensaje (sin cancelación, que tiene texto dinámico).
@@ -324,16 +534,17 @@ export function renderizarDefecto(
   const definicion = definicionDefecto(tipo, opciones.canal ?? "email", opciones.variante);
   const variables = datosPlantilla(tipo, datos, enlaces);
   const subject = interpolarVariables(definicion.subject, variables);
-  const parrafos = parrafosVisibles(definicion.cuerpo, variables);
-  let cuerpoHtml = parrafos.map((parrafo) => `<p>${linkificar(escapeHtml(parrafo))}</p>`).join("");
+  const cuerpo = renderizarCuerpoEmail(tipo, definicion.cuerpo, variables, enlaces);
 
-  if (tipo === "resena" && (enlaces.opinionPrivada ?? "").trim().length > 0)
-  {
-    const href = escapeHtml(enlaces.opinionPrivada as string).replace(/"/g, "&quot;");
-    cuerpoHtml = cuerpoHtml.replace("Contanos en privado", `<a href="${href}">Contanos en privado</a>`);
-  }
-
-  return { subject, html: envolverCuerpo(subject, cuerpoHtml) };
+  return {
+    subject,
+    html: envolverCuerpo(subject, cuerpo.html, {
+      negocio: datos.negocio,
+      logoUrl: datos.logoUrl,
+      actions: cuerpo.actions,
+      preheader: subject,
+    }),
+  };
 }
 
 /** Confirmación de reserva sin seña. */
@@ -375,14 +586,23 @@ export interface DatosCancelacion extends DatosTurno
 /** Confirmación de cancelación del cliente (devuelta o retenida). */
 export function plantillaCancelacion(input: DatosCancelacion): EmailTemplate
 {
+  const subject = `Cancelaste tu turno en ${input.negocio}`;
   const destino = input.seDevuelve
     ? "Tu seña vuelve a tu cuenta en los próximos días."
     : `Al cancelar dentro de las ${input.retencionHs}hs previas, la seña queda retenida.`;
-  const html = envolverCuerpo(`Cancelaste tu turno en ${input.negocio}`,
-    `<p>Hola ${escapeHtml(input.cliente)}, cancelamos tu <strong>${escapeHtml(input.servicio)}</strong> ` +
-    `con ${escapeHtml(input.profesional)} del ${escapeHtml(input.fecha)}.</p>` +
-    `<p>${escapeHtml(destino)}</p>` +
-    `<p><a href="${escapeHtml(input.cancelacionUrl)}">Ver detalle</a></p>`);
+  const cuerpoHtml = renderEmailParagraph(
+    `Hola ${escapeHtml(input.cliente)}, cancelamos tu <strong>${escapeHtml(input.servicio)}</strong> ` +
+    `con ${escapeHtml(input.profesional)} del ${escapeHtml(input.fecha)}.`,
+  ) + renderEmailParagraph(escapeHtml(destino));
+  const actions: EmailAction[] = input.cancelacionUrl.trim().length > 0
+    ? [{ href: input.cancelacionUrl, label: "Ver detalle", variant: "secondary" }]
+    : [];
+  const html = envolverCuerpo(subject, cuerpoHtml, {
+    negocio: input.negocio,
+    logoUrl: input.logoUrl,
+    actions,
+    preheader: subject,
+  });
 
-  return { subject: `Cancelaste tu turno en ${input.negocio}`, html };
+  return { subject, html };
 }
